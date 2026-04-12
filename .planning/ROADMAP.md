@@ -49,12 +49,12 @@ Plans:
   2. A snapshot can be taken at any point, the graph mutated further, and then restored to the snapshot with all state matching the original
   3. Test helper utilities exist that let tests build graph scenarios in 2-3 lines instead of verbose setup code
   4. CLAUDE.md exists with architecture overview, critical constraints, validation protocols, and script catalog sufficient for an agent to understand the project without human guidance
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
-- [ ] 01-03: TBD
+- [ ] 01-01-PLAN.md — Core KnowledgeGraph, identity, models, events, GraphBuilder, and SQLite persistence
+- [ ] 01-02-PLAN.md — Snapshot/restore with tick-linked IDs, round-trip integrity tests, retention policy
+- [ ] 01-03-PLAN.md — CLAUDE.md update with architecture, conventions, validation protocols, script catalog
 
 ### Phase 2: Mechanic Framework
 **Goal**: A stable mechanic protocol exists with DSL primitives, hand-written seed mechanics prove the API works, and all mechanics are versioned and queryable
@@ -163,7 +163,7 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Universe Infrastructure | 0/2 | Planning complete | - |
-| 1. Graph Foundation | 0/3 | Not started | - |
+| 1. Graph Foundation | 0/3 | Planning complete | - |
 | 2. Mechanic Framework | 0/3 | Not started | - |
 | 3. Design Validation | 0/3 | Not started | - |
 | 4. LLM Mechanic Generation | 0/3 | Not started | - |
