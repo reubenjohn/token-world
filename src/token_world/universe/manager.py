@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import shutil
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from slugify import slugify
@@ -76,7 +76,7 @@ class UniverseManager:
     def _init_db(self, universe_dir: Path, *, name: str, slug: str) -> None:
         """Initialize universe.db with metadata table."""
         db_path = universe_dir / "universe.db"
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         with sqlite3.connect(str(db_path)) as conn:
             conn.execute(
                 """

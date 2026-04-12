@@ -12,6 +12,7 @@ import subprocess
 from pathlib import Path
 
 from token_world.universe.templates.claude_md import render_claude_md
+from token_world.universe.templates.mcp_config import render_mcp_json
 
 
 def scaffold_universe(universe_dir: Path, *, name: str, slug: str) -> None:
@@ -45,6 +46,10 @@ def scaffold_universe(universe_dir: Path, *, name: str, slug: str) -> None:
     # Create AGENTS.md as symlink to CLAUDE.md (per D-05)
     agents_md = universe_dir / "AGENTS.md"
     os.symlink("CLAUDE.md", str(agents_md))
+
+    # Generate .mcp.json for MCP tool discovery
+    mcp_json = render_mcp_json()
+    (universe_dir / ".mcp.json").write_text(mcp_json)
 
     # Create .gitignore for SQLite WAL files
     gitignore_content = "*.db-wal\n*.db-shm\n"
