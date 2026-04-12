@@ -19,11 +19,11 @@ surfaces a gap. The outlier (UC-O07) leans on the observation seed.
 
 ## Wave 2 Authoring Checklist
 
-- [ ] `.planning/use-cases/social/UC-O01-trade-negotiation.md`
-- [ ] `.planning/use-cases/social/UC-O02-persuasion-check.md`
-- [ ] `.planning/use-cases/social/UC-O03-give-sword-to-bob.md`
-- [ ] `.planning/use-cases/social/UC-O04-deception.md`
-- [ ] `.planning/use-cases/social/UC-O05-teaching.md`
-- [ ] `.planning/use-cases/social/UC-O06-cooperation-lift-heavy.md`
-- [ ] `.planning/use-cases/social/UC-O07-observation-of-agent.md`
-- [ ] `.planning/use-cases/social/UC-O08-speech-broadcast.md`
+- [x] `.planning/use-cases/social/UC-O01-trade-negotiation.md`
+- [x] `.planning/use-cases/social/UC-O02-persuasion-check.md`
+- [x] `.planning/use-cases/social/UC-O03-give-sword-to-bob.md`
+- [x] `.planning/use-cases/social/UC-O04-deception.md`
+- [x] `.planning/use-cases/social/UC-O05-teaching.md`
+- [x] `.planning/use-cases/social/UC-O06-cooperation-lift-heavy.md`
+- [x] `.planning/use-cases/social/UC-O07-observation-of-agent.md`
+- [x] `.planning/use-cases/social/UC-O08-speech-broadcast.md`
