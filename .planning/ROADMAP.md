@@ -37,8 +37,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 2 plans
 
 Plans:
-- [ ] 00-01-PLAN.md — Project bootstrap, XDG paths, Pydantic models, UniverseManager CRUD, Click CLI
-- [ ] 00-02-PLAN.md — Universe scaffolding (CLAUDE.md template, AGENTS.md symlink, .mcp.json, MCP stub server, git init, tick_summaries)
+- [x] 00-01-PLAN.md — Project bootstrap, XDG paths, Pydantic models, UniverseManager CRUD, Click CLI
+- [x] 00-02-PLAN.md — Universe scaffolding (CLAUDE.md template, AGENTS.md symlink, .mcp.json, MCP stub server, git init, tick_summaries)
 
 ### Phase 1: Graph Foundation
 **Goal**: A persistent, snapshot-capable knowledge graph exists that supports arbitrary emergent properties and can be rolled back to any previous state
