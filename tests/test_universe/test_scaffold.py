@@ -1,7 +1,8 @@
-"""Tests for universe scaffolding: directories, CLAUDE.md, AGENTS.md, git init."""
+"""Tests for universe scaffolding: directories, CLAUDE.md, AGENTS.md, .mcp.json, git init."""
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -171,6 +172,52 @@ class TestScaffoldGitInit:
         assert "Initialize universe" in result.stdout
 
 
+class TestScaffoldMcpJson:
+    """Tests for .mcp.json creation within scaffold_universe()."""
+
+    def test_creates_mcp_json(self, tmp_data_dir: Path) -> None:
+        """scaffold_universe() creates .mcp.json in the universe dir."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        assert (universe_dir / ".mcp.json").is_file()
+
+    def test_mcp_json_is_valid_json(self, tmp_data_dir: Path) -> None:
+        """.mcp.json is valid JSON."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        content = (universe_dir / ".mcp.json").read_text()
+        data = json.loads(content)
+        assert isinstance(data, dict)
+
+    def test_mcp_json_has_mcp_servers_key(self, tmp_data_dir: Path) -> None:
+        """.mcp.json has mcpServers key."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        data = json.loads((universe_dir / ".mcp.json").read_text())
+        assert "mcpServers" in data
+
+    def test_mcp_json_has_token_world_server(self, tmp_data_dir: Path) -> None:
+        """.mcp.json has token-world server entry."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        data = json.loads((universe_dir / ".mcp.json").read_text())
+        assert "token-world" in data["mcpServers"]
+
+    def test_mcp_json_server_uses_uvx(self, tmp_data_dir: Path) -> None:
+        """.mcp.json server entry uses uvx command."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        data = json.loads((universe_dir / ".mcp.json").read_text())
+        server = data["mcpServers"]["token-world"]
+        assert server["command"] == "uvx"
+        assert "token-world-mcp" in server["args"]
+
+
 class TestManagerIntegrationWithScaffold:
     """Tests for full flow: manager.create() produces all scaffold output."""
 
@@ -185,6 +232,12 @@ class TestManagerIntegrationWithScaffold:
         # CLAUDE.md and AGENTS.md
         assert (path / "CLAUDE.md").is_file()
         assert (path / "AGENTS.md").is_symlink()
+
+        # .mcp.json
+        assert (path / ".mcp.json").is_file()
+        mcp_data = json.loads((path / ".mcp.json").read_text())
+        assert "mcpServers" in mcp_data
+        assert "token-world" in mcp_data["mcpServers"]
 
         # Directories
         assert (path / "mechanics").is_dir()
