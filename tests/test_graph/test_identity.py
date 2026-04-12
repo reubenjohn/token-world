@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from token_world.graph.knowledge_graph import KnowledgeGraph
 
 

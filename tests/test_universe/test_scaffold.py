@@ -5,8 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from token_world.universe.manager import UniverseManager
 from token_world.universe.scaffold import scaffold_universe
 

@@ -24,9 +24,7 @@ class GraphBuilder:
         self._nodes: list[tuple[str, str, dict]] = []
         self._edges: list[tuple[str, str, dict]] = []
 
-    def node(
-        self, id: str, *, node_type: str = "entity", **props: object
-    ) -> GraphBuilder:
+    def node(self, id: str, *, node_type: str = "entity", **props: object) -> GraphBuilder:
         """Add a node spec to the builder."""
         self._nodes.append((id, node_type, props))
         return self

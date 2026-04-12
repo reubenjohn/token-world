@@ -54,12 +54,14 @@ class TestHandleToolsCall:
 
     def test_tools_call_returns_not_implemented(self) -> None:
         """tools/call returns a not-implemented message for any tool."""
-        response = handle_request({
-            "jsonrpc": "2.0",
-            "id": 3,
-            "method": "tools/call",
-            "params": {"name": "resume_tick", "arguments": {}},
-        })
+        response = handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "tools/call",
+                "params": {"name": "resume_tick", "arguments": {}},
+            }
+        )
         content = response["result"]["content"]
         assert len(content) == 1
         assert "not yet implemented" in content[0]["text"].lower()
@@ -67,12 +69,14 @@ class TestHandleToolsCall:
 
     def test_tools_call_includes_tool_name_in_response(self) -> None:
         """tools/call response includes the requested tool name."""
-        response = handle_request({
-            "jsonrpc": "2.0",
-            "id": 3,
-            "method": "tools/call",
-            "params": {"name": "rollback", "arguments": {}},
-        })
+        response = handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "tools/call",
+                "params": {"name": "rollback", "arguments": {}},
+            }
+        )
         assert "rollback" in response["result"]["content"][0]["text"]
 
 
@@ -87,10 +91,12 @@ class TestHandleUnknownMethod:
 
     def test_notifications_initialized_returns_none(self) -> None:
         """notifications/initialized returns None (no response for notifications)."""
-        response = handle_request({
-            "jsonrpc": "2.0",
-            "method": "notifications/initialized",
-        })
+        response = handle_request(
+            {
+                "jsonrpc": "2.0",
+                "method": "notifications/initialized",
+            }
+        )
         assert response is None
 
 

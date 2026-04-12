@@ -191,8 +191,7 @@ class TestPropertyValidation:
 class TestGraphBuilder:
     def test_graph_builder(self, graph_builder: GraphBuilder) -> None:
         kg = (
-            graph_builder
-            .node("bob", node_type="agent", hp=100)
+            graph_builder.node("bob", node_type="agent", hp=100)
             .node("sword", node_type="entity")
             .edge("bob", "sword", relation="holds")
             .build()
