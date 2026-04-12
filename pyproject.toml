@@ -12,8 +12,12 @@ dependencies = [
     "networkx>=3.6",
     "pydantic>=2.12",
     "python-dotenv>=1.0",
+    "python-slugify>=8.0",
     "loguru>=0.7",
 ]
+
+[project.scripts]
+token-world = "token_world.cli:cli"
 
 [project.urls]
 Homepage = "https://github.com/reubenjohn/token-world"
@@ -53,6 +57,7 @@ show_missing = true
 skip_covered = true
 
 [tool.ruff]
+src = ["src"]
 line-length = 100
 target-version = "py312"
 
