@@ -4,6 +4,7 @@
 **Status:** Ready for planning
 
 <domain>
+
 ## Phase Boundary
 
 Deliver universe scaffolding: a CLI/API that creates a self-contained universe folder (CLAUDE.md, AGENTS.md symlink, .mcp.json, universe.db, mechanics/, agents/, tick_summaries/, .git/) and a universe manager for create/load/list/delete. The creation flow is tool-driven: a human shapes the vision, the agent calls a creation tool to scaffold a template, then customizes it via file edits.
@@ -11,6 +12,7 @@ Deliver universe scaffolding: a CLI/API that creates a self-contained universe f
 </domain>
 
 <decisions>
+
 ## Implementation Decisions
 
 ### Project Structure

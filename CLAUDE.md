@@ -1,3 +1,17 @@
+<!-- GSD:project-start source:PROJECT.md -->
+## Project
+
+**Token World**
+
+## Agent Autonomy
+
+Act as autonomously as possible. Minimize human steering — plan and execute without asking for confirmation on routine decisions. Specifically:
+
+- **Bias toward action.** If the path forward is clear, take it. Don't ask "should I proceed?" — just proceed.
+- **Make reasonable decisions.** When a choice isn't covered by existing decisions (PROJECT.md, CONTEXT.md), pick the pragmatic option and document what you chose. Only escalate genuinely ambiguous or high-stakes decisions.
+- **Self-correct.** If something breaks, diagnose and fix it. Only surface problems you've tried and failed to resolve.
+- **Challenge decisions when rationale exists.** Documented rationale is there so it can be questioned as circumstances change. If a prior decision's reasoning no longer holds, flag it rather than blindly following.
+
 ## Documentation Maintenance
 
 - Maintain `docs/` with subfolders: `design/` (architecture, Mermaid diagrams, technical decisions) and `guides/` (user-facing how-tos, setup, contributing)
@@ -12,11 +26,6 @@
 - Use `uv` for package management
 - Use `ruff` for linting and formatting
 - Use `mypy` for type checking on the mechanic framework API
-
-<!-- GSD:project-start source:PROJECT.md -->
-## Project
-
-**Token World**
 
 A universe simulator where LLM-powered agents inhabit a text-based world and interact with an environment whose rules are procedurally generated on-the-fly. The simulation engine — itself an LLM agent — interprets resident agent actions, maps them to existing mechanics or generates new ones, and returns grounded observations. All world state lives in a flexible knowledge graph that evolves as new concepts emerge.
 
