@@ -8,11 +8,29 @@ and an initialized git repository with an initial commit.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
 from token_world.universe.templates.claude_md import render_claude_md
 from token_world.universe.templates.mcp_config import render_mcp_json
+
+
+def _copy_seed_mechanics(mechanics_dir: Path) -> None:
+    """Copy bundled seed mechanic folders into a universe's mechanics/ directory.
+
+    Only copies subdirectories that contain a ``mechanic.py`` file,
+    skipping ``__init__.py``, ``__pycache__``, and other non-mechanic entries.
+
+    Args:
+        mechanics_dir: The universe's mechanics/ directory.
+    """
+    seeds_dir = Path(__file__).resolve().parent.parent / "mechanic" / "seeds"
+    if not seeds_dir.is_dir():
+        return
+    for entry in sorted(seeds_dir.iterdir()):
+        if entry.is_dir() and (entry / "mechanic.py").exists():
+            shutil.copytree(entry, mechanics_dir / entry.name, dirs_exist_ok=True)
 
 
 def scaffold_universe(universe_dir: Path, *, name: str, slug: str) -> None:
@@ -32,8 +50,9 @@ def scaffold_universe(universe_dir: Path, *, name: str, slug: str) -> None:
         name: Display name of the universe.
         slug: Slugified name for the universe.
     """
-    # Create subdirectories
+    # Create subdirectories and copy seed mechanics
     (universe_dir / "mechanics").mkdir(exist_ok=True)
+    _copy_seed_mechanics(universe_dir / "mechanics")
     (universe_dir / "agents").mkdir(exist_ok=True)
     (universe_dir / "tick_summaries" / "ticks").mkdir(parents=True, exist_ok=True)
     (universe_dir / "tick_summaries" / "batches").mkdir(exist_ok=True)

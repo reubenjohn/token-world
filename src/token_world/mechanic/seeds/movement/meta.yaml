@@ -1,0 +1,6 @@
+id: movement
+description: Agent moves between connected locations
+voluntary: true
+tags:
+  - spatial
+  - core

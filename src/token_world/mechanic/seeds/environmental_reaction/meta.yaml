@@ -1,0 +1,7 @@
+id: environmental_reaction
+description: Fire spreads to adjacent flammable entities when temperature changes
+voluntary: false
+tags:
+  - environmental
+  - reactive
+  - core
