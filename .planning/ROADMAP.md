@@ -53,8 +53,8 @@ Plans:
 
 Plans:
 - [x] 01-01-PLAN.md — Core KnowledgeGraph, identity, models, events, GraphBuilder, and SQLite persistence
-- [ ] 01-02-PLAN.md — Snapshot/restore with tick-linked IDs, round-trip integrity tests, retention policy
-- [ ] 01-03-PLAN.md — CLAUDE.md update with architecture, conventions, validation protocols, script catalog
+- [x] 01-02-PLAN.md — Snapshot/restore with tick-linked IDs, round-trip integrity tests, retention policy
+- [x] 01-03-PLAN.md — CLAUDE.md update with architecture, conventions, validation protocols, script catalog
 
 ### Phase 2: Mechanic Framework
 **Goal**: A stable mechanic protocol exists with DSL primitives, hand-written seed mechanics prove the API works, and all mechanics are versioned and queryable

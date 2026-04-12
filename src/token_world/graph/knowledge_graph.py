@@ -372,16 +372,12 @@ class KnowledgeGraph:
             RuntimeError: If no persistence (db_path) is configured.
         """
         if self._persistence is None:
-            raise RuntimeError(
-                "Cannot snapshot without persistence (db_path required)"
-            )
+            raise RuntimeError("Cannot snapshot without persistence (db_path required)")
         self._current_tick = tick_id
         # Persist current state first
         self.save()
         # Save snapshot
-        snapshot_id = self._persistence.save_snapshot(
-            self._graph, tick_id, summary
-        )
+        snapshot_id = self._persistence.save_snapshot(self._graph, tick_id, summary)
         # Prune if over retention limit
         self._persistence.prune_snapshots(max_count=50)
         # Event compaction: find oldest retained snapshot tick
@@ -403,9 +399,7 @@ class KnowledgeGraph:
             ValueError: If snapshot_id does not exist.
         """
         if self._persistence is None:
-            raise RuntimeError(
-                "Cannot restore without persistence (db_path required)"
-            )
+            raise RuntimeError("Cannot restore without persistence (db_path required)")
         graph, tick_id = self._persistence.load_snapshot(snapshot_id)
         self._graph = graph
         self._current_tick = tick_id

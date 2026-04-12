@@ -8,8 +8,6 @@ import pytest
 
 from token_world.graph.knowledge_graph import KnowledgeGraph
 from token_world.graph.models import SnapshotInfo
-from tests.test_graph.conftest import GraphBuilder
-
 
 # --- Snapshot creation tests ---
 
@@ -37,7 +35,7 @@ class TestSnapshotCreation:
     def test_snapshot_with_summary(self, kg: KnowledgeGraph) -> None:
         """Snapshot stores summary string (D-06)."""
         kg.add_node("a", node_type="agent")
-        snap_id = kg.snapshot(tick_id=1, summary="Bob found sword")
+        kg.snapshot(tick_id=1, summary="Bob found sword")
         infos = kg.list_snapshots()
         assert infos[0].summary == "Bob found sword"
 
@@ -191,19 +189,28 @@ class TestRoundtripIntegrity:
     def test_roundtrip_integrity(self, kg: KnowledgeGraph) -> None:
         """Complex graph survives snapshot/restore with full fidelity."""
         # Build complex graph: 5+ nodes, 5+ edges, mixed property types
-        kg.add_node("alice", node_type="agent", hp=100, name="Alice",
-                     is_alive=True, inventory=["sword", "shield"],
-                     stats={"str": 10, "dex": 14})
-        kg.add_node("bob", node_type="agent", hp=80, name="Bob",
-                     is_alive=True, inventory=[], stats={"str": 15, "dex": 8})
-        kg.add_node("tavern", node_type="entity", name="Rusty Nail",
-                     capacity=50, open=True)
-        kg.add_node("sword", node_type="entity", damage=10, magic=False,
-                     enchantments=["fire"])
-        kg.add_node("shield", node_type="entity", defense=5, magic=True,
-                     enchantments=[])
-        kg.add_node("npc_vendor", node_type="agent", gold=500,
-                     prices={"sword": 100, "shield": 50})
+        kg.add_node(
+            "alice",
+            node_type="agent",
+            hp=100,
+            name="Alice",
+            is_alive=True,
+            inventory=["sword", "shield"],
+            stats={"str": 10, "dex": 14},
+        )
+        kg.add_node(
+            "bob",
+            node_type="agent",
+            hp=80,
+            name="Bob",
+            is_alive=True,
+            inventory=[],
+            stats={"str": 15, "dex": 8},
+        )
+        kg.add_node("tavern", node_type="entity", name="Rusty Nail", capacity=50, open=True)
+        kg.add_node("sword", node_type="entity", damage=10, magic=False, enchantments=["fire"])
+        kg.add_node("shield", node_type="entity", defense=5, magic=True, enchantments=[])
+        kg.add_node("npc_vendor", node_type="agent", gold=500, prices={"sword": 100, "shield": 50})
 
         kg.add_edge("alice", "tavern", relation="located_in")
         kg.add_edge("bob", "tavern", relation="located_in")
@@ -312,7 +319,7 @@ class TestMultipleSnapshots:
         # Tick 1 state
         kg.add_node("a", node_type="entity", val=1)
         kg.set_tick(1)
-        snap1 = kg.snapshot(tick_id=1, summary="tick one")
+        kg.snapshot(tick_id=1, summary="tick one")
 
         # Tick 5 state
         kg.set("a", "val", 5)
@@ -325,7 +332,7 @@ class TestMultipleSnapshots:
         kg.set("b", "val", 100)
         kg.add_node("c", node_type="entity", val=1000)
         kg.set_tick(10)
-        snap10 = kg.snapshot(tick_id=10, summary="tick ten")
+        kg.snapshot(tick_id=10, summary="tick ten")
 
         # Restore to tick 5
         kg.restore(snap5)
@@ -349,7 +356,7 @@ class TestEventCompaction:
         # Snapshot at tick 5
         kg.set_tick(5)
         kg.add_node("b", node_type="entity")
-        snap5 = kg.snapshot(tick_id=5, summary="at five")
+        kg.snapshot(tick_id=5, summary="at five")
         # Generate more events at tick 10
         kg.set_tick(10)
         kg.add_node("c", node_type="entity")
@@ -370,7 +377,7 @@ class TestSnapshotRetention:
         kg.add_node("a", node_type="entity")
         # Create 51 snapshots
         for i in range(51):
-            kg.snapshot(tick_id=i + 1, summary=f"snap {i+1}")
+            kg.snapshot(tick_id=i + 1, summary=f"snap {i + 1}")
 
         infos = kg.list_snapshots()
         assert len(infos) <= 50

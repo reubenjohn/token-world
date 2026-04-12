@@ -272,9 +272,7 @@ class GraphPersistence:
         """
         with sqlite3.connect(str(self._db_path)) as conn:
             self._ensure_tables(conn)
-            count = conn.execute(
-                "SELECT COUNT(*) FROM graph_snapshots"
-            ).fetchone()[0]
+            count = conn.execute("SELECT COUNT(*) FROM graph_snapshots").fetchone()[0]
             if count <= max_count:
                 return []
             excess = count - max_count
