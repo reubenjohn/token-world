@@ -65,12 +65,12 @@ Plans:
   2. At least 3 hand-written seed mechanics (movement, observation, basic interaction) execute correctly against the graph and produce verifiable state changes
   3. Every change to a mechanic is versioned with full history retrievable programmatically
   4. CLI scripts exist for running simulation, inspecting graph state, and listing mechanics without composing raw commands
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
-- [ ] 02-03: TBD
+- [ ] 02-01-PLAN.md — Core protocol (Mechanic ABC, CheckResult), MechanicContext DSL, matchers, chain execution engine, execution trace
+- [ ] 02-02-PLAN.md — Seed mechanics (movement, observation, environmental reaction), PyYAML, scaffold integration, chain execution integration tests
+- [ ] 02-03-PLAN.md — Mechanic registry (folder scanning, git versioning), loader, CLI commands (list-mechanics, run-mechanic, query-graph)
 
 ### Phase 3: Design Validation
 **Goal**: A use case library covering diverse interaction scenarios exists, gap analysis has informed architecture adjustments, and optional graph indexes are available for mechanics that need them
@@ -164,7 +164,7 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 |-------|----------------|--------|-----------|
 | 0. Universe Infrastructure | 0/2 | Planning complete | - |
 | 1. Graph Foundation | 0/3 | Planning complete | - |
-| 2. Mechanic Framework | 0/3 | Not started | - |
+| 2. Mechanic Framework | 0/3 | Planning complete | - |
 | 3. Design Validation | 0/3 | Not started | - |
 | 4. LLM Mechanic Generation | 0/3 | Not started | - |
 | 5. Simulation Engine | 0/3 | Not started | - |
