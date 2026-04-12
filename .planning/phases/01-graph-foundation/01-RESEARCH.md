@@ -339,22 +339,13 @@ ALLOWED_PROPERTY_TYPES = (str, int, float, bool, type(None), list, dict)
 | A2 | claim_id hash suffix approach (sha256 of name+count) produces sufficient uniqueness | Pattern 3 | Extremely unlikely collision at hobby-project scale; the fallback chain of 2/4/6/8 character suffixes handles it |
 | A3 | 1000-node graph is a reasonable upper bound for v1 performance testing | Performance data | If graphs grow much larger, serialization times scale linearly but should still be fast |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Snapshot retention policy (D-07)**
-   - What we know: Snapshots are linked to tick IDs. Full JSON dumps. Summary names from tick summaries.
-   - What's unclear: How many to keep? Auto-prune old ones? Time-based or count-based retention?
-   - Recommendation: Start with count-based (keep last N=50 snapshots), add pruning later. Simple and sufficient for v1.
+1. **Snapshot retention policy (D-07)** — RESOLVED: Plan 01-02 implements count-based retention (max 50 snapshots) with `prune_snapshots(max_count=50)` called on each new snapshot creation.
 
-2. **Event log compaction**
-   - What we know: Events accumulate forever if not compacted. Each snapshot makes older events unnecessary.
-   - What's unclear: When to compact? Should we delete events older than the oldest retained snapshot?
-   - Recommendation: Delete events before the oldest snapshot on each new snapshot creation. Keeps the table bounded.
+2. **Event log compaction** — RESOLVED: Plan 01-02 implements event compaction in `snapshot()`: after pruning, determines oldest retained snapshot tick_id, calls `clear_before()` on EventStore and `delete_events_before()` on persistence.
 
-3. **Graph module integration with existing universe.db**
-   - What we know: `universe/manager.py` already creates `universe.db` with a `metadata` table. Graph tables go in the same file.
-   - What's unclear: Should graph tables be created at universe creation time, or lazily on first graph use?
-   - Recommendation: Lazy creation on first `KnowledgeGraph(db_path)` instantiation. Keeps Phase 0 code unchanged.
+3. **Graph module integration with existing universe.db** — RESOLVED: Plan 01-01 uses lazy table creation via `_ensure_tables()` called on first `save()`, not on `__init__`. Phase 0 code unchanged.
 
 ## Validation Architecture
 

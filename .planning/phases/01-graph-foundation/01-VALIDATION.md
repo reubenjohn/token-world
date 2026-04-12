@@ -38,13 +38,13 @@ created: 2026-04-11
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 01-01-01 | 01 | 1 | GRAPH-01 | — | N/A | unit | `uv run pytest tests/graph/ -x -q` | ❌ W0 | ⬜ pending |
-| 01-01-02 | 01 | 1 | GRAPH-02 | — | N/A | unit | `uv run pytest tests/graph/ -x -q` | ❌ W0 | ⬜ pending |
-| 01-01-03 | 01 | 1 | GRAPH-03 | — | N/A | unit | `uv run pytest tests/graph/ -x -q` | ❌ W0 | ⬜ pending |
-| 01-02-01 | 02 | 2 | GRAPH-04 | — | N/A | unit | `uv run pytest tests/graph/ -x -q` | ❌ W0 | ⬜ pending |
-| 01-02-02 | 02 | 2 | GRAPH-05 | — | N/A | unit | `uv run pytest tests/graph/ -x -q` | ❌ W0 | ⬜ pending |
-| 01-02-03 | 02 | 2 | TEST-03 | — | N/A | integration | `uv run pytest tests/graph/ -x -q` | ❌ W0 | ⬜ pending |
-| 01-03-01 | 03 | 3 | TEST-06 | — | N/A | unit | `uv run pytest tests/graph/ -x -q` | ❌ W0 | ⬜ pending |
+| 01-01-01 | 01 | 1 | GRAPH-01 | — | N/A | unit | `uv run pytest tests/test_graph/ -x -q` | ❌ W0 | ⬜ pending |
+| 01-01-02 | 01 | 1 | GRAPH-02 | — | N/A | unit | `uv run pytest tests/test_graph/ -x -q` | ❌ W0 | ⬜ pending |
+| 01-01-03 | 01 | 1 | GRAPH-03 | — | N/A | unit | `uv run pytest tests/test_graph/ -x -q` | ❌ W0 | ⬜ pending |
+| 01-02-01 | 02 | 2 | GRAPH-04 | — | N/A | unit | `uv run pytest tests/test_graph/ -x -q` | ❌ W0 | ⬜ pending |
+| 01-02-02 | 02 | 2 | GRAPH-05 | — | N/A | unit | `uv run pytest tests/test_graph/ -x -q` | ❌ W0 | ⬜ pending |
+| 01-02-03 | 02 | 2 | TEST-03 | — | N/A | integration | `uv run pytest tests/test_graph/ -x -q` | ❌ W0 | ⬜ pending |
+| 01-03-01 | 03 | 3 | TEST-06 | — | N/A | unit | `uv run pytest tests/test_graph/ -x -q` | ❌ W0 | ⬜ pending |
 | 01-03-02 | 03 | 3 | AUTO-01 | — | N/A | manual | Review CLAUDE.md content | ❌ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
@@ -53,11 +53,11 @@ created: 2026-04-11
 
 ## Wave 0 Requirements
 
-- [ ] `tests/graph/` — test directory for graph module
-- [ ] `tests/graph/conftest.py` — shared graph fixtures and builders
-- [ ] `tests/graph/test_knowledge_graph.py` — stubs for GRAPH-01 through GRAPH-05
-- [ ] `tests/graph/test_snapshots.py` — stubs for TEST-03 (snapshot round-trip)
-- [ ] `tests/graph/test_helpers.py` — stubs for TEST-06 (convenience builders)
+- [ ] `tests/test_graph/` — test directory for graph module
+- [ ] `tests/test_graph/conftest.py` — shared graph fixtures and builders
+- [ ] `tests/test_graph/test_knowledge_graph.py` — stubs for GRAPH-01 through GRAPH-05
+- [ ] `tests/test_graph/test_snapshots.py` — stubs for TEST-03 (snapshot round-trip)
+- [ ] `tests/test_graph/test_helpers.py` — stubs for TEST-06 (convenience builders)
 
 *Existing pytest infrastructure in `tests/conftest.py` covers framework setup.*
 
