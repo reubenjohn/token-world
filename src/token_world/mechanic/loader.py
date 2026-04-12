@@ -40,11 +40,7 @@ def load_mechanic_class(mechanic_dir: Path) -> type[Mechanic]:
 
     for attr_name in dir(module):
         attr = getattr(module, attr_name)
-        if (
-            inspect.isclass(attr)
-            and issubclass(attr, Mechanic)
-            and attr is not Mechanic
-        ):
+        if inspect.isclass(attr) and issubclass(attr, Mechanic) and attr is not Mechanic:
             return attr
 
     raise ValueError(f"No Mechanic subclass found in {mechanic_file}")
