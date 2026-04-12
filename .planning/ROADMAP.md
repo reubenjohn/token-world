@@ -68,9 +68,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Core protocol (Mechanic ABC, CheckResult), MechanicContext DSL, matchers, chain execution engine, execution trace
-- [ ] 02-02-PLAN.md — Seed mechanics (movement, observation, environmental reaction), PyYAML, scaffold integration, chain execution integration tests
-- [ ] 02-03-PLAN.md — Mechanic registry (folder scanning, git versioning), loader, CLI commands (list-mechanics, run-mechanic, query-graph)
+- [x] 02-01-PLAN.md — Core protocol (Mechanic ABC, CheckResult), MechanicContext DSL, matchers, chain execution engine, execution trace
+- [x] 02-02-PLAN.md — Seed mechanics (movement, observation, environmental reaction), PyYAML, scaffold integration, chain execution integration tests
+- [x] 02-03-PLAN.md — Mechanic registry (folder scanning, git versioning), loader, CLI commands (list-mechanics, run-mechanic, query-graph)
 
 ### Phase 3: Design Validation
 **Goal**: A use case library covering diverse interaction scenarios exists, gap analysis has informed architecture adjustments, and optional graph indexes are available for mechanics that need them
