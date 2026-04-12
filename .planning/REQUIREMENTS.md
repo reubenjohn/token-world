@@ -78,7 +78,7 @@
 ### Design Validation
 
 - [x] **DVAL-01**: Use case library covering spatial, social, resource, environmental, and edge-case interaction scenarios
-- [ ] **DVAL-02**: Gap analysis — review use cases against architecture and requirements to surface missing mechanics or framework capabilities
+- [x] **DVAL-02**: Gap analysis — review use cases against architecture and requirements to surface missing mechanics or framework capabilities
 - [ ] **DVAL-03**: Use case regression suite — key scenarios become executable integration tests that validate the core loop end-to-end
 
 ## v2 Requirements
@@ -170,7 +170,7 @@
 | AUTO-06 | Phase 6 | Pending |
 | AUTO-07 | Phase 6 | Pending |
 | DVAL-01 | Phase 3 | Complete |
-| DVAL-02 | Phase 3 | Pending |
+| DVAL-02 | Phase 3 | Complete |
 | DVAL-03 | Phase 6 | Pending |
 
 **Coverage:**
