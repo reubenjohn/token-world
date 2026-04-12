@@ -73,27 +73,9 @@ The simulation engine reliably interprets agent actions, generates coherent mech
 | Hierarchical tick summaries | Tick → batch (100 ticks) → epoch (100 batches) as JSON in universe folder. Agent-resilient: survives compaction, enables operator handoff, readable by any tool. Like commit messages at different scales. | -- Pending |
 | Opus for mechanic generation, Sonnet/Haiku for engine classification | Code generation quality justifies Opus; action classification is simpler | -- Pending |
 
-## Operating Principles
-
-These principles govern how agents work on this project autonomously:
-
-1. **Aggressive subagent delegation** — Coordinating agents must delegate research, implementation, and validation to subagents to prevent context fill. Never let the orchestrator do work a subagent could do.
-2. **ROI awareness** — If a feature implementation seems very complex for the value it brings, something is wrong. Applies to tests too: thousands of tests add value but may be expensive to maintain. Ask: are we missing convenience utilities (graph builders, test helpers) that would make things simpler and more concise?
-3. **Self-improving infrastructure** — Three reinforcing facets:
-   - *Context engineering & grounding* — CLAUDE.md must be comprehensive. Tooling (diagnostics, visualizations, playtests, metrics) must scale with the project. If grounding is insufficient, the project stalls waiting for human course correction.
-   - *Dogfooding* — Tools built for the simulation (graph visualization, trace replay, diagnostics) must also serve agents building the project. Don't build "dev tools" and "simulation tools" separately. If an agent implementing the engine can use the graph visualizer to debug its own work, that's leverage compounding.
-   - *Continuous retrospective* — After each phase, ask: is grounding sufficient? Do we have more leverage than before? Are agents performing well? Do they need better tools, instructions, or validation? The grounding infrastructure must grow with the features.
-4. **Composition over specialization** — Prefer composable primitives that combine in surprising ways over purpose-built features. One generic mechanic pattern (interruption thresholds) handles sleep, daydreaming, autopilot travel, drunkenness. This is the simulation's core philosophy and the project's engineering philosophy.
-5. **Reversibility enables boldness** — Worktrees for exploring directions that can be reverted. Graph snapshots for rolling back corruption. Session forks for undoing agent state. If every action is reversible, agents can make bolder moves without human approval. Invest in undo infrastructure early.
-6. **Ground truth obsession** — If it's not in the graph, it doesn't exist. No side channels, no implicit state, no LLM-hallucinated state. Applies to the simulation AND the project itself — if it's not in a committed artifact (requirements, plans, tests), it's not real.
-
 ## Documentation
 
-- Maintain `docs/` with two subfolders: `design/` (architecture, Mermaid diagrams, technical decisions) and `guides/` (user-facing how-tos, setup, contributing)
-- Store diagrams as Mermaid in markdown — never check in rendered PNGs. Render on-demand with the mermaid MCP when visual review is needed.
-- Link generously between docs to avoid duplication
-- Keep docs attractive for potential contributors — clear README, design rationale, visual architecture diagrams
-- Design docs should evolve with the codebase — update Mermaid diagrams when architecture changes
+See [CLAUDE.md](../CLAUDE.md) § Documentation Maintenance for documentation practices.
 
 ## Evolution
 

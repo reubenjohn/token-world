@@ -17,16 +17,23 @@
 
 ### Agent Framework
 
+**Hybrid approach** (decided in PROJECT.md):
+- Agent SDK (e.g. Claude Code, Codex) sits at the top as operator/collaborator — orchestrates the simulation, handles mechanic generation (iterative coding), and enables human collaboration via shared tool interface
+- Raw Anthropic Python SDK powers the deterministic pipeline calls inside tools (action classification via Haiku, mechanic matching, observation formatting via Sonnet)
+- Simulation exposed as minimal MCP tools: `resume_tick` (start or resume a tick, including partially executed ones), `rollback`, `list_mechanics`, `register_mechanic`. Operator accesses universe state directly via filesystem and SQLite — no wrapper tools needed for inspection.
+- Harness-agnostic — works with any agent coding harness that reads CLAUDE.md/AGENTS.md + MCP
+
 | Technology | Version | Purpose | Why Recommended | Confidence |
 |------------|---------|---------|-----------------|------------|
-| Raw Anthropic SDK (messages API) | 0.80+ | Simulation engine agent, mechanic generation | For v1, the simulation engine is a single agent with a well-defined tool loop (interpret action -> query graph -> select/generate mechanic -> execute -> return observation). A raw tool loop gives full control over prompt construction, token budgets, retry logic, and cost. The Claude Agent SDK is designed for file/code/bash operations, not custom domain-specific tool execution. LangGraph is overkill for a single-agent loop with no branching/parallel paths. | MEDIUM-HIGH |
-| Claude Agent SDK | 0.1.58 | Future: multi-agent orchestration (v2+) | When scaling to review agents, monitoring agents, etc., the Agent SDK's subagent spawning and session management become valuable. But for v1's single engine agent, it adds unnecessary abstraction. Revisit at v2. | MEDIUM |
+| Claude Agent SDK | latest | Top-level orchestration — mechanic generation loop, human collaboration, simulation tool dispatch | Agent SDK sits at the operator layer; mechanic generation benefits from its iterative coding loop and tool-use capabilities. Human can collaborate via the same tool interface. | HIGH |
+| Anthropic Python SDK (raw API) | 0.80+ | Deterministic pipeline calls inside simulation tools — action classification, mechanic matching, observation formatting | Direct `client.messages.create()` calls with full control over model, system prompt, and tools per call. The inner pipeline is a deterministic orchestrator — raw API is the right abstraction here. | HIGH |
 
-**Rationale for raw API over frameworks:**
-- The simulation engine's tool loop is deterministic: parse action -> query graph -> find/generate mechanic -> execute -> format observation. This is a simple while loop, not a complex graph of decisions.
-- Structured outputs (JSON mode) eliminate parsing issues for mechanic generation.
-- Full control over system prompts, temperature, and model selection per call type (e.g., cheap model for action classification, capable model for code generation).
-- No framework lock-in. Can wrap in Agent SDK or LangGraph later if complexity demands it.
+**Key implementation details:**
+- Per-call model routing: `model="claude-opus-4-6"` for mechanic generation, `model="claude-sonnet-4-6"` for engine/observation, `model="claude-haiku-4-5-20251001"` for classification
+- Structured outputs (JSON mode) eliminate parsing issues
+- Full control over system prompts, temperature, token budgets, and retry logic per call type
+- Thin custom session persistence layer (~50-100 LOC) for resident agent memory: save/load message arrays as JSONL, fork = copy + truncate
+- Hierarchical tick summaries (JSON in tick_summaries/) enable agent catch-up after compaction or handoff: tick → batch (100 ticks) → epoch (100 batches)
 
 ### Persistence Layer
 
@@ -129,9 +136,9 @@ uv add --dev types-networkx
 | Graph library | NetworkX | kglab | Adds RDF/SPARQL complexity. Token World needs property graph semantics, not RDF triples. |
 | Persistence | SQLite (custom layer) | PostgreSQL | Server dependency. SQLite is sufficient and simpler for single-process simulation. |
 | Persistence | SQLite (custom layer) | eventsourcing library | Heavy framework for what is ~200 lines of custom code. The library targets enterprise DDD patterns, not graph state tracking. |
-| Agent framework | Raw Anthropic SDK | Claude Agent SDK | Designed for file/code/bash tool execution, not custom domain tools. Adds process overhead (bundled CLI). Lock-in to Claude Code's tool paradigm. |
-| Agent framework | Raw Anthropic SDK | LangGraph | Overkill for single-agent loop. Graph-based orchestration adds complexity without benefit until multi-agent (v2+). |
-| Agent framework | Raw Anthropic SDK | CrewAI | Role-based multi-agent framework. Wrong abstraction for a simulation engine. |
+| Agent framework | Hybrid (Agent SDK + Raw API) | Claude Code SDK (subprocess) | Subprocess overhead per call, opaque token spend, fights per-call model routing, autonomous loop conflicts with deterministic engine pipeline. |
+| Agent framework | Hybrid (Agent SDK + Raw API) | LangGraph | Overkill for single-agent loop. Graph-based orchestration adds complexity without benefit until multi-agent (v2+). |
+| Agent framework | Hybrid (Agent SDK + Raw API) | CrewAI | Role-based multi-agent framework. Wrong abstraction for a simulation engine. |
 | Sandboxing | RestrictedPython | Docker containers | ~100ms+ overhead per execution vs. microseconds for RestrictedPython. Mechanics run frequently in tight loops. |
 | Sandboxing | RestrictedPython | PyPy sandbox | No longer maintained. |
 | Sandboxing | RestrictedPython | Pyodide (WASM) | Complex setup, limited library support in WASM environment, overkill for controlled mechanic API. |
@@ -141,12 +148,12 @@ uv add --dev types-networkx
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| LangChain | Massive abstraction layer with frequent breaking changes. Adds complexity for simple LLM calls. Token World needs precise prompt control, not LangChain's chain abstractions. | Raw Anthropic SDK with Pydantic for structured outputs |
+| LangChain | Massive abstraction layer with frequent breaking changes. Adds complexity for simple LLM calls. Token World needs precise prompt control, not LangChain's chain abstractions. | Hybrid (Agent SDK + Raw API) with Pydantic for structured outputs |
 | MongoDB | Server dependency, overkill for single-file persistence. JSON-in-SQLite gives the same flexibility. | SQLite with JSON columns |
 | Neo4j | Requires running a JVM-based server. Cypher query language is another thing to learn/generate. NetworkX queries are just Python. | NetworkX (in-memory) + SQLite (persistence) |
 | FastAPI / Flask | No web server needed for v1. The simulation is a CLI/script, not a web app. | click for CLI interface |
-| LangGraph | Graph-based agent orchestration adds complexity. v1 is a single agent with a deterministic tool loop. | Raw while loop with Anthropic SDK tool use |
-| CrewAI | Multi-agent role framework. Wrong level of abstraction. | Raw Anthropic SDK |
+| LangGraph | Graph-based agent orchestration adds complexity. v1 is a single agent with a deterministic tool loop. | Hybrid (Agent SDK + Raw API) |
+| CrewAI | Multi-agent role framework. Wrong level of abstraction. | Hybrid (Agent SDK + Raw API) |
 | Celery / task queues | No async task processing needed for single-agent synchronous simulation. | Direct function calls |
 | ORM (SQLAlchemy) | The graph persistence layer is custom by nature (JSON blobs, event logs). An ORM adds mapping complexity without benefit. | Raw sqlite3 with parameterized queries |
 | pickle for persistence | Not human-readable, version-fragile, security risk with untrusted data. | JSON serialization via NetworkX's json_graph module |
@@ -157,11 +164,11 @@ uv add --dev types-networkx
 |------|-------------------|-----|------------|
 | Action interpretation (classify what agent is doing) | Claude Haiku 4.5 | Fast, cheap, sufficient for classification | Lowest cost per call |
 | Mechanic selection (match action to existing mechanic) | Claude Haiku 4.5 | Structured matching task, doesn't need deep reasoning | Low cost |
-| Mechanic generation (write new Python code) | Claude Sonnet 4.5 | Needs strong code generation, but Opus is overkill | Medium cost, use structured outputs |
+| Mechanic generation (write new Python code) | Claude Opus 4.6 (via Agent SDK) | Highest quality code generation — mechanics are the core value; quality justifies cost. Agent SDK's iterative coding loop handles retries and refinement. | Higher cost, use structured outputs |
 | Resident agent (personality, decisions) | Claude Haiku 4.5 | Personality expression doesn't need deep reasoning | Keep agent costs low for future scaling |
-| Complex world-building decisions | Claude Sonnet 4.5 | When coherence across many mechanics matters | Use sparingly |
+| Complex world-building decisions | Claude Sonnet 4.6 | When coherence across many mechanics matters | Use sparingly |
 
-**Cost principle:** Use the cheapest model that produces acceptable quality for each task. Haiku for classification/matching, Sonnet for generation. Opus only if Sonnet fails quality bars.
+**Cost principle:** Use the cheapest model that produces acceptable quality for each task. Haiku for classification/matching, Opus for mechanic generation (core value justifies cost), Sonnet for complex decisions.
 
 ## Sources
 
