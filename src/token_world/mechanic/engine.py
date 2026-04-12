@@ -110,23 +110,22 @@ class ChainExecutionEngine:
         max_depth = 0
 
         for mech in self._involuntary:
-            # Check if any matcher matches any mutation
+            # Collect all unique targets this mechanic should fire on
+            matched_targets: list[str] = []
+            seen_targets: set[str] = set()
             for mutation in mutations:
-                matched = False
                 for matcher in mech.watches():
                     if matches(matcher, mutation, graph):
-                        matched = True
-                        break
+                        # Determine target from mutation
+                        target = mutation.target
+                        if "->" in target:
+                            target = target.split("->")[0]
+                        if target not in seen_targets:
+                            seen_targets.add(target)
+                            matched_targets.append(target)
+                        break  # One matcher match per mutation is enough
 
-                if not matched:
-                    continue
-
-                # Determine target from mutation
-                target = mutation.target
-                if "->" in target:
-                    # Edge mutation: use source node
-                    target = target.split("->")[0]
-
+            for target in matched_targets:
                 # Cycle detection
                 if (mech.id, target) in seen:
                     continue
@@ -170,8 +169,5 @@ class ChainExecutionEngine:
                         children=children,
                     )
                 )
-
-                # Only trigger once per mechanic per mutation batch
-                break
 
         return nodes, any_truncated, total_executed, max_depth
