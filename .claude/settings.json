@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(~/.local/share/token_world/**)",
+      "Write(~/.local/share/token_world/**)",
+      "Read(~/.config/token_world/**)",
+      "Write(~/.config/token_world/**)"
+    ]
+  }
+}
