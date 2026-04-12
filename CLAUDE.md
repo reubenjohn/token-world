@@ -114,12 +114,12 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 ## What NOT to Use
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| LangChain | Massive abstraction layer with frequent breaking changes. Adds complexity for simple LLM calls. Token World needs precise prompt control, not LangChain's chain abstractions. | Raw Anthropic SDK with Pydantic for structured outputs |
+| LangChain | Massive abstraction layer with frequent breaking changes. Adds complexity for simple LLM calls. Token World needs precise prompt control, not LangChain's chain abstractions. | Hybrid (Agent SDK + Raw API) with Pydantic for structured outputs |
 | MongoDB | Server dependency, overkill for single-file persistence. JSON-in-SQLite gives the same flexibility. | SQLite with JSON columns |
 | Neo4j | Requires running a JVM-based server. Cypher query language is another thing to learn/generate. NetworkX queries are just Python. | NetworkX (in-memory) + SQLite (persistence) |
 | FastAPI / Flask | No web server needed for v1. The simulation is a CLI/script, not a web app. | click for CLI interface |
-| LangGraph | Graph-based agent orchestration adds complexity. v1 is a single agent with a deterministic tool loop. | Raw Anthropic SDK |
-| CrewAI | Multi-agent role framework. Wrong level of abstraction. | Raw Anthropic SDK |
+| LangGraph | Graph-based agent orchestration adds complexity. v1 is a single agent with a deterministic tool loop. | Hybrid (Agent SDK + Raw API) |
+| CrewAI | Multi-agent role framework. Wrong level of abstraction. | Hybrid (Agent SDK + Raw API) |
 | Celery / task queues | No async task processing needed for single-agent synchronous simulation. | Direct function calls |
 | ORM (SQLAlchemy) | The graph persistence layer is custom by nature (JSON blobs, event logs). An ORM adds mapping complexity without benefit. | Raw sqlite3 with parameterized queries |
 | pickle for persistence | Not human-readable, version-fragile, security risk with untrusted data. | JSON serialization via NetworkX's json_graph module |
