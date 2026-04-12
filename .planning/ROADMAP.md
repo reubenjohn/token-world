@@ -26,13 +26,14 @@ Decimal phases appear between their surrounding integers in numeric order.
 ### Phase 0: Universe Infrastructure
 **Goal**: A universe can be created as a self-contained folder with generated CLAUDE.md, .mcp.json, universe.db, and git versioning — ready for any agent coding harness to operate in
 **Depends on**: Nothing (first phase)
-**Requirements**: UNIV-01, UNIV-02, UNIV-03, UNIV-04, UNIV-05
+**Requirements**: UNIV-01, UNIV-02, UNIV-03, UNIV-04, UNIV-05, UNIV-06
 **Success Criteria** (what must be TRUE):
   1. Running create_universe() produces a folder with CLAUDE.md, AGENTS.md symlink, .mcp.json, universe.db, mechanics/, agents/, and initialized git repo
   2. Generated CLAUDE.md contains world rules and tool documentation sufficient for an agent to understand and operate the simulation
   3. Generated .mcp.json exposes simulation tools that an agent coding harness can discover and call
   4. Universe manager can create, load, list, and delete universes
   5. The universe folder works with Claude Code, and is designed to work with other harnesses (Codex, etc.) via AGENTS.md symlink
+  6. A tick_summaries/ folder exists inside the universe with hierarchical JSON summaries enabling agent catch-up after compaction or handoff
 **Plans**: TBD
 
 Plans:
@@ -107,13 +108,14 @@ Plans:
 ### Phase 5: Simulation Engine
 **Goal**: The engine interprets text actions, matches or generates mechanics, executes them against the graph, and returns grounded observations -- the full pipeline works end-to-end without a live agent
 **Depends on**: Phase 4
-**Requirements**: SIM-01, SIM-02, SIM-03, SIM-04, SIM-05, SIM-06, SIM-07, SIM-08
+**Requirements**: SIM-01, SIM-02, SIM-03, SIM-04, SIM-05, SIM-06, SIM-07, SIM-08, SIM-11
 **Success Criteria** (what must be TRUE):
   1. A text action (e.g. "pick up the rock") is classified into a structured action and matched to the correct existing mechanic
   2. When no mechanic exists for an action, the engine triggers generation and the new mechanic executes successfully
   3. Observations returned to the caller contain only information derivable from current graph state -- no hallucinated properties or entities
   4. Observations are contextually filtered so only relevant properties appear (e.g. temperature not shown when examining a keyboard)
   5. Conservation laws are enforced -- mechanics cannot create matter/energy from nothing; attempts produce appropriate failure observations
+  6. Per-tick summaries are written to tick_summaries/ after each simulation tick, enabling agent catch-up and context compaction
 **Plans**: TBD
 
 Plans:
@@ -124,13 +126,14 @@ Plans:
 ### Phase 6: Resident Agent & End-to-End Loop
 **Goal**: A personality-driven agent inhabits the world, the full simulation loop runs autonomously, and automated quality infrastructure validates the experience
 **Depends on**: Phase 5
-**Requirements**: AGENT-01, AGENT-02, AGENT-03, AGENT-04, DVAL-03, TEST-04, TEST-05, TEST-07, AUTO-05, AUTO-06, AUTO-07
+**Requirements**: AGENT-01, AGENT-02, AGENT-03, AGENT-04, DVAL-03, TEST-04, TEST-05, TEST-07, AUTO-05, AUTO-06, AUTO-07, SIM-12
 **Success Criteria** (what must be TRUE):
   1. An agent with a randomly generated personality produces text actions that reflect its personality traits and receives observations grounded in graph state
   2. Agent memory persists across sessions and the agent can reference previous experiences coherently
   3. An agent session can be forked from a previous point, creating a divergent simulation timeline
   4. Playtest runner executes N turns (including adversarial/edge-case inputs) and produces structured quality reports with per-turn grounding accuracy and mechanic validity scores
   5. System prompt or instruction changes automatically trigger grounding regression tests, and key use case scenarios from Phase 3 execute as end-to-end integration tests
+  6. Hierarchical tick summary compression runs automatically, compacting tick-level summaries into batch and epoch summaries so agent context stays bounded across long simulations
 **Plans**: TBD
 
 Plans:

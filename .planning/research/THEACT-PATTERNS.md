@@ -60,7 +60,7 @@ Derived from the theact save pattern, adapted for the Token World runtime:
 universes/<universe-id>/
   CLAUDE.md               # Generated: world rules, tool docs, current state summary
   AGENTS.md               # Symlink → CLAUDE.md (harness portability)
-  .mcp.json               # Simulation tools: resume_tick, inspect_graph, rollback, etc.
+  .mcp.json               # Simulation tools: resume_tick, rollback, list_mechanics, register_mechanic
   universe.db             # SQLite: graph state, event log, snapshots
   mechanics/              # Mechanic folders (versioned with the universe git repo)
     pickup/

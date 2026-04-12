@@ -104,9 +104,9 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 | Graph library | NetworkX | kglab | Adds RDF/SPARQL complexity. Token World needs property graph semantics, not RDF triples. |
 | Persistence | SQLite (custom layer) | PostgreSQL | Server dependency. SQLite is sufficient and simpler for single-process simulation. |
 | Persistence | SQLite (custom layer) | eventsourcing library | Heavy framework for what is ~200 lines of custom code. The library targets enterprise DDD patterns, not graph state tracking. |
-| Agent framework | Raw Anthropic SDK | Claude Code SDK | Subprocess overhead per call, opaque token spend, fights per-call model routing, autonomous loop conflicts with deterministic engine pipeline. |
-| Agent framework | Raw Anthropic SDK | LangGraph | Overkill for single-agent loop. Graph-based orchestration adds complexity without benefit until multi-agent (v2+). |
-| Agent framework | Raw Anthropic SDK | CrewAI | Role-based multi-agent framework. Wrong abstraction for a simulation engine. |
+| Agent framework | Hybrid (Agent SDK + Raw API) | Claude Code SDK | Subprocess overhead per call, opaque token spend, fights per-call model routing, autonomous loop conflicts with deterministic engine pipeline. |
+| Agent framework | Hybrid (Agent SDK + Raw API) | LangGraph | Overkill for single-agent loop. Graph-based orchestration adds complexity without benefit until multi-agent (v2+). |
+| Agent framework | Hybrid (Agent SDK + Raw API) | CrewAI | Role-based multi-agent framework. Wrong abstraction for a simulation engine. |
 | Sandboxing | RestrictedPython | Docker containers | ~100ms+ overhead per execution vs. microseconds for RestrictedPython. Mechanics run frequently in tight loops. |
 | Sandboxing | RestrictedPython | PyPy sandbox | No longer maintained. |
 | Sandboxing | RestrictedPython | Pyodide (WASM) | Complex setup, limited library support in WASM environment, overkill for controlled mechanic API. |
@@ -130,7 +130,7 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 | Mechanic selection (match action to existing mechanic) | Claude Haiku 4.5 | Structured matching task, doesn't need deep reasoning | Low cost |
 | Mechanic generation (write new Python code) | Claude Opus 4.6 (via Agent SDK) | Highest quality code generation — mechanics are the core value; quality justifies cost. Agent SDK's iterative coding loop handles retries and refinement. | Higher cost, use structured outputs |
 | Resident agent (personality, decisions) | Claude Haiku 4.5 | Personality expression doesn't need deep reasoning | Keep agent costs low for future scaling |
-| Complex world-building decisions | Claude Sonnet 4.5 | When coherence across many mechanics matters | Use sparingly |
+| Complex world-building decisions | Claude Sonnet 4.6 | When coherence across many mechanics matters | Use sparingly |
 ## Sources
 - [NetworkX 3.6.1 documentation](https://networkx.org/documentation/stable/) - HIGH confidence
 - [NetworkX JSON serialization](https://networkx.org/documentation/stable/reference/readwrite/json_graph.html) - HIGH confidence
