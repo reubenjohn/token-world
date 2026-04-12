@@ -34,12 +34,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Universe manager can create, load, list, and delete universes
   5. The universe folder works with Claude Code, and is designed to work with other harnesses (Codex, etc.) via AGENTS.md symlink
   6. A tick_summaries/ folder exists inside the universe with hierarchical JSON summaries enabling agent catch-up after compaction or handoff
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 00-01: TBD
-- [ ] 00-02: TBD
-- [ ] 00-03: TBD
+- [ ] 00-01-PLAN.md — Project bootstrap, XDG paths, Pydantic models, UniverseManager CRUD, Click CLI
+- [ ] 00-02-PLAN.md — Universe scaffolding (CLAUDE.md template, AGENTS.md symlink, .mcp.json, MCP stub server, git init, tick_summaries)
 
 ### Phase 1: Graph Foundation
 **Goal**: A persistent, snapshot-capable knowledge graph exists that supports arbitrary emergent properties and can be rolled back to any previous state
@@ -163,7 +162,7 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Universe Infrastructure | 0/3 | Not started | - |
+| 0. Universe Infrastructure | 0/2 | Planning complete | - |
 | 1. Graph Foundation | 0/3 | Not started | - |
 | 2. Mechanic Framework | 0/3 | Not started | - |
 | 3. Design Validation | 0/3 | Not started | - |
