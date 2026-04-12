@@ -12,7 +12,7 @@
 - [ ] **GRAPH-03**: Graph state persists to SQLite and survives process restarts
 - [ ] **GRAPH-04**: Graph state can be snapshotted at any point for later rollback
 - [ ] **GRAPH-05**: Graph can be restored to any previous snapshot
-- [ ] **GRAPH-06**: Optional spatial index primitive (R-tree) for efficient spatial queries by mechanics
+- [x] **GRAPH-06**: Optional spatial index primitive (R-tree) for efficient spatial queries by mechanics
 - [ ] **GRAPH-07**: Optional temporal index primitive for efficient time-range queries by mechanics
 
 ### Mechanic Framework
@@ -131,7 +131,7 @@
 | GRAPH-03 | Phase 1 | Pending |
 | GRAPH-04 | Phase 1 | Pending |
 | GRAPH-05 | Phase 1 | Pending |
-| GRAPH-06 | Phase 3 | Pending |
+| GRAPH-06 | Phase 3 | Complete |
 | GRAPH-07 | Phase 3 | Pending |
 | MECH-01 | Phase 2 | Pending |
 | MECH-02 | Phase 2 | Pending |

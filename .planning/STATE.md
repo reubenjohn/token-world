@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 3 context gathered
-last_updated: "2026-04-12T08:24:24.131Z"
+stopped_at: Completed 03-02-spatial-index-PLAN.md
+last_updated: "2026-04-12T20:58:21.650Z"
 last_activity: 2026-04-12
 progress:
   total_phases: 8
   completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
-  percent: 100
+  total_plans: 20
+  completed_plans: 10
+  percent: 50
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 ## Current Position
 
 Phase: 03 of 7 (design validation)
-Plan: Not started
-Status: Ready to execute
+Plan: 02 of 12 complete (spatial-index)
+Status: Wave 1 in progress — spatial landed, temporal + viz-graph next
 Last activity: 2026-04-12
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: N/A
 
 *Updated after each plan completion*
+| Phase 03-design-validation P02 | 4 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,9 @@ Recent decisions affecting current work:
 - No sandboxing for v1 (hobby project; RestrictedPython deferred per research recommendation)
 - Opus for mechanic generation, Sonnet/Haiku for engine classification (model routing)
 - Use case library comes BEFORE simulation engine (Phase 3) so gap analysis informs engine design
+- [Phase 03-design-validation]: Full rtree replacement on rebuild() instead of per-id deletions — simpler code, <50ms @ 10k nodes
+- [Phase 03-design-validation]: Deferred rtree import via TYPE_CHECKING + in-property import — mechanics that never use ctx.spatial never import rtree
+- [Phase 03-design-validation]: ValueError on intersects(positionless_node) — loud failure surfaces author bugs instead of silent empty list
 
 ### Pending Todos
 
@@ -80,6 +84,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-12T07:46:57.587Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-design-validation/03-CONTEXT.md
+Last session: 2026-04-12T20:58:21.646Z
+Stopped at: Completed 03-02-spatial-index-PLAN.md
+Resume file: None
