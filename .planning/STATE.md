@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-04-viz-graph-cli-PLAN.md
-last_updated: "2026-04-12T21:13:05.724Z"
+stopped_at: Completed 03-05-use-case-manifests-PLAN.md
+last_updated: "2026-04-12T21:25:49.996Z"
 last_activity: 2026-04-12
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 20
-  completed_plans: 12
-  percent: 60
+  completed_plans: 13
+  percent: 65
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 ## Current Position
 
 Phase: 03 of 7 (design validation)
-Plan: 4 of 12 complete (spatial-index)
+Plan: 5 of 12 complete (spatial-index)
 Status: Ready to execute
 Last activity: 2026-04-12
 
@@ -57,6 +57,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03-design-validation P02 | 4 | 2 tasks | 4 files |
 | Phase 03 P03 | 4min | 3 tasks | 5 files |
 | Phase 03 P04 | 5min | 3 tasks | 7 files |
+| Phase 03 P03-05 | 6min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,7 @@ Recent decisions affecting current work:
 - [Phase 03]: Lazy @property pattern established for ctx.spatial + ctx.temporal — composable zero-cost DSL extensions on MechanicContext
 - [Phase 03]: viz-graph CLI: anchors always preserved through downstream filters; whole-graph rendering explicitly unsupported (must --node/--seed-query/--all-agents)
 - [Phase 03]: Mermaid ID sanitization appends sha256[:6] suffix on substitution -- distinct dangerous inputs (x", x|) produce distinct sanitized IDs
+- [Phase 03]: Use-case library skeleton: 35 UC IDs pre-assigned in per-category MANIFEST.md files (7/8/7/7/6) — Wave 2 authors claim rows rather than invent IDs, making 35 parallel writes collision-free by construction
 
 ### Pending Todos
 
@@ -91,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-12T21:13:05.722Z
-Stopped at: Completed 03-04-viz-graph-cli-PLAN.md
+Last session: 2026-04-12T21:25:49.993Z
+Stopped at: Completed 03-05-use-case-manifests-PLAN.md
 Resume file: None

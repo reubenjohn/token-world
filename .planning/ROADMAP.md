@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Graph Foundation** - Knowledge graph with persistence, snapshots, and test infrastructure
 - [ ] **Phase 2: Mechanic Framework** - Protocol, DSL primitives, seed mechanics, versioning, and CLI tooling
 - [ ] **Phase 3: Design Validation** - Use case library, gap analysis, optional indexes, and graph visualization
-- [ ] **Phase 4: LLM Mechanic Generation** - Code generation, validation, sandboxing, and diagnostics
+- [ ] **Phase 4: Mechanic Authoring & Validation Infrastructure** - Flat mechanic layout (supersedes folder-per-mechanic), validation pipeline, diagnostics substrate, integration-test harness, and authoring guides — so the top-level coding agent (Opus via Agent SDK) authors mechanics as normal Python SDLC
 - [ ] **Phase 5: Simulation Engine** - Action interpretation, mechanic execution, grounded observations, and history
 - [ ] **Phase 6: Resident Agent & End-to-End Loop** - Agent with personality and memory, playtesting, quality scoring, regression suite
 - [ ] **Phase 7: Attention & Consciousness** - Duration-aware actions and reusable interruption threshold pattern
@@ -88,15 +88,15 @@ Plans:
 - [x] 03-02: TBD
 - [x] 03-03: TBD
 
-### Phase 4: LLM Mechanic Generation
-**Goal**: The LLM can generate valid, executable Python mechanics from action context, with validation and diagnostics ensuring generated code meets framework requirements
+### Phase 4: Mechanic Authoring & Validation Infrastructure
+**Goal**: The universe acts as a codebase that the top-level coding agent (Opus via Agent SDK) authors with normal SDLC. Phase 4 delivers the flat mechanic layout (supersedes Phase 2 folder-per-mechanic), a validation gate (syntax → AST → import → contract → tests → dry-execute), a diagnostics substrate ready for Phase 5 to populate, an integration-test harness built on Phase 3 use-case manifests, and authoring guides. "LLM mechanic generation" = operator-driven SDLC; no bespoke generation pipeline is built.
 **Depends on**: Phase 3
-**Requirements**: MECH-03, MECH-04, TEST-02, AUTO-02
+**Requirements**: MECH-03, MECH-04, TEST-02, AUTO-02 (and revises MECH-05/MECH-06/UNIV-03 to match the flat layout and 3-tool MCP surface)
 **Success Criteria** (what must be TRUE):
-  1. Given an action context with no matching mechanic, the LLM generates a Python mechanic that passes syntax validation, AST checks, and executes successfully against a test graph
-  2. Generated mechanics use the framework protocol (check/apply) and DSL primitives, not raw graph manipulation
-  3. Multi-mechanic chains execute in sequence and produce correct cumulative state changes verified by integration tests
-  4. Each simulation turn can dump system prompts, raw LLM responses, and parsed output to inspectable diagnostic files
+  1. Mechanics authored by the operator pass the validation pipeline (AST rules forbid raw graph access, `eval/exec/__import__`, `networkx` imports; require Mechanic subclass with id/description/check/apply); invalid mechanics are rejected with structured diagnostics and skipped by the registry
+  2. Mechanics use only the framework protocol (check/apply) and `MechanicContext` DSL; AST enforcement guarantees this without relying on reviewer discipline
+  3. Multi-mechanic chains execute correctly, verified by the integration-test harness parametrized from Phase 3's use-case action-observation manifests
+  4. Per-tick diagnostics folders capture prompts, raw LLM responses, parsed output, execution traces, mutations, and observation synthesis; schema is versioned and populated via a shared `DiagnosticsSink` API ready for Phase 5 wiring
 **Plans**: TBD
 
 Plans:
