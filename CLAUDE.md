@@ -69,13 +69,38 @@ See [.planning/research/STACK.md](.planning/research/STACK.md) for full stack ta
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
 ## Conventions
 
-Conventions not yet established. Will populate as patterns emerge during development.
+- **Graph mutations:** Always through `KnowledgeGraph` methods (`add_node`, `add_edge`, `set`, `remove_node`, `remove_edge`). Never direct NetworkX access.
+- **Node types:** Only `"agent"` and `"entity"`. Everything else is emergent properties.
+- **Property values:** Must be JSON-serializable: `str, int, float, bool, None, list, dict`. No custom objects, sets, tuples, bytes. Enforced by `ALLOWED_PROPERTY_TYPES`.
+- **Node IDs:** Use `kg.claim_id("name")` to get a unique, human-readable ID. Never hardcode IDs that might collide.
+- **Snapshots:** Linked to tick IDs. Summary describes changes since last snapshot. Max 50 retained.
+- **SQLite:** Raw `sqlite3` with parameterized queries. No ORM. Context manager pattern: `with sqlite3.connect(str(path)) as conn:`.
+- **Testing:** `GraphBuilder` in `tests/test_graph/conftest.py` for fluent graph construction. Use `kg` fixture for KnowledgeGraph with temp DB. Use `graph_builder` fixture for builder pattern.
+- **Imports:** Use `from token_world.graph import KnowledgeGraph, Mutation` (public API via `__init__.py`).
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
 ## Architecture
 
-Architecture not yet mapped. Follow existing patterns found in the codebase.
+### Graph Module (`src/token_world/graph/`)
+
+The knowledge graph is the ground truth for all simulation state. All mutations go through the `KnowledgeGraph` API to ensure event logging, property validation, and persistence correctness.
+
+- **`knowledge_graph.py`** -- `KnowledgeGraph` class wrapping NetworkX DiGraph. All mutations logged as events. Two node types: `agent` and `entity` (D-01). Query API (`query`, `has_node`, `has_edge`, `neighbors`, `nodes`) and Mutation API (`add_node`, `add_edge`, `set`, `remove_node`, `remove_edge`). Every mutation returns a `Mutation` dataclass. `claim_id()` for readable unique IDs (D-02).
+- **`persistence.py`** -- `GraphPersistence` SQLite adapter. Stores graph as JSON blob via `json_graph.node_link_data`. Manages `graph_state` and `graph_events` tables. Lazy table creation on first `save()`.
+- **`events.py`** -- `GraphEvent` frozen dataclass and `EventStore`. All mutations produce events with tick ID, event type, target, old/new values for audit trail.
+- **`identity.py`** -- `claim_id()` deconfliction. Proposes readable ID, appends progressive SHA-256 hash suffix on collision (`"wallet"` -> `"wallet_a7"` -> `"wallet_a7z6"`).
+- **`models.py`** -- `Mutation` and `SnapshotInfo` frozen dataclasses. `ALLOWED_PROPERTY_TYPES` constant defining `(str, int, float, bool, type(None), list, dict)`.
+
+### Universe Module (`src/token_world/universe/`)
+
+UniverseManager for creating/managing universe instances. Each universe is a self-contained folder with CLAUDE.md, .mcp.json, universe.db, mechanics/, agents/. Scaffolding via Jinja2 templates.
+
+### Key Invariant
+
+All graph mutations go through `KnowledgeGraph` API methods. Never call `nx.DiGraph` methods directly. This ensures event logging, property validation, and persistence correctness.
+
+See [docs/design/architecture.md](docs/design/architecture.md) for system component diagrams.
 <!-- GSD:architecture-end -->
 
 <!-- GSD:skills-start source:skills/ -->
@@ -83,6 +108,41 @@ Architecture not yet mapped. Follow existing patterns found in the codebase.
 
 No project skills found. Add skills to any of: `.claude/skills/`, `.agents/skills/`, `.cursor/skills/`, or `.github/skills/` with a `SKILL.md` index file.
 <!-- GSD:skills-end -->
+
+## Validation Protocols
+
+- **Quick test:** `uv run pytest tests/ -x -q` (stop on first failure)
+- **Full test:** `uv run pytest -v` (verbose, all tests)
+- **Graph tests only:** `uv run pytest tests/test_graph/ -x -q`
+- **Lint:** `uv run ruff check src/`
+- **Format check:** `uv run ruff format --check src/`
+- **Format fix:** `uv run ruff format src/`
+- **Type check:** `uv run mypy src/token_world/graph/`
+
+Run quick test after every change. Run full suite before commits.
+
+## Script Catalog
+
+| Command | Purpose |
+|---------|---------|
+| `token-world create "Name"` | Create a new universe with scaffolding |
+| `token-world list` | List all universes with metadata |
+| `token-world delete slug` | Delete a universe |
+| `uv run pytest -x -q` | Quick test run |
+| `uv run pytest -v` | Full verbose test run |
+| `uv run ruff check src/` | Lint check |
+| `uv run ruff format src/` | Auto-format |
+| `uv run mypy src/token_world/graph/` | Type check graph module |
+
+## Critical Constraints
+
+1. **Graph is ground truth** -- If it's not in the KnowledgeGraph, it doesn't exist. No side channels, no implicit state.
+2. **Mutation-mediated access** -- All graph changes go through KnowledgeGraph API. This ensures event logging, validation, and persistence correctness. Direct NetworkX DiGraph access breaks these guarantees.
+3. **Two node types only** -- Framework enforces `agent` and `entity`. All other classification is emergent (mechanics add properties like `subtype="weapon"`).
+4. **JSON-serializable properties** -- Property values must survive `json.dumps/loads` roundtrip. No Python-specific types (set, tuple, bytes, custom objects).
+5. **Snapshot-linked ticks** -- Every snapshot references a tick ID. Rollback restores to a tick's state. Events before oldest snapshot may be compacted.
+6. **No ORM** -- Raw sqlite3 only. SQLAlchemy is explicitly forbidden.
+7. **No pickle** -- All serialization via JSON. Pickle is explicitly forbidden.
 
 <!-- GSD:workflow-start source:GSD defaults -->
 ## GSD Workflow Enforcement
