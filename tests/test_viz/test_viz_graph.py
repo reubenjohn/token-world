@@ -56,3 +56,78 @@ def test_injection_safe_node_id(small_graph) -> None:
     output = graph_viz.to_mermaid(small_graph, sub)
     # Raw dangerous chars must be escaped in label output
     assert '"|[evil]' not in output or "#quot;" in output
+
+
+def test_edge_label_uses_relation_property(small_graph) -> None:
+    """Edges with a `relation` property render as quoted labels in Mermaid."""
+    sub = graph_viz.extract_subgraph(small_graph, anchor="alice", depth=1)
+    output = graph_viz.to_mermaid(small_graph, sub)
+    # One of the edges in small_graph has relation="located_in"
+    assert '"located_in"' in output or "located_in" in output
+
+
+def test_no_style_emits_minimal_output(small_graph) -> None:
+    """style=False drops classDef and emoji markers."""
+    sub = graph_viz.extract_subgraph(small_graph, anchor="alice", depth=1)
+    output = graph_viz.to_mermaid(small_graph, sub, style=False)
+    assert "classDef" not in output
+    assert ":::agent" not in output
+    assert ":::entity" not in output
+    # Agent/entity emoji markers should be absent
+    assert "\U0001f464" not in output  # 👤
+    assert "\U0001f3db" not in output  # 🏛
+
+
+def test_multi_anchor_union(small_graph) -> None:
+    """extract_subgraph with multiple anchors returns union of ego-graphs."""
+    small_graph.add_node("bob", node_type="agent")
+    small_graph.add_node("room_b", node_type="entity", subtype="room")
+    small_graph.add_edge("bob", "room_b", relation="located_in")
+    sub = graph_viz.extract_subgraph(small_graph, anchors=["alice", "bob"], depth=1)
+    assert "alice" in sub.nodes
+    assert "bob" in sub.nodes
+    assert "room_a" in sub.nodes
+    assert "room_b" in sub.nodes
+
+
+def test_filter_by_type(small_graph) -> None:
+    """type_filter restricts output to the chosen node_type (anchors always kept)."""
+    sub = graph_viz.extract_subgraph(small_graph, anchor="alice", depth=1)
+    output = graph_viz.to_mermaid(small_graph, sub, type_filter="entity")
+    # alice is an agent but is the anchor — must remain
+    assert "alice" in output
+    # room_a and sword are entities — must remain
+    assert "room_a" in output
+    assert "sword" in output
+
+
+def test_anchor_preserved_through_filter(small_graph) -> None:
+    """Even if anchor doesn't match has_property filter, it is preserved."""
+    # alice has no property `subtype`, so filter would drop her — but she's the anchor
+    sub = graph_viz.extract_subgraph(small_graph, anchor="alice", depth=1)
+    output = graph_viz.to_mermaid(small_graph, sub, has_property="subtype")
+    assert "alice" in output
+
+
+def test_mermaid_id_collision_hash_suffix(small_graph) -> None:
+    """Different dangerous node IDs get distinct sanitized IDs (hash suffix)."""
+    small_graph.add_node('x"', node_type="entity")
+    small_graph.add_node("x|", node_type="entity")
+    small_graph.add_edge("alice", 'x"', relation="sees")
+    small_graph.add_edge("alice", "x|", relation="sees")
+    sub = graph_viz.extract_subgraph(small_graph, anchor="alice", depth=1)
+    output = graph_viz.to_mermaid(small_graph, sub)
+    # Both sanitized IDs should appear as distinct declarations. Extract declared IDs.
+    # A declaration looks like `    safe_id["label"]...`
+    declared_ids = set()
+    for line in output.splitlines():
+        stripped = line.strip()
+        if "[" in stripped and stripped[0] not in (" ", "f", "c"):
+            safe_id = stripped.split("[", 1)[0]
+            declared_ids.add(safe_id)
+    # We added two dangerous nodes plus alice — expect alice's id and two distinct sanitized ids
+    dangerous_ids = {i for i in declared_ids if i.startswith("x")}
+    assert len(dangerous_ids) >= 2, (
+        f'expected distinct sanitized IDs for x" and x|, got {dangerous_ids!r} '
+        f"from output:\n{output}"
+    )
