@@ -70,7 +70,7 @@
 - [ ] **AUTO-01**: CLAUDE.md with architecture overview, critical constraints, validation protocols, and script catalog
 - [ ] **AUTO-02**: Diagnostics filesystem — each simulation turn can dump system prompts, raw responses, and parsed output to inspectable files
 - [ ] **AUTO-03**: CLI scripts for common operations (run simulation, inspect graph, list mechanics, run playtests) so agents don't need to compose commands
-- [ ] **AUTO-04**: Mermaid diagram generation for graph visualization (agent can render and review multimodally)
+- [x] **AUTO-04**: Mermaid diagram generation for graph visualization (agent can render and review multimodally)
 - [ ] **AUTO-05**: Simulation playtest with edge-case injection (adversarial inputs, nonsense, repeats) at configurable rates
 - [ ] **AUTO-06**: Quality scoring per simulation turn (grounding accuracy, mechanic validity, observation relevance)
 - [ ] **AUTO-07**: Prompt/instruction change detection triggers automated regression validation
@@ -165,7 +165,7 @@
 | AUTO-01 | Phase 1 | Pending |
 | AUTO-02 | Phase 4 | Pending |
 | AUTO-03 | Phase 2 | Pending |
-| AUTO-04 | Phase 3 | Pending |
+| AUTO-04 | Phase 3 | Complete |
 | AUTO-05 | Phase 6 | Pending |
 | AUTO-06 | Phase 6 | Pending |
 | AUTO-07 | Phase 6 | Pending |
