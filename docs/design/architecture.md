@@ -17,19 +17,20 @@ graph TB
     end
 
     subgraph SE["Simulation Engine"]
-        direction LR
-        AI["Interpreter\n(Haiku)"] --> MM["Matcher"]
+        SC["Scheduler"] -->|"prior observations\n+ context"| RA["Resident Agent\n(Haiku)"]
+        RA -->|"action text"| AI["Interpreter\n(Haiku)"]
+        AI -->|"classified action"| MM["Matcher"]
         MM -->|match| ME["Executor"]
         MM -->|no match| PAUSE(["⏸ returns to Operator"])
-        ME --> KG[("Knowledge\nGraph")]
-        KG --> OG["Observer\n(Sonnet)"]
-        OG --> DONE(["✓ tick result\nreturns to Operator"])
+        ME -->|"mutations"| KG[("Knowledge\nGraph")]
+        KG -->|"updated state"| OG["Observer\n(Sonnet)"]
+        OG --> DONE(["✓ tick result + observation"])
     end
 
     UF[("Universe Folder\nuniverse.db · mechanics/ · tick_summaries/")]
 
     OP --> RT & RB & LM & RM
-    RT --> AI
+    RT --> SC
     RM -->|register| UF
     KG <-->|persist| UF
     ME -->|write| UF
@@ -42,32 +43,44 @@ graph TB
 sequenceDiagram
     participant O as Operator (Agent Harness)
     participant E as Simulation Engine
+    participant A as Resident Agent (Haiku)
     participant M as Mechanic Registry
     participant G as Knowledge Graph
 
     O->>E: resume_tick()
-    Note over E: Agent produces action text
-    E->>E: Interpret & classify action (Haiku)
-    E->>M: Find matching mechanic
-    alt Mechanic exists
-        M-->>E: Return mechanic
-        E->>G: Check preconditions
-        alt Preconditions met
-            E->>G: Apply side effects
+    Note over E: Scheduler determines agent execution order
+
+    loop For each scheduled agent
+        E->>G: Query agent context + prior observations
+        G-->>E: Agent state
+        E->>A: Feed observations + context
+        A-->>E: Action text (free-form)
+        E->>E: Interpret & classify action (Haiku)
+        E->>M: Find matching mechanic
+        alt Mechanic exists
+            M-->>E: Return mechanic
+            E->>G: Check preconditions
+            alt Preconditions met
+                E->>G: Apply mutations
+                G-->>E: Updated state
+                E->>E: Generate grounded observation (Sonnet)
+                E->>A: Deliver observation to agent memory
+            else Preconditions not met
+                E-->>O: Tick result ("preconditions failed")
+            end
+        else No match — needs new mechanic
+            E-->>O: Tick paused ("no mechanic for: fly")
+            Note over O: Operator implements mechanic<br/>using file writes + subagents
+            O->>M: register_mechanic("mechanics/fly/")
+            O->>E: resume_tick() (continues paused tick)
+            E->>G: Execute new mechanic
             G-->>E: Updated state
-            E->>E: Generate observation (Sonnet)
-            E-->>O: Tick result + observation
-        else Preconditions not met
-            E-->>O: Tick result ("preconditions failed")
+            E->>E: Generate grounded observation (Sonnet)
+            E->>A: Deliver observation to agent memory
         end
-    else No match — needs new mechanic
-        E-->>O: Tick paused ("no mechanic for: fly")
-        Note over O: Operator implements mechanic<br/>using file writes + subagents
-        O->>M: register_mechanic("mechanics/fly/")
-        O->>E: resume_tick() (continues paused tick)
-        E->>G: Execute new mechanic
-        E-->>O: Tick result + observation
     end
+
+    E-->>O: Tick result + observations
     O->>O: Write tick summary to tick_summaries/
 ```
 
