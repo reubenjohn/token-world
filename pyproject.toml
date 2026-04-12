@@ -42,6 +42,7 @@ dev = [
     "mypy>=1.14",
     "ruff>=0.15.10",
     "types-networkx>=3.6.1.20260408",
+    "types-pyyaml>=6.0.12.20260408",
 ]
 
 [tool.pytest.ini_options]

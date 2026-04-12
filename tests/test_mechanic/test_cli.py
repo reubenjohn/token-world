@@ -39,7 +39,7 @@ def cli_universe(tmp_path: Path) -> tuple[CliRunner, str, Path]:
 def runner_and_manager(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> CliRunner:
     """CliRunner with UniverseManager pointing to tmp_path."""
     monkeypatch.setattr(
-        "token_world.universe.paths.get_universes_dir",
+        "token_world.universe.manager.get_universes_dir",
         lambda: tmp_path,
     )
     return CliRunner()
@@ -56,7 +56,7 @@ class TestListMechanics:
     ) -> None:
         runner, slug, universe_dir = cli_universe
         monkeypatch.setattr(
-            "token_world.universe.paths.get_universes_dir",
+            "token_world.universe.manager.get_universes_dir",
             lambda: universe_dir.parent,
         )
         result = runner.invoke(cli, ["list-mechanics", slug])
@@ -84,7 +84,7 @@ class TestRunMechanic:
     ) -> None:
         runner, slug, universe_dir = cli_universe
         monkeypatch.setattr(
-            "token_world.universe.paths.get_universes_dir",
+            "token_world.universe.manager.get_universes_dir",
             lambda: universe_dir.parent,
         )
         result = runner.invoke(
@@ -100,7 +100,7 @@ class TestRunMechanic:
     ) -> None:
         runner, slug, universe_dir = cli_universe
         monkeypatch.setattr(
-            "token_world.universe.paths.get_universes_dir",
+            "token_world.universe.manager.get_universes_dir",
             lambda: universe_dir.parent,
         )
         result = runner.invoke(
@@ -122,7 +122,7 @@ class TestQueryGraph:
     ) -> None:
         runner, slug, universe_dir = cli_universe
         monkeypatch.setattr(
-            "token_world.universe.paths.get_universes_dir",
+            "token_world.universe.manager.get_universes_dir",
             lambda: universe_dir.parent,
         )
         result = runner.invoke(cli, ["query-graph", slug])
@@ -135,20 +135,21 @@ class TestQueryGraph:
     ) -> None:
         runner, slug, universe_dir = cli_universe
         monkeypatch.setattr(
-            "token_world.universe.paths.get_universes_dir",
+            "token_world.universe.manager.get_universes_dir",
             lambda: universe_dir.parent,
         )
         result = runner.invoke(cli, ["query-graph", slug, "--type", "agent"])
         assert result.exit_code == 0
         assert "alice" in result.output
-        assert "room_a" not in result.output
+        # room_a appears as alice's location value, but not as a node entry
+        assert "room_a:" not in result.output
 
     def test_query_graph_stats(
         self, cli_universe: tuple[CliRunner, str, Path], monkeypatch: pytest.MonkeyPatch
     ) -> None:
         runner, slug, universe_dir = cli_universe
         monkeypatch.setattr(
-            "token_world.universe.paths.get_universes_dir",
+            "token_world.universe.manager.get_universes_dir",
             lambda: universe_dir.parent,
         )
         result = runner.invoke(cli, ["query-graph", slug, "--stats"])
@@ -161,7 +162,7 @@ class TestQueryGraph:
     ) -> None:
         runner, slug, universe_dir = cli_universe
         monkeypatch.setattr(
-            "token_world.universe.paths.get_universes_dir",
+            "token_world.universe.manager.get_universes_dir",
             lambda: universe_dir.parent,
         )
         result = runner.invoke(cli, ["query-graph", slug, "--json"])
@@ -174,7 +175,7 @@ class TestQueryGraph:
     ) -> None:
         runner, slug, universe_dir = cli_universe
         monkeypatch.setattr(
-            "token_world.universe.paths.get_universes_dir",
+            "token_world.universe.manager.get_universes_dir",
             lambda: universe_dir.parent,
         )
         result = runner.invoke(cli, ["query-graph", slug, "--has-property", "location"])
