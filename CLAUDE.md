@@ -1,11 +1,3 @@
-## Key Overrides
-
-> **Agent framework: Claude Code SDK** (`claude-agent-sdk` in Python), NOT raw Anthropic SDK. Research docs (STACK.md, ARCHITECTURE.md) predate this decision — ignore their "Raw Anthropic SDK" recommendation. Claude Code SDK provides JSONL session persistence, session resumption by ID, and fork-based rollback.
->
-> **Model routing:** Opus for mechanic generation, Sonnet for simulation engine, Haiku for action classification.
->
-> **No sandboxing for v1.** Defer RestrictedPython until scaling or if issues arise.
-
 ## Documentation Maintenance
 
 - Maintain `docs/` with subfolders: `design/` (architecture, Mermaid diagrams, technical decisions) and `guides/` (user-facing how-tos, setup, contributing)
@@ -53,12 +45,11 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 ### Agent Framework
 | Technology | Version | Purpose | Why Recommended | Confidence |
 |------------|---------|---------|-----------------|------------|
-| Raw Anthropic SDK (messages API) | 0.80+ | Simulation engine agent, mechanic generation | For v1, the simulation engine is a single agent with a well-defined tool loop (interpret action -> query graph -> select/generate mechanic -> execute -> return observation). A raw tool loop gives full control over prompt construction, token budgets, retry logic, and cost. The Claude Agent SDK is designed for file/code/bash operations, not custom domain-specific tool execution. LangGraph is overkill for a single-agent loop with no branching/parallel paths. | MEDIUM-HIGH |
-| Claude Agent SDK | 0.1.58 | Future: multi-agent orchestration (v2+) | When scaling to review agents, monitoring agents, etc., the Agent SDK's subagent spawning and session management become valuable. But for v1's single engine agent, it adds unnecessary abstraction. Revisit at v2. | MEDIUM |
-- The simulation engine's tool loop is deterministic: parse action -> query graph -> find/generate mechanic -> execute -> format observation. This is a simple while loop, not a complex graph of decisions.
-- Structured outputs (JSON mode) eliminate parsing issues for mechanic generation.
-- Full control over system prompts, temperature, and model selection per call type (e.g., cheap model for action classification, capable model for code generation).
-- No framework lock-in. Can wrap in Agent SDK or LangGraph later if complexity demands it.
+| Claude Code SDK (`claude-agent-sdk`) | 0.1.58+ | Resident agent sessions, simulation agents | Provides JSONL session persistence, session resumption by ID, and fork-based rollback. Session forking enables simulation rollback — store session ID at each graph snapshot, fork from that point to "revert." Python package: `claude-agent-sdk`. | HIGH |
+- Session files stored as JSONL at `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`
+- No official API to truncate session history, but fork-based branching is the supported rollback pattern
+- Structured outputs (JSON mode) eliminate parsing issues for mechanic generation
+- Model selection per call type: Opus for mechanic generation, Sonnet for engine, Haiku for action classification
 ### Persistence Layer
 | Technology | Version | Purpose | Why Recommended | Confidence |
 |------------|---------|---------|-----------------|------------|
@@ -67,15 +58,11 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 - Neo4j, Memgraph, FalkorDB all require running a server -- unnecessary overhead for a hobby project with a single agent.
 - NetworkX in-memory + SQLite persistence gives the best of both worlds: fast in-memory graph operations with durable storage.
 - The graph will be small enough (hundreds to low thousands of nodes) to fit entirely in memory for the foreseeable future.
-### Mechanic Sandboxing
-| Technology | Version | Purpose | Why Recommended | Confidence |
-|------------|---------|---------|-----------------|------------|
-| RestrictedPython | 8.2 | AST-level code restriction | Compiles generated Python through a restricted AST transformer. Blocks dangerous operations (file I/O, network, imports) at compile time. Supports Python 3.9-3.13. Use as the first line of defense for generated mechanic code. | MEDIUM |
-| `subprocess` with resource limits | stdlib | Process isolation fallback | For mechanics that need broader Python features, run in a subprocess with `resource` limits (CPU time, memory). Combined with RestrictedPython for defense-in-depth. | MEDIUM |
-- Massive overhead for executing small mechanic functions (precondition check + side effect).
+### Mechanic Sandboxing (deferred to v2)
+- **No sandboxing for v1.** This is a hobby project — mechanics run with direct exec(). Keep it simple.
 - Mechanics operate on a controlled API surface (graph query/mutation primitives). The attack surface is small.
-- RestrictedPython + controlled builtins + a well-defined mechanic API is sufficient for v1.
-- Container sandboxing can be added later if mechanics become more complex.
+- When needed: RestrictedPython 8.2 for AST-level restriction, `subprocess` with resource limits as fallback.
+- Add sandboxing if scaling to untrusted generation or if issues arise during development.
 ### Supporting Libraries
 | Library | Version | Purpose | When to Use | Confidence |
 |---------|---------|---------|-------------|------------|
@@ -92,7 +79,7 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 | uv | Package management, virtual environments | Fast, modern Python package manager. Replaces pip + venv + pip-tools. |
 | ruff | Linting + formatting | Replaces flake8 + black + isort. Fast (Rust-based). |
 | mypy | Type checking | Critical for the mechanic framework API -- generated code must match expected types. |
-| pre-commit | Git hooks | Run ruff + mypy before commits. |
+| prek | Git hooks | Run ruff + mypy before commits. Preferred over pre-commit — lighter and faster. |
 ## Architecture of Persistence Layer
 ## Installation
 # Project setup
@@ -108,9 +95,9 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 | Graph library | NetworkX | kglab | Adds RDF/SPARQL complexity. Token World needs property graph semantics, not RDF triples. |
 | Persistence | SQLite (custom layer) | PostgreSQL | Server dependency. SQLite is sufficient and simpler for single-process simulation. |
 | Persistence | SQLite (custom layer) | eventsourcing library | Heavy framework for what is ~200 lines of custom code. The library targets enterprise DDD patterns, not graph state tracking. |
-| Agent framework | Raw Anthropic SDK | Claude Agent SDK | Designed for file/code/bash tool execution, not custom domain tools. Adds process overhead (bundled CLI). Lock-in to Claude Code's tool paradigm. |
-| Agent framework | Raw Anthropic SDK | LangGraph | Overkill for single-agent loop. Graph-based orchestration adds complexity without benefit until multi-agent (v2+). |
-| Agent framework | Raw Anthropic SDK | CrewAI | Role-based multi-agent framework. Wrong abstraction for a simulation engine. |
+| Agent framework | Claude Code SDK | LangGraph | Overkill for single-agent loop. Graph-based orchestration adds complexity without benefit until multi-agent (v2+). |
+| Agent framework | Claude Code SDK | CrewAI | Role-based multi-agent framework. Wrong abstraction for a simulation engine. |
+| Agent framework | Claude Code SDK | Raw Anthropic SDK | No built-in session persistence, resumption, or fork-based rollback. Would need to build session management from scratch. |
 | Sandboxing | RestrictedPython | Docker containers | ~100ms+ overhead per execution vs. microseconds for RestrictedPython. Mechanics run frequently in tight loops. |
 | Sandboxing | RestrictedPython | PyPy sandbox | No longer maintained. |
 | Sandboxing | RestrictedPython | Pyodide (WASM) | Complex setup, limited library support in WASM environment, overkill for controlled mechanic API. |
@@ -118,12 +105,12 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 ## What NOT to Use
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| LangChain | Massive abstraction layer with frequent breaking changes. Adds complexity for simple LLM calls. Token World needs precise prompt control, not LangChain's chain abstractions. | Raw Anthropic SDK with Pydantic for structured outputs |
+| LangChain | Massive abstraction layer with frequent breaking changes. Adds complexity for simple LLM calls. Token World needs precise prompt control, not LangChain's chain abstractions. | Claude Code SDK with Pydantic for structured outputs |
 | MongoDB | Server dependency, overkill for single-file persistence. JSON-in-SQLite gives the same flexibility. | SQLite with JSON columns |
 | Neo4j | Requires running a JVM-based server. Cypher query language is another thing to learn/generate. NetworkX queries are just Python. | NetworkX (in-memory) + SQLite (persistence) |
 | FastAPI / Flask | No web server needed for v1. The simulation is a CLI/script, not a web app. | click for CLI interface |
-| LangGraph | Graph-based agent orchestration adds complexity. v1 is a single agent with a deterministic tool loop. | Raw while loop with Anthropic SDK tool use |
-| CrewAI | Multi-agent role framework. Wrong level of abstraction. | Raw Anthropic SDK |
+| LangGraph | Graph-based agent orchestration adds complexity. v1 is a single agent with a deterministic tool loop. | Claude Code SDK |
+| CrewAI | Multi-agent role framework. Wrong level of abstraction. | Claude Code SDK |
 | Celery / task queues | No async task processing needed for single-agent synchronous simulation. | Direct function calls |
 | ORM (SQLAlchemy) | The graph persistence layer is custom by nature (JSON blobs, event logs). An ORM adds mapping complexity without benefit. | Raw sqlite3 with parameterized queries |
 | pickle for persistence | Not human-readable, version-fragile, security risk with untrusted data. | JSON serialization via NetworkX's json_graph module |
@@ -132,7 +119,7 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 |------|-------------------|-----|------------|
 | Action interpretation (classify what agent is doing) | Claude Haiku 4.5 | Fast, cheap, sufficient for classification | Lowest cost per call |
 | Mechanic selection (match action to existing mechanic) | Claude Haiku 4.5 | Structured matching task, doesn't need deep reasoning | Low cost |
-| Mechanic generation (write new Python code) | Claude Sonnet 4.5 | Needs strong code generation, but Opus is overkill | Medium cost, use structured outputs |
+| Mechanic generation (write new Python code) | Claude Opus 4.6 | Highest quality code generation — mechanics are the core value; quality justifies cost | Higher cost, use structured outputs |
 | Resident agent (personality, decisions) | Claude Haiku 4.5 | Personality expression doesn't need deep reasoning | Keep agent costs low for future scaling |
 | Complex world-building decisions | Claude Sonnet 4.5 | When coherence across many mechanics matters | Use sparingly |
 ## Sources
