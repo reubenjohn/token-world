@@ -2,7 +2,7 @@
 id: UC-R06
 category: resource
 title: "Fungible currency"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Alice carries a mix of coins in three denominations; the shopkeeper is waiting.

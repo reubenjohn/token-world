@@ -2,7 +2,7 @@
 id: UC-E06
 category: edge-case
 title: "Move into a locked room"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Alice stands in room_a. A door entity sits between room_a and

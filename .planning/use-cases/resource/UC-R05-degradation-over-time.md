@@ -2,7 +2,7 @@
 id: UC-R05
 category: resource
 title: "Degradation over time"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Alice holds a worn sword near a straw training dummy.

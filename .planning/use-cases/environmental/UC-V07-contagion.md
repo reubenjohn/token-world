@@ -2,7 +2,7 @@
 id: UC-V07
 category: environmental
 title: "Contagion"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Alice has a cold. Bob shares her small, poorly ventilated office.

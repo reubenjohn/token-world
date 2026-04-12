@@ -2,7 +2,7 @@
 id: UC-S01
 category: spatial
 title: "Movement through a doorway"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Two rooms connected by a doorway entity. Alice starts in room_a.

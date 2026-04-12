@@ -2,7 +2,8 @@
 id: UC-E01
 category: edge-case
 title: "Action against nonexistent target"
-status: draft
+status: reviewed
+validator_exception: target_may_not_exist
 setup:
   graph_builder: |
     # Alice is alone in a plain room. The classified target for the

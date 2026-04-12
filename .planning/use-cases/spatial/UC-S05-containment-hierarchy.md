@@ -2,7 +2,7 @@
 id: UC-S05
 category: spatial
 title: "Containment hierarchy"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Sword inside chest inside room_a. Alice observes the sword.

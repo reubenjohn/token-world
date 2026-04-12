@@ -2,7 +2,7 @@
 id: UC-E05
 category: edge-case
 title: "Circular mechanic chain"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Alice stands near two opposing runes. Triggering rune_a causes

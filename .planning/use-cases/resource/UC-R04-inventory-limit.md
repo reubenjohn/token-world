@@ -2,7 +2,7 @@
 id: UC-R04
 category: resource
 title: "Inventory limit"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Alice's inventory is already full: 10 items held, cap 10.

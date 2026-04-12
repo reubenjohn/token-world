@@ -2,7 +2,7 @@
 id: UC-O02
 category: social
 title: "Persuasion check"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Alice wants bob to unlock a door that bob (reluctantly) guards.

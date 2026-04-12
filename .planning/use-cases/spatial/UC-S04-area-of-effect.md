@@ -2,7 +2,7 @@
 id: UC-S04
 category: spatial
 title: "Area-of-effect explosion"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Five entities scattered in a 10x10 field. Explosion at [5,5] radius 3.

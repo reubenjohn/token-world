@@ -2,7 +2,8 @@
 id: UC-O05
 category: social
 title: "Teaching a skill"
-status: draft
+status: reviewed
+validator_exception: target_may_not_exist  # `lockpicking` is an unmodeled skill string; absence-as-node is the engine gap itself.
 setup:
   graph_builder: |
     # Alice knows lockpicking; bob does not. They have an afternoon.

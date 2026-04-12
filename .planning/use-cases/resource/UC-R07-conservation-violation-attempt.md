@@ -2,7 +2,7 @@
 id: UC-R07
 category: resource
 title: "Conservation violation attempt"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Alice is penniless; an LLM-generated mechanic is about to try to conjure money.

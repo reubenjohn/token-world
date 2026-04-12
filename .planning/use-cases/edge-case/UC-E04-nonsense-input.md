@@ -2,7 +2,7 @@
 id: UC-E04
 category: edge-case
 title: "Nonsense input"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # A banal room with alice in it. Nothing special. The scenario is

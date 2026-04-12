@@ -2,7 +2,7 @@
 id: UC-V03
 category: environmental
 title: "Decay"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # A perfectly good apple is set on a shelf at tick 0 with a 100-tick

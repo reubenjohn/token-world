@@ -2,7 +2,7 @@
 id: UC-S07
 category: spatial
 title: "Position updating on move"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Two rooms with distinct centroids. Alice starts in room_a with matching position.

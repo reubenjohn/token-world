@@ -2,7 +2,7 @@
 id: UC-V02
 category: environmental
 title: "Weather change"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # The world sits under clear skies. A lit torch burns in an open camp,

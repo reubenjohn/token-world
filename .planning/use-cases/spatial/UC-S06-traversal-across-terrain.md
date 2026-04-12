@@ -2,7 +2,7 @@
 id: UC-S06
 category: spatial
 title: "Traversal across terrain"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Alice in room_a; a river separates room_a from room_b; a bridge spans it.

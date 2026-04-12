@@ -2,7 +2,7 @@
 id: UC-R02
 category: resource
 title: "Consume food"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Alice is hungry and holding an apple.

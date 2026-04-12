@@ -2,7 +2,7 @@
 id: UC-R01
 category: resource
 title: "Craft sword from materials"
-status: draft
+status: reviewed
 setup:
   graph_builder: |
     # Alice stands at a forge with raw materials in hand.
