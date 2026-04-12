@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -12,7 +12,7 @@ class UniverseMetadata(BaseModel):
 
     name: str = Field(min_length=1, description="Display name of the universe")
     slug: str = Field(min_length=1, description="Slugified folder name")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     schema_version: int = Field(default=1)
 
     @field_validator("name")

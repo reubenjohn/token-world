@@ -22,7 +22,7 @@ def create(name: str) -> None:
         click.echo(f"Universe created at {path}")
     except (ValueError, FileExistsError) as e:
         click.echo(f"Error: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @cli.command("list")
@@ -47,4 +47,4 @@ def delete(slug: str) -> None:
         click.echo(f"Universe '{slug}' deleted")
     except FileNotFoundError as e:
         click.echo(f"Error: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e

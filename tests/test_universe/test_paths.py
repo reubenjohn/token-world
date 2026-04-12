@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from token_world.models import UniverseMetadata
 from token_world.universe.paths import get_config_dir, get_data_dir, get_universes_dir
@@ -13,9 +14,7 @@ from token_world.universe.paths import get_config_dir, get_data_dir, get_univers
 class TestGetDataDir:
     """Tests for get_data_dir()."""
 
-    def test_returns_path_ending_in_token_world(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_returns_path_ending_in_token_world(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Default data dir ends with 'token_world'."""
         monkeypatch.delenv("XDG_DATA_HOME", raising=False)
         result = get_data_dir()
@@ -46,9 +45,7 @@ class TestGetUniversesDir:
 class TestGetConfigDir:
     """Tests for get_config_dir()."""
 
-    def test_returns_path_ending_in_token_world(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_returns_path_ending_in_token_world(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Default config dir ends with 'token_world'."""
         monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
         result = get_config_dir()
@@ -77,12 +74,12 @@ class TestUniverseMetadata:
 
     def test_rejects_empty_name(self) -> None:
         """Model rejects an empty string for name."""
-        with pytest.raises(Exception):  # ValidationError
+        with pytest.raises(ValidationError):
             UniverseMetadata(name="", slug="something")
 
     def test_rejects_blank_name(self) -> None:
         """Model rejects a name that is only whitespace."""
-        with pytest.raises(Exception):  # ValidationError
+        with pytest.raises(ValidationError):
             UniverseMetadata(name="   ", slug="something")
 
     def test_strips_name_whitespace(self) -> None:
