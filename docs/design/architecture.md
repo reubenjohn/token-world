@@ -3,15 +3,13 @@
 ## System Components
 
 ```mermaid
-graph LR
+graph TB
     subgraph OL["Operator Layer"]
-        direction TB
-        OP["Agent Coding Harness\n(Claude Code / Codex)"]
-        FS["File I/O\n(direct folder access)"]
+        OP["Agent Harness\n(Claude Code / Codex)"]
     end
 
     subgraph MCP["MCP Tools"]
-        direction TB
+        direction LR
         RT["resume_tick()"]
         RB["rollback()"]
         LM["list_mechanics()"]
@@ -20,27 +18,22 @@ graph LR
 
     subgraph SE["Simulation Engine"]
         direction LR
-        AI["Action Interpreter\n(Haiku)"] --> MM["Mechanic Matcher"]
-        MM -->|"match"| ME["Mechanic Executor"]
-        MM -->|"no match"| PAUSE(["⏸ pause → Operator"])
-        ME --> KG[("Knowledge Graph")]
-        KG --> OG["Observation Generator\n(Sonnet)"]
-        OG --> DONE(["✓ result → Operator"])
+        AI["Interpreter\n(Haiku)"] --> MM["Matcher"]
+        MM -->|match| ME["Executor"]
+        MM -->|no match| PAUSE(["⏸ Operator"])
+        ME --> KG[("Knowledge\nGraph")]
+        KG --> OG["Observer\n(Sonnet)"]
+        OG --> DONE(["✓ result"])
     end
 
-    subgraph UF["Universe Folder"]
-        direction TB
-        DB[("universe.db")]
-        MF["mechanics/"]
-        TS["tick_summaries/"]
-    end
+    UF[("Universe Folder\nuniverse.db · mechanics/ · tick_summaries/")]
 
     OP --> RT & RB & LM & RM
     RT --> AI
-    RM --> MF
-    ME --> MF
-    KG <-->|persist| DB
-    FS --> DB & MF & TS
+    RM -->|register| UF
+    KG <-->|persist| UF
+    ME -->|write| UF
+    OP -->|"direct file I/O"| UF
 ```
 
 ## Core Simulation Loop
