@@ -58,7 +58,7 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 
 Python 3.12+, NetworkX (in-memory graph), SQLite (persistence), Anthropic SDK (LLM).
 Hybrid agent architecture: Agent SDK (Opus) at operator layer for mechanic generation + human collaboration; raw Anthropic Python SDK inside simulation tools for deterministic pipeline calls (Haiku for classification, Sonnet for observation).
-Simulation exposed as MCP tools: `resume_tick`, `rollback`, `list_mechanics`, `register_mechanic`.
+Simulation exposed as MCP tools: `resume_tick`, `rollback`, `list_mechanics`.
 No sandboxing for v1; add RestrictedPython if needed.
 
 **Do not use:** LangChain, MongoDB, Neo4j, FastAPI/Flask, LangGraph, CrewAI, Celery, SQLAlchemy ORM, pickle.

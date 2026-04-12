@@ -42,8 +42,12 @@ Deliver a stable mechanic protocol with DSL primitives, hand-written seed mechan
 ### Mechanic Folder Structure (MECH-05)
 - **D-15:** Each mechanic is a folder: `mechanic.py` (the Mechanic subclass), `tests/` (unit tests), `meta.yaml` (metadata for registry/human consumption).
 
+> **SUPERSEDED (Phase 4, 2026-04-12):** Mechanics are now flat Python modules (`mechanics/<id>.py`) with class attributes replacing meta.yaml. Shared helpers as `_*.py` modules. See `.planning/phases/04-llm-mechanic-generation/04-CONTEXT.md` D-03..D-08 for rationale.
+
 ### meta.yaml Content
 - **D-16:** Claude's Discretion. Include what the registry and downstream agents actually need — at minimum id, description, voluntary flag, tags. Keep it lightweight.
+
+> **SUPERSEDED (Phase 4, 2026-04-12):** meta.yaml dropped; fields become class attributes (`id`, `description`, `voluntary`, `tags`) on the Mechanic subclass.
 
 ### CLI Tooling (AUTO-03)
 - **D-17:** `list-mechanics <universe>` — List all mechanics with id, description, voluntary flag, last modified.

@@ -21,8 +21,8 @@
 - [ ] **MECH-02**: Framework provides DSL-like primitives for graph queries and mutations
 - [ ] **MECH-03**: LLM generates valid Python mechanics using the framework from agent action context
 - [ ] **MECH-04**: Generated mechanics are validated (syntax, AST checks) before execution
-- [ ] **MECH-05**: Each mechanic lives in its own folder (mechanic.py, tests/, meta.yaml) within the universe; versioned by the universe's git repo
-- [ ] **MECH-06**: Mechanic registry indexes mechanic folders; mechanics can be listed, inspected, and queried programmatically
+- [ ] **MECH-05**: Each mechanic is a Python module (`mechanics/<id>.py`) containing a `Mechanic` subclass with class-level id/description/voluntary/tags; versioned by the universe's git repo; shared helpers via `_*.py` modules
+- [ ] **MECH-06**: Mechanic registry indexes mechanics by importing modules and collecting `Mechanic` subclasses; mechanics can be listed, inspected, and queried (by id or tag) programmatically
 
 ### Simulation Engine
 
@@ -50,7 +50,7 @@
 
 - [ ] **UNIV-01**: Universe scaffolding creates a self-contained folder with CLAUDE.md, AGENTS.md (symlink), .mcp.json, universe.db, mechanics/, agents/, and .git/
 - [ ] **UNIV-02**: Generated CLAUDE.md per universe contains world rules, available tools documentation, and current state summary
-- [ ] **UNIV-03**: Generated .mcp.json per universe exposes minimal simulation tools (resume_tick, rollback, list_mechanics, register_mechanic) — operator uses filesystem + SQLite directly for inspection
+- [ ] **UNIV-03**: Generated .mcp.json per universe exposes minimal simulation tools (resume_tick, rollback, list_mechanics) — operator uses filesystem + SQLite directly for inspection
 - [ ] **UNIV-04**: Universe manager supports create, load, list, and delete operations
 - [ ] **UNIV-05**: Harness-agnostic design — universe works with any agent coding harness that reads instruction files + MCP
 - [ ] **UNIV-06**: Universe folder contains tick_summaries/ with hierarchical JSON summaries readable by any agent or tool

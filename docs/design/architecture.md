@@ -13,7 +13,6 @@ graph TB
         RT["resume_tick()"]
         RB["rollback()"]
         LM["list_mechanics()"]
-        RM["register_mechanic()"]
     end
 
     subgraph SE["Simulation Engine"]
@@ -29,9 +28,9 @@ graph TB
 
     UF[("Universe Folder\nuniverse.db · mechanics/ · tick_summaries/")]
 
-    OP --> RT & RB & LM & RM
+    OP --> RT & RB & LM
     RT --> SC
-    RM -->|register| UF
+    RT -->|auto-scan mechanics/| UF
     KG <-->|persist| UF
     ME -->|write| UF
     OP -->|"direct file I/O"| UF
@@ -70,9 +69,9 @@ sequenceDiagram
             end
         else No match — needs new mechanic
             E-->>O: Tick paused ("no mechanic for: fly")
-            Note over O: Operator implements mechanic<br/>using file writes + subagents
-            O->>M: register_mechanic("mechanics/fly/")
-            O->>E: resume_tick() (continues paused tick)
+            Note over O: Operator authors mechanics/fly.py<br/>using file writes + subagents
+            O->>E: resume_tick() (auto-scans mechanics/, validates, continues paused tick)
+            E->>M: Discover & register mechanics/fly.py
             E->>G: Execute new mechanic
             G-->>E: Updated state
             E->>E: Generate grounded observation (Sonnet)

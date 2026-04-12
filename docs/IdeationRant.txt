@@ -1,0 +1,86 @@
+I've been thinking about a new hobby project related to large language models, simulations, and agent swarms.
+
+The basic idea starts with procedural generation. Traditionally, procedural generation has been used for generating game maps — terrain, clouds, characters, weapons, buildings, and other assets. In rare cases, people have started using it for small bits of character conversations or personalities. I wanted to take it to an extreme and create a universe simulator — something that could potentially be adapted into a game, though the game aspect is out of scope for now.
+
+In this simulator, the rules and mechanics themselves are also procedurally generated. This would have seemed far-fetched in the past, but I think it's possible now with the latest advancements in coding agents like Claude Code.
+
+There can be multiple implementations, but since this is a hobby project, I was initially thinking of using an existing agent framework like Claude Code itself. I'm still not decided on that. The core idea is that agents are created in this world and interact with their environment primarily through text — kind of like a text role-playing game. The environment responds in text, and potentially even multi-modal output eventually.
+
+I was thinking of using Claude Code, but Goose is an alternative since it may allow cheaper models. Cost efficiency matters here because I want to potentially scale the simulation to hundreds or thousands of agents. I'd start with one to ten agents and scale from there if the project goes well.
+
+Each agent starts with a truly random personality generated at initialization. Agents live in the environment and interact with it through text — for example, by "looking around."
+
+Here's the crucial part: any text an agent outputs is sent to the simulation engine. The simulation engine is itself an agent, responsible for running the fabric of the simulation. It maps the agent's text to specific actions. Every action has preconditions that must be met, and if those preconditions are met, the side effects are executed on the environment.
+
+A **mechanic** is defined as a pair of preconditions and side effects. The state of the entire universe is represented as a knowledge graph, and a mechanic is essentially a set of manipulations to that knowledge graph that occur when certain preconditions are met. I need to think more about whether this is sufficiently generic and whether it can be run efficiently on a GPU or CPU-based accelerator.
+
+The simulation engine agent decides at every turn, given the text output of a resident agent (my term for agents living inside the simulation), whether the existing mechanics sufficiently cover that action. If they do, it maps the output to the relevant mechanics and executes the side effects. Whatever is sent back to the resident agent as an observation comes from those executed mechanics.
+
+If the existing mechanics are insufficient, the simulation pauses and the universe agent procedurally generates new mechanics, then the simulation resumes. From the perspective of any resident agent, the universe feels fully real — it doesn't realize that mechanics are being generated on the fly as it acts.
+
+We'll also need review agents that observe the simulation at a bird's eye view, along with a dashboard to track what's going on and take corrective actions. For example, there might be bugs in mechanics that agents could exploit. The general principle is that the universe must be sufficiently realistic — things must make sense. There have to be fundamental properties like conservation of energy and materials; things shouldn't be synthesizable out of thin air. All of this is captured in the knowledge graph.
+
+As mechanics are created, new concepts get introduced. For example, temperature might not initially exist as a concept in the knowledge graph. But as soon as a resident agent performs an action where temperature is relevant, a mechanic implementing temperature gets created. Temperature then becomes a default property in the knowledge graph, existing mechanics get updated to account for it, and future observations accommodate temperature where relevant.
+
+Simulation responses are observations in the classical AI sense — the agent-environment loop where an agent sends an action and the environment sends back an observation. Both actions and observations are text as a starting point, though I might expand to include simple images eventually. The key is that observations are meant to be semantic. If an agent is looking at a keyboard, temperature doesn't need to appear in the observation response just because that mechanic exists.
+
+
+---
+
+Areas of research:
+
+**1. State representation**
+
+The main question is how to best represent the knowledge graph. Is a knowledge graph even the right approach? If it is, can we leverage an existing open-source knowledge graph for this? I'm also wondering whether something like SpacetimeDB might be relevant here. A lot of research is needed to allow mechanics to run efficiently — mechanics will need to query potentially large amounts of data and may run very frequently. Either mechanics need to be efficient by design, or we need good guidelines for mechanic creation that are aware of performance constraints.
+
+It would be a good idea to consider a large set of potential use cases and interactions — both direct environment interactions and multi-agent interactions — when evaluating any given design.
+
+Some example interactions:
+
+- A resident agent outputs: *"I look ahead to see what's there."* The environment would need to create mechanics for perception, and might also need mechanics for procedurally generating the surrounding environment. It could respond with *"grass and trees."*
+
+- Previous observation: *"You have a scratch on your hand and you're bleeding."* Agent output: *"I disinfect it and apply a bandage."* The environment should respond: *"You don't have anything to disinfect it or apply a bandage with"* — because behind the scenes it would have needed to create an inventory mechanic if one didn't already exist.
+
+- Agent output: *"I decide to walk to the stadium to watch the performance I booked."* The environment would need mechanics for distances and routes. Ideally, rather than responding with the route directly, it would first wait for the agent to check their phone for directions, creating inventory mechanics to confirm the phone exists. The phone response would then trigger route mechanics — procedurally generating buildings, the stadium, and a route that takes 129 minutes. This should lead the agent to realize walking isn't practical and look for public transit. The environment engine might respond that there are no public transit options in that city — this is where the creativity of the environment agent comes in, deciding what makes sense for that particular universe and region. The resident agent might then try to contact friends, and so on.
+
+This highlights an important constraint: the simulation agent needs to be sufficiently powerful and must always ground its textual responses in the knowledge graph. Everything must exist in the knowledge graph and must come from mechanics.
+
+**2. Agentic framework**
+
+Options include Claude Code, an open-source equivalent like Cline or Goose, or a programmatic agentic framework with more control over agent session details. Each has pros and cons. One downside of building your own (e.g., using LangChain) is the significant engineering that goes into tools like Claude Code that would be hard to replicate. Claude Code also has its own SDK, and similar SDKs may exist for other coding agent harnesses. The key requirement is multi-agent support. My current thinking is that Claude Code alone won't be sufficient — we may use the Claude Code SDK as one component, but we'll need our own framework built on top of some multi-agent library. This is an open-ended area of research.
+
+I'd also like a bias toward agent spawning in the simulation. New agent creation should be based on existing agents, with some randomness or influence from the simulation agent to introduce diversity.
+
+**3. HMI / Dashboard**
+
+We need good ways to visualize the knowledge graph and the state of the universe. There should be multiple views — for example, a bird's eye view based on a fundamental spatial mechanic (space and arrangement of matter/objects), with overlays for things like temperature, travel routes, etc. There should also be temporal views like a timeline. The dashboard would be largely vibe-coded and would need to evolve as new mechanics are created. As new mechanics are added, the dashboard should be updated to surface what's going on.
+
+**4. Tooling**
+
+This is one of the most important areas. We need tools to improve agent grounding in the simulation — for example, tools for the simulation agent or any implementing agent to debug effectively, potentially generating graph visualizations. There's overlap with the dashboard, but the key distinction is: the dashboard is mainly for humans, while the tooling complements it for coding agents via MCPs or CLI tools.
+
+Specific tooling needs:
+- Detailed traces to replay and understand what mechanic had a particular side effect
+- Full versioning of the universe state so you can go forward and backward in time to understand exactly what ran when
+- Traceability/lineage for mechanics — if a mechanic is modified, we know the previous and new version (potentially via commit hashes), so we can reproduce every step as we rewind
+- This is critical for debugging and for rolling back to an uncorrupted state if a mechanic accidentally wipes data
+
+Tooling advances directly improve the simulation agent's effectiveness, since these tools should ideally be available to the simulation agent itself. The more insight the simulation agent has — performance hotspots for mechanics, how many agents are in the simulation, what types of actions agents are performing — the better it can operate. If the predominant action is the same across all agents, that's a signal the simulation isn't interesting and needs redesigning.
+
+
+---
+
+Future outlook:
+
+The simulation could be used for civic simulations — for example, what would it look like to introduce Universal Basic Income? We'd need mechanics covering economics, decision-making, bad actors and good actors, policing, supply and demand, a simulated stock market, laws, companies, and diverse personality types. The applications are broad and interesting.
+
+Even without true multimodality, the project can be made very visual — at least for dashboards and for coding agents implementing the simulator. There are open-source projects for generating 8-bit graphics for games that we could leverage to add visual flair and make the bird's eye view visualizations more compelling.
+
+If this goes well, we should also think about attracting contributors. Key things for that:
+- Good CI/CD
+- Good contribution documentation
+- Easy project setup
+
+I'd like to use git worktrees extensively and create a skill for setting up the project, so it can be re-run at significant milestones to verify everything still works. We could also include an agent in the CI/CD pipeline that runs on new releases or milestone branches to verify the project sets up correctly.
+
+Other things: a clear roadmap in the project, good documentation overall, potentially MkDocs with GitHub Pages so people can browse the project and understand the roadmap and current state, and keeping the documentation in sync as the project evolves.

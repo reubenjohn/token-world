@@ -20,7 +20,7 @@
 **Hybrid approach** (decided in PROJECT.md):
 - Agent SDK (e.g. Claude Code, Codex) sits at the top as operator/collaborator — orchestrates the simulation, handles mechanic generation (iterative coding), and enables human collaboration via shared tool interface
 - Raw Anthropic Python SDK powers the deterministic pipeline calls inside tools (action classification via Haiku, mechanic matching, observation formatting via Sonnet)
-- Simulation exposed as minimal MCP tools: `resume_tick` (start or resume a tick, including partially executed ones), `rollback`, `list_mechanics`, `register_mechanic`. Operator accesses universe state directly via filesystem and SQLite — no wrapper tools needed for inspection.
+- Simulation exposed as minimal MCP tools: `resume_tick` (start or resume a tick, including partially executed ones), `rollback`, `list_mechanics`. Operator accesses universe state directly via filesystem and SQLite — no wrapper tools needed for inspection.
 - Harness-agnostic — works with any agent coding harness that reads CLAUDE.md/AGENTS.md + MCP
 
 | Technology | Version | Purpose | Why Recommended | Confidence |

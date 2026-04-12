@@ -60,17 +60,14 @@ Derived from the theact save pattern, adapted for the Token World runtime:
 universes/<universe-id>/
   CLAUDE.md               # Generated: world rules, tool docs, current state summary
   AGENTS.md               # Symlink → CLAUDE.md (harness portability)
-  .mcp.json               # Simulation tools: resume_tick, rollback, list_mechanics, register_mechanic
+  .mcp.json               # Simulation tools: resume_tick, rollback, list_mechanics
   universe.db             # SQLite: graph state, event log, snapshots
-  mechanics/              # Mechanic folders (versioned with the universe git repo)
-    pickup/
-      mechanic.py
-      tests/
-      meta.yaml
-    temperature/
-      mechanic.py
-      tests/
-      meta.yaml
+  mechanics/              # Flat Python modules (versioned with the universe git repo)
+    pickup.py             # One Mechanic subclass with class attributes (id, description, voluntary, tags)
+    temperature.py
+    movement.py
+    _helpers.py           # Shared helpers (underscore prefix = non-Mechanic content)
+    _spatial.py
   agents/                 # Resident agent configs
     agent-001.yaml        # Personality, memory refs
   .git/                   # Per-universe versioning (Pattern 2)
@@ -80,7 +77,7 @@ universes/<universe-id>/
 - `CLAUDE.md` / `AGENTS.md` — instruction files for agent harnesses; theact has no equivalent (it drives the API directly, not the other way around)
 - `.mcp.json` — exposes simulation operations as MCP tools; theact has no tool layer
 - `universe.db` — SQLite replaces theact's YAML files; better for graph queries and atomic multi-table writes
-- `mechanics/` — versioned code folders; theact has no equivalent (its rules are in prompts, not executable code)
+- `mechanics/` — flat Python modules with class attributes (id, description, voluntary, tags); shared helpers as `_*.py` modules; theact has no equivalent (its rules are in prompts, not executable code)
 
 ### What to port
 
@@ -215,7 +212,7 @@ ticks:
 **Diagnostics filesystem** — per-tick dumps at `universes/<id>/diagnostics/tick-<n>/`:
 - `action.txt` — raw agent output
 - `classification.json` — classifier structured output
-- `mechanic.py` — mechanic code executed (or generated)
+- `mechanic.py` — copy of the mechanic module file executed (e.g. `mechanics/<id>.py`)
 - `mutations.json` — graph mutations applied
 - `observation.txt` — final observation returned to agent
 
@@ -235,7 +232,7 @@ Defer until Phase 4 (Simulation Engine) is complete and the loop runs end-to-end
 | World rules | In LLM prompts | Executable Python mechanics in versioned folders |
 | Per-instance config | No CLAUDE.md or .mcp.json | CLAUDE.md + .mcp.json generated per universe |
 | Harness portability | No — tied to OpenAI SDK | Yes — any agent that reads CLAUDE.md + MCP works |
-| Mechanic versioning | Not applicable | Git + per-mechanic `meta.yaml` with commit hash |
+| Mechanic versioning | Not applicable | Git file-level history per mechanic module; class attributes replace meta.yaml |
 
 The single most important architectural inversion: **theact is a program that calls an LLM**. Token World is a set of tools that an LLM calls. The game loop, state management, and rule execution all live in theact's Python code. In Token World, the simulation engine exposes those operations as MCP tools, and the resident agent (an LLM) invokes them. theact's save manager and git versioning patterns transfer cleanly across this inversion — they are infrastructure concerns, not control-flow concerns.
 

@@ -73,14 +73,25 @@ harnesses are built for. The operator implements mechanics using its native capa
 
 ---
 
-### 4. Mechanics as Git-Versioned Folders
+### 4. Mechanics as Flat Python Modules (Normal SDLC)
 
-**Decision:** Each mechanic is a folder (`mechanic.py`, `tests/`, `meta.yaml`) within the
-universe git repo.
+**Decision:** Each mechanic is a flat Python module (`mechanics/<id>.py`) containing a
+`Mechanic` subclass with class-level attributes: `id: str`, `description: str`,
+`voluntary: bool` (default True), `tags: list[str]` (default []). Shared helpers live as
+normal Python modules with an underscore prefix (`mechanics/_helpers.py`,
+`mechanics/_spatial.py`). Tests mirror in the project test tree
+(`tests/test_mechanics/test_<id>.py`). The registry discovers mechanics by importing each
+non-underscore `.py` file in `mechanics/` and collecting `Mechanic` subclasses.
 
-**Rationale:** Git provides versioning for free. No separate database for code storage.
-Each mechanic has its own tests. Inspectable, testable, and dogfooding-friendly — the
-operator can read, modify, and test mechanics using its native file tools.
+**Rationale:** Authoring feels like a normal codebase — refactoring, code reuse, and
+test-driven development work naturally. Class attributes replace a separate `meta.yaml`.
+Git gives clean per-mechanic history via `git log -- mechanics/<id>.py`. Multi-per-file is
+allowed when mechanics tightly share code, but 1:1 is the default.
+
+**Alternatives rejected:**
+- Folder-per-mechanic (`mechanics/<id>/mechanic.py` + `tests/` + `meta.yaml`) — originally
+  chosen, but added ceremony without leverage; meta.yaml duplicates class attributes; test
+  colocation fights the rest of the project's test layout.
 
 **Key insight from user:** A separate git repo for mechanics inside a universe is overkill.
 Mechanics are part of the universe folder, versioned together with the world state.
@@ -97,7 +108,7 @@ universe_name/
   AGENTS.md          # symlink (harness portability)
   .mcp.json          # MCP tool configuration
   universe.db        # SQLite persistence
-  mechanics/         # git-versioned mechanic folders
+  mechanics/         # flat Python modules (`<id>.py`) + `_*.py` helpers; versioned with the universe
   agents/            # agent state
   tick_summaries/    # hierarchical memory
   .git/
@@ -113,19 +124,23 @@ symlink provides portability across harnesses.
 
 ---
 
-### 6. Minimal MCP Tools (4 only)
+### 6. Minimal MCP Tools (3 only)
 
-**Decision:** Expose exactly four MCP tools: `resume_tick`, `rollback`, `list_mechanics`,
-`register_mechanic`.
+**Decision:** Expose exactly three MCP tools: `resume_tick`, `rollback`, `list_mechanics`.
 
 **Rationale:** The operator accesses universe state directly via filesystem and SQLite.
 No wrapper tools are needed for inspection — good `CLAUDE.md` instructions plus
 convenience CLI scripts provide more leverage than bespoke MCP wrappers.
 
 **Key insight:** `generate_mechanic` was removed because the operator IS the mechanic
-generator. It uses its native coding capabilities (file writes, subagents) to implement
-mechanics, then calls `register_mechanic` and `resume_tick`. Wrapping this in a tool
-would obscure the process and add indirection with no benefit.
+generator. It uses its native coding capabilities (file writes, subagents) to author
+mechanics as normal Python modules. `resume_tick` auto-scans `mechanics/` and validates
+on each tick; a CLI `validate-mechanic <id-or-file>` gives fast pre-tick feedback using
+the same validation pipeline.
+
+**Note on `register_mechanic`:** Originally planned as a 4th MCP tool; superseded by
+auto-scan + CLI in Phase 4 reframe. Wrapping registration in a tool obscured the process
+and added indirection with no benefit once mechanics became flat importable modules.
 
 **Fewer tools, more leverage** is the guiding principle here.
 
