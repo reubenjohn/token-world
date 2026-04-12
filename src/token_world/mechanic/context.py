@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     # Imported only for type hints — avoids forcing rtree into the import
     # graph of mechanics that never touch spatial queries.
     from token_world.graph.spatial import SpatialIndex
+    from token_world.graph.temporal import TemporalIndex
 
 
 class MechanicContext:
@@ -29,6 +30,8 @@ class MechanicContext:
         self.target = target
         # Lazy: built on first access via the `spatial` property.
         self._spatial: SpatialIndex | None = None
+        # Lazy: built on first access via the `temporal` property.
+        self._temporal: TemporalIndex | None = None
 
     # --- Spatial (lazy R-tree index; GRAPH-06) ---
 
@@ -48,6 +51,24 @@ class MechanicContext:
             self._spatial = SpatialIndex(self._graph)
             self._spatial.rebuild()
         return self._spatial
+
+    # --- Temporal (lazy event-log query facade; GRAPH-07) ---
+
+    @property
+    def temporal(self) -> TemporalIndex:
+        """Lazy temporal query facade over the graph event log.
+
+        Constructed on first access, then cached for the lifetime of this
+        context. Mechanics that never access ``ctx.temporal`` pay zero
+        query cost — the import is deferred until this method runs.
+        """
+        if self._temporal is None:
+            # Deferred import keeps the temporal module out of the import
+            # graph for mechanics that never need history queries.
+            from token_world.graph.temporal import TemporalIndex
+
+            self._temporal = TemporalIndex(self._graph)
+        return self._temporal
 
     # --- Query methods ---
 
