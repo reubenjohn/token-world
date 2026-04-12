@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-02-spatial-index-PLAN.md
-last_updated: "2026-04-12T20:58:21.650Z"
+stopped_at: Completed 03-03-temporal-index-PLAN.md
+last_updated: "2026-04-12T21:05:27.598Z"
 last_activity: 2026-04-12
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 20
-  completed_plans: 10
-  percent: 50
+  completed_plans: 11
+  percent: 55
 ---
 
 # Project State
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 ## Current Position
 
 Phase: 03 of 7 (design validation)
-Plan: 02 of 12 complete (spatial-index)
-Status: Wave 1 in progress — spatial landed, temporal + viz-graph next
+Plan: 3 of 12 complete (spatial-index)
+Status: Ready to execute
 Last activity: 2026-04-12
 
 Progress: [█████░░░░░] 50%
@@ -55,6 +55,7 @@ Progress: [█████░░░░░] 50%
 
 *Updated after each plan completion*
 | Phase 03-design-validation P02 | 4 | 2 tasks | 4 files |
+| Phase 03 P03 | 4min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,9 @@ Recent decisions affecting current work:
 - [Phase 03-design-validation]: Full rtree replacement on rebuild() instead of per-id deletions — simpler code, <50ms @ 10k nodes
 - [Phase 03-design-validation]: Deferred rtree import via TYPE_CHECKING + in-property import — mechanics that never use ctx.spatial never import rtree
 - [Phase 03-design-validation]: ValueError on intersects(positionless_node) — loud failure surfaces author bugs instead of silent empty list
+- [Phase 03]: TemporalIndex mem+disk merge with dedup on (tick, type, target, property, new_value) — reads session EventStore plus graph_events SQLite, works uniformly across save/load boundaries
+- [Phase 03]: TemporalIndex treats sqlite3.OperationalError (missing table) as empty-disk — supports in-memory-only graphs where save() has never run
+- [Phase 03]: Lazy @property pattern established for ctx.spatial + ctx.temporal — composable zero-cost DSL extensions on MechanicContext
 
 ### Pending Todos
 
@@ -84,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-12T20:58:21.646Z
-Stopped at: Completed 03-02-spatial-index-PLAN.md
+Last session: 2026-04-12T21:05:27.595Z
+Stopped at: Completed 03-03-temporal-index-PLAN.md
 Resume file: None
