@@ -18,6 +18,7 @@ dependencies = [
 
 [project.scripts]
 token-world = "token_world.cli:cli"
+token-world-mcp = "token_world.mcp_server:main"
 
 [project.urls]
 Homepage = "https://github.com/reubenjohn/token-world"
@@ -38,6 +39,7 @@ dev = [
     "pytest-cov>=6.0",
     "pytest-asyncio>=0.24",
     "mypy>=1.14",
+    "ruff>=0.15.10",
 ]
 
 [tool.pytest.ini_options]

@@ -11,6 +11,7 @@ from slugify import slugify
 
 from token_world.models import UniverseMetadata
 from token_world.universe.paths import get_universes_dir
+from token_world.universe.scaffold import scaffold_universe
 
 
 class UniverseManager:
@@ -36,6 +37,7 @@ class UniverseManager:
         universe_dir = self.data_dir / slug
         universe_dir.mkdir()  # raises FileExistsError if exists (atomic, no TOCTOU)
         self._init_db(universe_dir, name=name, slug=slug)
+        scaffold_universe(universe_dir, name=name, slug=slug)
         return universe_dir
 
     def list(self) -> list[UniverseMetadata]:
