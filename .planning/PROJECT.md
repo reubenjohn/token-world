@@ -83,6 +83,14 @@ These principles govern how agents work on this project autonomously:
 5. **Reversibility enables boldness** — Worktrees for exploring directions that can be reverted. Graph snapshots for rolling back corruption. Session forks for undoing agent state. If every action is reversible, agents can make bolder moves without human approval. Invest in undo infrastructure early.
 6. **Ground truth obsession** — If it's not in the graph, it doesn't exist. No side channels, no implicit state, no LLM-hallucinated state. Applies to the simulation AND the project itself — if it's not in a committed artifact (requirements, plans, tests), it's not real.
 
+## Documentation
+
+- Maintain `docs/` with two subfolders: `design/` (architecture, Mermaid diagrams, technical decisions) and `guides/` (user-facing how-tos, setup, contributing)
+- Store diagrams as Mermaid in markdown — never check in rendered PNGs. Render on-demand with the mermaid MCP when visual review is needed.
+- Link generously between docs to avoid duplication
+- Keep docs attractive for potential contributors — clear README, design rationale, visual architecture diagrams
+- Design docs should evolve with the codebase — update Mermaid diagrams when architecture changes
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.

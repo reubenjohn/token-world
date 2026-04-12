@@ -109,56 +109,56 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GRAPH-01 | TBD | Pending |
-| GRAPH-02 | TBD | Pending |
-| GRAPH-03 | TBD | Pending |
-| GRAPH-04 | TBD | Pending |
-| GRAPH-05 | TBD | Pending |
-| GRAPH-06 | TBD | Pending |
-| GRAPH-07 | TBD | Pending |
-| MECH-01 | TBD | Pending |
-| MECH-02 | TBD | Pending |
-| MECH-03 | TBD | Pending |
-| MECH-04 | TBD | Pending |
-| MECH-05 | TBD | Pending |
-| MECH-06 | TBD | Pending |
-| SIM-01 | TBD | Pending |
-| SIM-02 | TBD | Pending |
-| SIM-03 | TBD | Pending |
-| SIM-04 | TBD | Pending |
-| SIM-05 | TBD | Pending |
-| SIM-06 | TBD | Pending |
-| SIM-07 | TBD | Pending |
-| SIM-08 | TBD | Pending |
-| SIM-09 | TBD | Pending |
-| SIM-10 | TBD | Pending |
-| AGENT-01 | TBD | Pending |
-| AGENT-02 | TBD | Pending |
-| AGENT-03 | TBD | Pending |
-| AGENT-04 | TBD | Pending |
-| TEST-01 | TBD | Pending |
-| TEST-02 | TBD | Pending |
-| TEST-03 | TBD | Pending |
-| TEST-04 | TBD | Pending |
-| TEST-05 | TBD | Pending |
-| TEST-06 | TBD | Pending |
-| TEST-07 | TBD | Pending |
-| AUTO-01 | TBD | Pending |
-| AUTO-02 | TBD | Pending |
-| AUTO-03 | TBD | Pending |
-| AUTO-04 | TBD | Pending |
-| AUTO-05 | TBD | Pending |
-| AUTO-06 | TBD | Pending |
-| AUTO-07 | TBD | Pending |
-| DVAL-01 | TBD | Pending |
-| DVAL-02 | TBD | Pending |
-| DVAL-03 | TBD | Pending |
+| GRAPH-01 | Phase 1 | Pending |
+| GRAPH-02 | Phase 1 | Pending |
+| GRAPH-03 | Phase 1 | Pending |
+| GRAPH-04 | Phase 1 | Pending |
+| GRAPH-05 | Phase 1 | Pending |
+| GRAPH-06 | Phase 3 | Pending |
+| GRAPH-07 | Phase 3 | Pending |
+| MECH-01 | Phase 2 | Pending |
+| MECH-02 | Phase 2 | Pending |
+| MECH-03 | Phase 4 | Pending |
+| MECH-04 | Phase 4 | Pending |
+| MECH-05 | Phase 2 | Pending |
+| MECH-06 | Phase 2 | Pending |
+| SIM-01 | Phase 5 | Pending |
+| SIM-02 | Phase 5 | Pending |
+| SIM-03 | Phase 5 | Pending |
+| SIM-04 | Phase 5 | Pending |
+| SIM-05 | Phase 5 | Pending |
+| SIM-06 | Phase 5 | Pending |
+| SIM-07 | Phase 5 | Pending |
+| SIM-08 | Phase 5 | Pending |
+| SIM-09 | Phase 7 | Pending |
+| SIM-10 | Phase 7 | Pending |
+| AGENT-01 | Phase 6 | Pending |
+| AGENT-02 | Phase 6 | Pending |
+| AGENT-03 | Phase 6 | Pending |
+| AGENT-04 | Phase 6 | Pending |
+| TEST-01 | Phase 2 | Pending |
+| TEST-02 | Phase 4 | Pending |
+| TEST-03 | Phase 1 | Pending |
+| TEST-04 | Phase 6 | Pending |
+| TEST-05 | Phase 6 | Pending |
+| TEST-06 | Phase 1 | Pending |
+| TEST-07 | Phase 6 | Pending |
+| AUTO-01 | Phase 1 | Pending |
+| AUTO-02 | Phase 4 | Pending |
+| AUTO-03 | Phase 2 | Pending |
+| AUTO-04 | Phase 3 | Pending |
+| AUTO-05 | Phase 6 | Pending |
+| AUTO-06 | Phase 6 | Pending |
+| AUTO-07 | Phase 6 | Pending |
+| DVAL-01 | Phase 3 | Pending |
+| DVAL-02 | Phase 3 | Pending |
+| DVAL-03 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 44 total
-- Mapped to phases: 0
-- Unmapped: 44
+- Mapped to phases: 44
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-11*
-*Last updated: 2026-04-11 after initial definition*
+*Last updated: 2026-04-11 after roadmap creation*
