@@ -1,3 +1,26 @@
+## Key Overrides
+
+> **Agent framework: Claude Code SDK** (`claude-agent-sdk` in Python), NOT raw Anthropic SDK. Research docs (STACK.md, ARCHITECTURE.md) predate this decision — ignore their "Raw Anthropic SDK" recommendation. Claude Code SDK provides JSONL session persistence, session resumption by ID, and fork-based rollback.
+>
+> **Model routing:** Opus for mechanic generation, Sonnet for simulation engine, Haiku for action classification.
+>
+> **No sandboxing for v1.** Defer RestrictedPython until scaling or if issues arise.
+
+## Documentation Maintenance
+
+- Maintain `docs/` with subfolders: `design/` (architecture, Mermaid diagrams, technical decisions) and `guides/` (user-facing how-tos, setup, contributing)
+- Store diagrams as **Mermaid in markdown** — never check in rendered PNGs. Render on-demand with the mermaid MCP when visual review is needed.
+- Link generously between docs to avoid duplication
+- Update Mermaid diagrams in `docs/design/` when architecture changes
+- See [docs/design/architecture.md](docs/design/architecture.md) for system component diagrams
+
+## Code Quality
+
+- Use `prek` for pre-commit hooks (linting/formatting via ruff) — preferred over `pre-commit`
+- Use `uv` for package management
+- Use `ruff` for linting and formatting
+- Use `mypy` for type checking on the mechanic framework API
+
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 

@@ -44,8 +44,8 @@ The simulation engine reliably interprets agent actions, generates coherent mech
 - The knowledge graph must support concepts being introduced dynamically — e.g., temperature doesn't exist until a mechanic creates it, then it becomes a property on relevant nodes
 - Mechanics are pairs of preconditions and side effects, implemented as generated Python code using an engine framework (DSL-like primitives for graph queries and mutations)
 - The simulation engine must always ground its responses in the knowledge graph — no hallucinated state
-- Agent framework selection (Claude Agent SDK, LangGraph, raw API calls) is an open research question
-- Mechanic sandboxing strategy (isolated execution vs trust + rollback) needs research
+- Agent framework: Claude Code SDK (Python: `claude-agent-sdk`) chosen over raw Anthropic SDK. Provides JSONL session persistence, session resumption by ID, and fork-based rollback. Research docs (STACK.md, ARCHITECTURE.md) predate this decision and recommend raw Anthropic SDK — ignore that recommendation.
+- Mechanic sandboxing deferred for v1 (hobby project); add RestrictedPython if issues arise
 - Cost efficiency matters for future scaling — model choice per agent role should be considered
 
 ## Constraints
