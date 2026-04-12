@@ -72,7 +72,7 @@
 | uv | Package management, virtual environments | Fast, modern Python package manager. Replaces pip + venv + pip-tools. |
 | ruff | Linting + formatting | Replaces flake8 + black + isort. Fast (Rust-based). |
 | mypy | Type checking | Critical for the mechanic framework API -- generated code must match expected types. |
-| pre-commit | Git hooks | Run ruff + mypy before commits. |
+| prek | Git hooks | Run ruff + mypy before commits. |
 
 ## Architecture of Persistence Layer
 
@@ -114,7 +114,7 @@ uv add anthropic networkx pydantic python-dotenv
 uv add RestrictedPython
 
 # Development
-uv add --dev pytest ruff mypy pre-commit loguru rich deepdiff click
+uv add --dev pytest ruff mypy prek loguru rich deepdiff click
 
 # Optional: type stubs
 uv add --dev types-networkx

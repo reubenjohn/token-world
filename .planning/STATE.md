@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** The simulation engine reliably interprets agent actions, generates coherent mechanics as executable Python code, and maintains a consistent knowledge graph
-**Current focus:** Phase 1: Graph Foundation
+**Current focus:** Phase 0: Universe Infrastructure
 
 ## Current Position
 
-Phase: 1 of 7 (Graph Foundation)
+Phase: 0 of 7 (Universe Infrastructure)
 Plan: 0 of 3 in current phase
 Status: Ready to plan
-Last activity: 2026-04-11 -- Roadmap created with 7 phases covering 44 requirements
+Last activity: 2026-04-11 -- Roadmap created with 8 phases (0-7) covering 49 requirements
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -42,7 +42,9 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- Raw Anthropic Python SDK with thin custom session persistence (Phase 6 -- AGENT-03, AGENT-04)
+- Hybrid SDK: Agent SDK orchestrates, raw Anthropic API powers deterministic pipeline inside tools (Phase 6 -- AGENT-03, AGENT-04)
+- Universe instance as self-contained agent workspace (CLAUDE.md, .mcp.json, universe.db, mechanics/, agents/)
+- Mechanics versioned as part of universe git repo (not separate)
 - No sandboxing for v1 (hobby project; RestrictedPython deferred per research recommendation)
 - Opus for mechanic generation, Sonnet/Haiku for engine classification (model routing)
 - Use case library comes BEFORE simulation engine (Phase 3) so gap analysis informs engine design
@@ -54,10 +56,10 @@ None yet.
 ### Blockers/Concerns
 
 - RestrictedPython CVE-2025-22153: needs review during Phase 4 planning to confirm controlled namespace workaround sufficiency
-- Research noted Sonnet 4.5 for mechanic generation (not Opus); reconcile model choice during Phase 4
+- Research docs (STACK.md, ARCHITECTURE.md, SUMMARY.md) recommend Sonnet for mechanic generation — this was overridden to Opus per user decision. Research docs are stale on this point; authoritative docs (CLAUDE.md, PROJECT.md) correctly say Opus. Update research docs before Phase 4.
 
 ## Session Continuity
 
 Last session: 2026-04-11
-Stopped at: Roadmap created, ready for Phase 1 planning
+Stopped at: Roadmap created, ready for Phase 0 planning
 Resume file: None
