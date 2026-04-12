@@ -16,6 +16,10 @@ _CLAUDE_MD_TEMPLATE = Template("""\
 > No rules yet. The world is a blank slate.
 > Rules emerge as mechanics are created during simulation.
 
+**Maintenance:** When a mechanic is registered, append its rule summary to this
+section. When a mechanic is removed or superseded, update or remove the
+corresponding entry. This section must always reflect the current rule set.
+
 ## Available Tools
 
 ### resume_tick
@@ -43,6 +47,9 @@ Register a new mechanic from a mechanics/ subfolder.
 ## Current State
 
 Empty universe. No nodes, no edges, no mechanics.
+
+**Maintenance:** Update this section after each tick to reflect the current
+graph summary (node/edge counts, active mechanics, notable entities).
 
 ## Constraints
 
