@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from token_world.graph import KnowledgeGraph, Mutation
+
+if TYPE_CHECKING:
+    # Imported only for type hints — avoids forcing rtree into the import
+    # graph of mechanics that never touch spatial queries.
+    from token_world.graph.spatial import SpatialIndex
 
 
 class MechanicContext:
@@ -22,6 +27,27 @@ class MechanicContext:
         self._graph = graph
         self.actor = actor
         self.target = target
+        # Lazy: built on first access via the `spatial` property.
+        self._spatial: SpatialIndex | None = None
+
+    # --- Spatial (lazy R-tree index; GRAPH-06) ---
+
+    @property
+    def spatial(self) -> SpatialIndex:
+        """Lazy R-tree spatial index over the graph.
+
+        Constructed and populated on first access, then cached for the
+        lifetime of this context. Mechanics that never access ``ctx.spatial``
+        pay zero rtree cost — the import is deferred until this method runs.
+        """
+        if self._spatial is None:
+            # Deferred import keeps rtree out of the module import graph for
+            # mechanics that never need spatial queries.
+            from token_world.graph.spatial import SpatialIndex
+
+            self._spatial = SpatialIndex(self._graph)
+            self._spatial.rebuild()
+        return self._spatial
 
     # --- Query methods ---
 
