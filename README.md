@@ -3,7 +3,7 @@
 > A universe simulator where LLM-powered agents inhabit a text-based world with procedurally generated mechanics.
 
 [![CI](https://github.com/reubenjohn/token-world/actions/workflows/ci.yml/badge.svg)](https://github.com/reubenjohn/token-world/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/reubenjohn/token-world/branch/main/graph/badge.svg)](https://codecov.io/gh/reubenjohn/token-world)
+[![codecov](https://codecov.io/gh/reubenjohn/token-world/branch/master/graph/badge.svg)](https://codecov.io/gh/reubenjohn/token-world)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://reubenjohn.github.io/token-world/)
