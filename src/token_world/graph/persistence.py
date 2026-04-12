@@ -50,6 +50,8 @@ class GraphPersistence:
             );
 
             CREATE INDEX IF NOT EXISTS idx_events_tick ON graph_events(tick_id);
+            CREATE INDEX IF NOT EXISTS idx_events_target ON graph_events(target_id, tick_id);
+            CREATE INDEX IF NOT EXISTS idx_events_property ON graph_events(property_name, tick_id);
 
             CREATE TABLE IF NOT EXISTS graph_snapshots (
                 snapshot_id INTEGER PRIMARY KEY AUTOINCREMENT,
