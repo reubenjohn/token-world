@@ -43,13 +43,22 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 | SQLite | 3.45+ (bundled) | Persistence layer | Zero-config embedded database. JSON1 extension enables querying JSON columns. Perfect for hobby project -- no server to manage. Supports the snapshot/versioning pattern via append-only event tables. | HIGH |
 | Anthropic Python SDK | 0.80+ | LLM API access | Direct API access for structured outputs, tool use, and code generation prompts. Structured outputs now GA for Sonnet/Opus/Haiku. Gives full control over prompt construction and token usage -- critical for cost optimization. | HIGH |
 ### Agent Framework
+
+**Hybrid approach:**
+- Agent SDK (e.g. Claude Code, Codex) sits at the top as operator/collaborator — orchestrates the simulation, handles mechanic generation (iterative coding), and enables human collaboration via shared tool interface
+- Raw Anthropic Python SDK powers the deterministic pipeline calls inside tools (action classification via Haiku, mechanic matching, observation formatting via Sonnet)
+- Simulation exposed as minimal MCP tools: `resume_tick` (start or resume a tick, including partially executed ones), `rollback`, `list_mechanics`, `register_mechanic`. Operator accesses universe state directly via filesystem and SQLite — no wrapper tools needed for inspection.
+- Harness-agnostic — works with any agent coding harness that reads CLAUDE.md/AGENTS.md + MCP
+
 | Technology | Version | Purpose | Why Recommended | Confidence |
 |------------|---------|---------|-----------------|------------|
-| Anthropic Python SDK (raw API) | 0.80+ | All LLM calls — engine, mechanic generation, resident agent | Direct `client.messages.create()` calls with full control over model, system prompt, and tools per call. The simulation engine is a deterministic orchestrator, not an autonomous agent — raw API is the right abstraction. | HIGH |
-- Per-call model routing: `model="claude-opus-4-6"` for mechanic generation, `model="claude-sonnet-4-6"` for engine, `model="claude-haiku-4-5-20251001"` for classification
+| Claude Agent SDK | latest | Top-level orchestration — mechanic generation loop, human collaboration, simulation tool dispatch | Agent SDK sits at the operator layer; mechanic generation benefits from its iterative coding loop and tool-use capabilities. Human can collaborate via the same tool interface. | HIGH |
+| Anthropic Python SDK (raw API) | 0.80+ | Deterministic pipeline calls inside simulation tools — action classification, mechanic matching, observation formatting | Direct `client.messages.create()` calls with full control over model, system prompt, and tools per call. The inner pipeline is a deterministic orchestrator — raw API is the right abstraction here. | HIGH |
+- Per-call model routing: `model="claude-opus-4-6"` for mechanic generation, `model="claude-sonnet-4-6"` for engine/observation, `model="claude-haiku-4-5-20251001"` for classification
 - Structured outputs (JSON mode) eliminate parsing issues
 - Full control over system prompts, temperature, token budgets, and retry logic per call type
 - Thin custom session persistence layer (~50-100 LOC) for resident agent memory: save/load message arrays as JSONL, fork = copy + truncate
+- Hierarchical tick summaries (JSON in tick_summaries/) enable agent catch-up after compaction or handoff: tick → batch (100 ticks) → epoch (100 batches)
 ### Persistence Layer
 | Technology | Version | Purpose | Why Recommended | Confidence |
 |------------|---------|---------|-----------------|------------|
@@ -79,7 +88,7 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 | uv | Package management, virtual environments | Fast, modern Python package manager. Replaces pip + venv + pip-tools. |
 | ruff | Linting + formatting | Replaces flake8 + black + isort. Fast (Rust-based). |
 | mypy | Type checking | Critical for the mechanic framework API -- generated code must match expected types. |
-| prek | Git hooks | Run ruff + mypy before commits. Preferred over pre-commit — lighter and faster. |
+| prek | Git hooks | Run ruff + mypy before commits. Preferred over `pre-commit` — lighter and faster. |
 ## Architecture of Persistence Layer
 ## Installation
 # Project setup
@@ -119,7 +128,7 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 |------|-------------------|-----|------------|
 | Action interpretation (classify what agent is doing) | Claude Haiku 4.5 | Fast, cheap, sufficient for classification | Lowest cost per call |
 | Mechanic selection (match action to existing mechanic) | Claude Haiku 4.5 | Structured matching task, doesn't need deep reasoning | Low cost |
-| Mechanic generation (write new Python code) | Claude Opus 4.6 | Highest quality code generation — mechanics are the core value; quality justifies cost | Higher cost, use structured outputs |
+| Mechanic generation (write new Python code) | Claude Opus 4.6 (via Agent SDK) | Highest quality code generation — mechanics are the core value; quality justifies cost. Agent SDK's iterative coding loop handles retries and refinement. | Higher cost, use structured outputs |
 | Resident agent (personality, decisions) | Claude Haiku 4.5 | Personality expression doesn't need deep reasoning | Keep agent costs low for future scaling |
 | Complex world-building decisions | Claude Sonnet 4.5 | When coherence across many mechanics matters | Use sparingly |
 ## Sources

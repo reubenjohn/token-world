@@ -47,6 +47,7 @@ The simulation engine reliably interprets agent actions, generates coherent mech
 - Agent framework: Hybrid — Agent SDK (Opus) at the operator layer for mechanic generation and human collaboration; raw Anthropic Python SDK inside simulation tools for deterministic pipeline calls (classification, matching, observation).
 - Mechanic sandboxing deferred for v1 (hobby project); add RestrictedPython if issues arise
 - Cost efficiency matters for future scaling — model choice per agent role should be considered
+- Tick summaries provide agent-resilient memory — hierarchical JSON compression (tick → batch → epoch) ensures any agent can catch up on history after compaction or handoff
 
 ## Constraints
 
@@ -69,6 +70,7 @@ The simulation engine reliably interprets agent actions, generates coherent mech
 | Mechanics as git-versioned folders (not DB-stored code) | Each mechanic is a folder with mechanic.py, tests/, and meta.yaml. Git provides versioning (commit hashes, diff, blame) for free. Registry is a lightweight index referencing folders, not a database storing code blobs. Inspectable, testable, dogfooding-friendly. | -- Pending |
 | Universe instance as agent workspace | Each universe instance is a self-contained folder with CLAUDE.md (world rules), AGENTS.md (symlink for portability), .mcp.json (simulation tools), universe.db (SQLite), mechanics/, agents/. Harness-agnostic — works with Claude Code, Codex, or any agent that reads instruction files + MCP. Inspired by theact's game/save pattern. | -- Pending |
 | No sandboxing for v1 | Hobby project; add RestrictedPython when scaling or if issues arise | -- Pending |
+| Hierarchical tick summaries | Tick → batch (100 ticks) → epoch (100 batches) as JSON in universe folder. Agent-resilient: survives compaction, enables operator handoff, readable by any tool. Like commit messages at different scales. | -- Pending |
 | Opus for mechanic generation, Sonnet/Haiku for engine classification | Code generation quality justifies Opus; action classification is simpler | -- Pending |
 
 ## Operating Principles

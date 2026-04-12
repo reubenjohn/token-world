@@ -2,7 +2,7 @@
 
 ## Overview
 
-Token World is built bottom-up along its hard dependency chain: knowledge graph, then mechanic framework, then use-case-informed design validation, then LLM generation, then the simulation engine, then the resident agent closing the loop, and finally the attention/consciousness system that makes the world feel alive. Each phase delivers a testable, observable capability. Testing and autonomy tooling are woven into the phases where their target features are built, not deferred to a separate phase.
+Token World is built bottom-up along its hard dependency chain: universe infrastructure as the foundation, then knowledge graph, then mechanic framework, then use-case-informed design validation, then LLM generation, then the simulation engine, then the resident agent closing the loop, and finally the attention/consciousness system that makes the world feel alive. Each phase delivers a testable, observable capability. Testing and autonomy tooling are woven into the phases where their target features are built, not deferred to a separate phase.
 
 ## Phases
 
@@ -12,6 +12,7 @@ Token World is built bottom-up along its hard dependency chain: knowledge graph,
 
 Decimal phases appear between their surrounding integers in numeric order.
 
+- [ ] **Phase 0: Universe Infrastructure** - Universe scaffolding, instance management, CLAUDE.md/MCP generation, harness-agnostic design
 - [ ] **Phase 1: Graph Foundation** - Knowledge graph with persistence, snapshots, and test infrastructure
 - [ ] **Phase 2: Mechanic Framework** - Protocol, DSL primitives, seed mechanics, versioning, and CLI tooling
 - [ ] **Phase 3: Design Validation** - Use case library, gap analysis, optional indexes, and graph visualization
@@ -22,9 +23,26 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ## Phase Details
 
+### Phase 0: Universe Infrastructure
+**Goal**: A universe can be created as a self-contained folder with generated CLAUDE.md, .mcp.json, universe.db, and git versioning — ready for any agent coding harness to operate in
+**Depends on**: Nothing (first phase)
+**Requirements**: UNIV-01, UNIV-02, UNIV-03, UNIV-04, UNIV-05
+**Success Criteria** (what must be TRUE):
+  1. Running create_universe() produces a folder with CLAUDE.md, AGENTS.md symlink, .mcp.json, universe.db, mechanics/, agents/, and initialized git repo
+  2. Generated CLAUDE.md contains world rules and tool documentation sufficient for an agent to understand and operate the simulation
+  3. Generated .mcp.json exposes simulation tools that an agent coding harness can discover and call
+  4. Universe manager can create, load, list, and delete universes
+  5. The universe folder works with Claude Code, and is designed to work with other harnesses (Codex, etc.) via AGENTS.md symlink
+**Plans**: TBD
+
+Plans:
+- [ ] 00-01: TBD
+- [ ] 00-02: TBD
+- [ ] 00-03: TBD
+
 ### Phase 1: Graph Foundation
 **Goal**: A persistent, snapshot-capable knowledge graph exists that supports arbitrary emergent properties and can be rolled back to any previous state
-**Depends on**: Nothing (first phase)
+**Depends on**: Phase 0
 **Requirements**: GRAPH-01, GRAPH-02, GRAPH-03, GRAPH-04, GRAPH-05, TEST-03, TEST-06, AUTO-01
 **Success Criteria** (what must be TRUE):
   1. A graph node can have arbitrary properties added at runtime without any schema declaration, and those properties persist across process restarts
@@ -138,10 +156,11 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
+Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
+| 0. Universe Infrastructure | 0/3 | Not started | - |
 | 1. Graph Foundation | 0/3 | Not started | - |
 | 2. Mechanic Framework | 0/3 | Not started | - |
 | 3. Design Validation | 0/3 | Not started | - |

@@ -21,7 +21,7 @@
 - [ ] **MECH-02**: Framework provides DSL-like primitives for graph queries and mutations
 - [ ] **MECH-03**: LLM generates valid Python mechanics using the framework from agent action context
 - [ ] **MECH-04**: Generated mechanics are validated (syntax, AST checks) before execution
-- [ ] **MECH-05**: Each mechanic is a git-versioned folder (mechanic.py, tests/, meta.yaml); version history via git commits
+- [ ] **MECH-05**: Each mechanic lives in its own folder (mechanic.py, tests/, meta.yaml) within the universe; versioned by the universe's git repo
 - [ ] **MECH-06**: Mechanic registry indexes mechanic folders; mechanics can be listed, inspected, and queried programmatically
 
 ### Simulation Engine
@@ -36,13 +36,24 @@
 - [ ] **SIM-08**: Conservation laws enforced — matter/energy cannot be created from nothing; mechanics must respect fundamental constraints
 - [ ] **SIM-09**: Action duration and attention threshold — long-running actions skip boring intermediate turns; engine only interrupts when significance exceeds agent's current attention level
 - [ ] **SIM-10**: Attention/consciousness as a reusable mechanic pattern — sleep, daydreaming, drunkenness, autopilot all use the same interruption threshold infrastructure
+- [ ] **SIM-11**: Each tick produces a structured summary (action, mechanics invoked, mutations, outcome) persisted as JSON in the universe folder
+- [ ] **SIM-12**: Tick summaries are hierarchically compressed — batch summaries (e.g. every 100 ticks), epoch summaries (every 100 batches) — enabling any agent to catch up on simulation history without reading every tick
 
 ### Resident Agent
 
 - [ ] **AGENT-01**: Agent initialized with randomly generated personality
 - [ ] **AGENT-02**: Agent interacts with environment via text actions and receives text observations
-- [ ] **AGENT-03**: Agent memory persists across sessions via custom JSONL session persistence (thin layer over raw Anthropic SDK)
-- [ ] **AGENT-04**: Agent session can be forked from a previous point for simulation rollback (copy + truncate JSONL)
+- [ ] **AGENT-03**: Agent memory persists across sessions via custom session persistence within the universe folder
+- [ ] **AGENT-04**: Agent session can be forked from a previous point for simulation rollback (git-based universe snapshots)
+
+### Universe Infrastructure
+
+- [ ] **UNIV-01**: Universe scaffolding creates a self-contained folder with CLAUDE.md, AGENTS.md (symlink), .mcp.json, universe.db, mechanics/, agents/, and .git/
+- [ ] **UNIV-02**: Generated CLAUDE.md per universe contains world rules, available tools documentation, and current state summary
+- [ ] **UNIV-03**: Generated .mcp.json per universe exposes minimal simulation tools (resume_tick, rollback, list_mechanics, register_mechanic) — operator uses filesystem + SQLite directly for inspection
+- [ ] **UNIV-04**: Universe manager supports create, load, list, and delete operations
+- [ ] **UNIV-05**: Harness-agnostic design — universe works with any agent coding harness that reads instruction files + MCP
+- [ ] **UNIV-06**: Universe folder contains tick_summaries/ with hierarchical JSON summaries readable by any agent or tool
 
 ### Testing
 
@@ -109,6 +120,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| UNIV-01 | Phase 0 | Pending |
+| UNIV-02 | Phase 0 | Pending |
+| UNIV-03 | Phase 0 | Pending |
+| UNIV-04 | Phase 0 | Pending |
+| UNIV-05 | Phase 0 | Pending |
+| UNIV-06 | Phase 0 | Pending |
 | GRAPH-01 | Phase 1 | Pending |
 | GRAPH-02 | Phase 1 | Pending |
 | GRAPH-03 | Phase 1 | Pending |
@@ -132,6 +149,8 @@
 | SIM-08 | Phase 5 | Pending |
 | SIM-09 | Phase 7 | Pending |
 | SIM-10 | Phase 7 | Pending |
+| SIM-11 | Phase 5 | Pending |
+| SIM-12 | Phase 6 | Pending |
 | AGENT-01 | Phase 6 | Pending |
 | AGENT-02 | Phase 6 | Pending |
 | AGENT-03 | Phase 6 | Pending |
@@ -155,8 +174,8 @@
 | DVAL-03 | Phase 6 | Pending |
 
 **Coverage:**
-- v1 requirements: 44 total
-- Mapped to phases: 44
+- v1 requirements: 52 total
+- Mapped to phases: 52
 - Unmapped: 0
 
 ---

@@ -4,71 +4,88 @@
 
 ```mermaid
 graph TD
-    subgraph "Resident Agent"
-        RA[/"Agent (LLM)\nPersonality + Memory"/]
+    subgraph "Operator Layer (Agent Coding Harness)"
+        OP["Agent Coding Harness\n(Claude Code / Codex / etc)"]
+        SUB["Subagents\n(native harness capability)"]
+        FS["File I/O + SQLite\n(direct access to universe folder)"]
     end
 
-    subgraph "Simulation Engine"
-        AI["Action Interpreter\n(LLM: classify action)"]
+    subgraph "Simulation Tools (MCP)"
+        RT["resume_tick()\n(starts or resumes a tick)"]
+        RB["rollback(snapshot_id)"]
+        LM["list_mechanics(filter)"]
+        RM["register_mechanic(path)"]
+    end
+
+    subgraph "Simulation Engine (Raw API, inside resume_tick)"
+        AI["Action Interpreter\n(Haiku)"]
         MM["Mechanic Matcher\n(deterministic)"]
-        MG["Mechanic Generator\n(LLM: generate Python code)"]
-        ME["Mechanic Executor\n(sandboxed Python)"]
-        OG["Observation Generator\n(graph-query-then-format)"]
+        ME["Mechanic Executor"]
+        OG["Observation Generator\n(Sonnet)"]
     end
 
-    subgraph "Mechanic Registry"
-        MR[("Mechanic Store\n(versioned Python code)")]
+    subgraph "Universe Folder"
+        KG[("Knowledge Graph\n(NetworkX)")]
+        DB[("universe.db\n(SQLite)")]
+        MF["mechanics/\n(folders in universe git repo)"]
+        CF["CLAUDE.md + .mcp.json"]
+        TS["tick_summaries/\n(hierarchical JSON)"]
     end
 
-    subgraph "Knowledge Graph"
-        KG[("NetworkX Graph\n(schema-less, flexible)")]
-    end
-
-    subgraph "Persistence Layer"
-        EL[("Event Log\n(SQLite, append-only)")]
-        SS[("Snapshots\n(graph state checkpoints)")]
-    end
-
-    RA -->|"text action"| AI
-    AI -->|"structured action"| MM
+    OP --> RT
+    OP --> RB
+    OP --> LM
+    OP --> RM
+    OP --> SUB
+    OP --> FS
+    RT --> AI
+    AI --> MM
     MM -->|"match found"| ME
-    MM -->|"no match"| MG
-    MG -->|"new mechanic"| MR
-    MG -->|"generated code"| ME
-    ME -->|"query/mutate"| KG
-    ME -->|"events"| EL
-    KG -->|"state"| OG
-    OG -->|"text observation"| RA
-    MR -->|"lookup"| MM
-    KG -->|"checkpoint"| SS
+    MM -->|"no match\n(returns to operator)"| OP
+    ME --> KG
+    KG --> OG
+    OG -->|"tick result"| OP
+    KG <--> DB
+    ME --> MF
+    FS --> DB
+    FS --> MF
+    FS --> TS
+    RM --> MF
 ```
 
 ## Core Simulation Loop
 
 ```mermaid
 sequenceDiagram
-    participant A as Resident Agent
+    participant O as Operator (Agent Harness)
     participant E as Simulation Engine
     participant M as Mechanic Registry
     participant G as Knowledge Graph
 
-    A->>E: text action ("I pick up the rock")
-    E->>E: Interpret & classify action
+    O->>E: resume_tick()
+    Note over E: Agent produces action text
+    E->>E: Interpret & classify action (Haiku)
     E->>M: Find matching mechanic
     alt Mechanic exists
         M-->>E: Return mechanic
-    else No match
-        E->>E: Generate new mechanic (LLM)
-        E->>M: Store new mechanic
+        E->>G: Check preconditions
+        alt Preconditions met
+            E->>G: Apply side effects
+            G-->>E: Updated state
+            E->>E: Generate observation (Sonnet)
+            E-->>O: Tick result + observation
+        else Preconditions not met
+            E-->>O: Tick result ("preconditions failed")
+        end
+    else No match — needs new mechanic
+        E-->>O: Tick paused ("no mechanic for: fly")
+        Note over O: Operator implements mechanic<br/>using file writes + subagents
+        O->>M: register_mechanic("mechanics/fly/")
+        O->>E: resume_tick() (continues paused tick)
+        E->>G: Execute new mechanic
+        E-->>O: Tick result + observation
     end
-    E->>G: Check preconditions
-    alt Preconditions met
-        E->>G: Apply side effects
-        G-->>E: Updated state
-        E->>A: Grounded observation
-    else Preconditions not met
-        E->>A: "You can't do that because..."
-    end
+    O->>O: Write tick summary to tick_summaries/
 ```
 
 ## Mechanic Structure
