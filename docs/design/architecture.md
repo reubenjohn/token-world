@@ -3,54 +3,44 @@
 ## System Components
 
 ```mermaid
-graph TD
-    subgraph "Operator Layer (Agent Coding Harness)"
-        OP["Agent Coding Harness\n(Claude Code / Codex / etc)"]
-        SUB["Subagents\n(native harness capability)"]
-        FS["File I/O + SQLite\n(direct access to universe folder)"]
+graph LR
+    subgraph OL["Operator Layer"]
+        direction TB
+        OP["Agent Coding Harness\n(Claude Code / Codex)"]
+        FS["File I/O\n(direct folder access)"]
     end
 
-    subgraph "Simulation Tools (MCP)"
-        RT["resume_tick()\n(starts or resumes a tick)"]
-        RB["rollback(snapshot_id)"]
-        LM["list_mechanics(filter)"]
-        RM["register_mechanic(path)"]
+    subgraph MCP["MCP Tools"]
+        direction TB
+        RT["resume_tick()"]
+        RB["rollback()"]
+        LM["list_mechanics()"]
+        RM["register_mechanic()"]
     end
 
-    subgraph "Simulation Engine (Raw API, inside resume_tick)"
-        AI["Action Interpreter\n(Haiku)"]
-        MM["Mechanic Matcher\n(deterministic)"]
-        ME["Mechanic Executor"]
-        OG["Observation Generator\n(Sonnet)"]
+    subgraph SE["Simulation Engine"]
+        direction LR
+        AI["Action Interpreter\n(Haiku)"] --> MM["Mechanic Matcher"]
+        MM -->|"match"| ME["Mechanic Executor"]
+        MM -->|"no match"| PAUSE(["⏸ pause → Operator"])
+        ME --> KG[("Knowledge Graph")]
+        KG --> OG["Observation Generator\n(Sonnet)"]
+        OG --> DONE(["✓ result → Operator"])
     end
 
-    subgraph "Universe Folder"
-        KG[("Knowledge Graph\n(NetworkX)")]
-        DB[("universe.db\n(SQLite)")]
-        MF["mechanics/\n(folders in universe git repo)"]
-        CF["CLAUDE.md + .mcp.json"]
-        TS["tick_summaries/\n(hierarchical JSON)"]
+    subgraph UF["Universe Folder"]
+        direction TB
+        DB[("universe.db")]
+        MF["mechanics/"]
+        TS["tick_summaries/"]
     end
 
-    OP --> RT
-    OP --> RB
-    OP --> LM
-    OP --> RM
-    OP --> SUB
-    OP --> FS
+    OP --> RT & RB & LM & RM
     RT --> AI
-    AI --> MM
-    MM -->|"match found"| ME
-    MM -->|"no match\n(returns to operator)"| OP
-    ME --> KG
-    KG --> OG
-    OG -->|"tick result"| OP
-    KG <--> DB
-    ME --> MF
-    FS --> DB
-    FS --> MF
-    FS --> TS
     RM --> MF
+    ME --> MF
+    KG <-->|persist| DB
+    FS --> DB & MF & TS
 ```
 
 ## Core Simulation Loop
