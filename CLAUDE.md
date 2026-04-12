@@ -45,11 +45,11 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 ### Agent Framework
 | Technology | Version | Purpose | Why Recommended | Confidence |
 |------------|---------|---------|-----------------|------------|
-| Claude Code SDK (`claude-agent-sdk`) | 0.1.58+ | Resident agent sessions, simulation agents | Provides JSONL session persistence, session resumption by ID, and fork-based rollback. Session forking enables simulation rollback — store session ID at each graph snapshot, fork from that point to "revert." Python package: `claude-agent-sdk`. | HIGH |
-- Session files stored as JSONL at `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`
-- No official API to truncate session history, but fork-based branching is the supported rollback pattern
-- Structured outputs (JSON mode) eliminate parsing issues for mechanic generation
-- Model selection per call type: Opus for mechanic generation, Sonnet for engine, Haiku for action classification
+| Anthropic Python SDK (raw API) | 0.80+ | All LLM calls — engine, mechanic generation, resident agent | Direct `client.messages.create()` calls with full control over model, system prompt, and tools per call. The simulation engine is a deterministic orchestrator, not an autonomous agent — raw API is the right abstraction. | HIGH |
+- Per-call model routing: `model="claude-opus-4-6"` for mechanic generation, `model="claude-sonnet-4-6"` for engine, `model="claude-haiku-4-5-20251001"` for classification
+- Structured outputs (JSON mode) eliminate parsing issues
+- Full control over system prompts, temperature, token budgets, and retry logic per call type
+- Thin custom session persistence layer (~50-100 LOC) for resident agent memory: save/load message arrays as JSONL, fork = copy + truncate
 ### Persistence Layer
 | Technology | Version | Purpose | Why Recommended | Confidence |
 |------------|---------|---------|-----------------|------------|
@@ -95,9 +95,9 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 | Graph library | NetworkX | kglab | Adds RDF/SPARQL complexity. Token World needs property graph semantics, not RDF triples. |
 | Persistence | SQLite (custom layer) | PostgreSQL | Server dependency. SQLite is sufficient and simpler for single-process simulation. |
 | Persistence | SQLite (custom layer) | eventsourcing library | Heavy framework for what is ~200 lines of custom code. The library targets enterprise DDD patterns, not graph state tracking. |
-| Agent framework | Claude Code SDK | LangGraph | Overkill for single-agent loop. Graph-based orchestration adds complexity without benefit until multi-agent (v2+). |
-| Agent framework | Claude Code SDK | CrewAI | Role-based multi-agent framework. Wrong abstraction for a simulation engine. |
-| Agent framework | Claude Code SDK | Raw Anthropic SDK | No built-in session persistence, resumption, or fork-based rollback. Would need to build session management from scratch. |
+| Agent framework | Raw Anthropic SDK | Claude Code SDK | Subprocess overhead per call, opaque token spend, fights per-call model routing, autonomous loop conflicts with deterministic engine pipeline. |
+| Agent framework | Raw Anthropic SDK | LangGraph | Overkill for single-agent loop. Graph-based orchestration adds complexity without benefit until multi-agent (v2+). |
+| Agent framework | Raw Anthropic SDK | CrewAI | Role-based multi-agent framework. Wrong abstraction for a simulation engine. |
 | Sandboxing | RestrictedPython | Docker containers | ~100ms+ overhead per execution vs. microseconds for RestrictedPython. Mechanics run frequently in tight loops. |
 | Sandboxing | RestrictedPython | PyPy sandbox | No longer maintained. |
 | Sandboxing | RestrictedPython | Pyodide (WASM) | Complex setup, limited library support in WASM environment, overkill for controlled mechanic API. |
@@ -105,12 +105,12 @@ A universe simulator where LLM-powered agents inhabit a text-based world and int
 ## What NOT to Use
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| LangChain | Massive abstraction layer with frequent breaking changes. Adds complexity for simple LLM calls. Token World needs precise prompt control, not LangChain's chain abstractions. | Claude Code SDK with Pydantic for structured outputs |
+| LangChain | Massive abstraction layer with frequent breaking changes. Adds complexity for simple LLM calls. Token World needs precise prompt control, not LangChain's chain abstractions. | Raw Anthropic SDK with Pydantic for structured outputs |
 | MongoDB | Server dependency, overkill for single-file persistence. JSON-in-SQLite gives the same flexibility. | SQLite with JSON columns |
 | Neo4j | Requires running a JVM-based server. Cypher query language is another thing to learn/generate. NetworkX queries are just Python. | NetworkX (in-memory) + SQLite (persistence) |
 | FastAPI / Flask | No web server needed for v1. The simulation is a CLI/script, not a web app. | click for CLI interface |
-| LangGraph | Graph-based agent orchestration adds complexity. v1 is a single agent with a deterministic tool loop. | Claude Code SDK |
-| CrewAI | Multi-agent role framework. Wrong level of abstraction. | Claude Code SDK |
+| LangGraph | Graph-based agent orchestration adds complexity. v1 is a single agent with a deterministic tool loop. | Raw Anthropic SDK |
+| CrewAI | Multi-agent role framework. Wrong level of abstraction. | Raw Anthropic SDK |
 | Celery / task queues | No async task processing needed for single-agent synchronous simulation. | Direct function calls |
 | ORM (SQLAlchemy) | The graph persistence layer is custom by nature (JSON blobs, event logs). An ORM adds mapping complexity without benefit. | Raw sqlite3 with parameterized queries |
 | pickle for persistence | Not human-readable, version-fragile, security risk with untrusted data. | JSON serialization via NetworkX's json_graph module |

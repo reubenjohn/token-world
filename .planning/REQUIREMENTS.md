@@ -21,8 +21,8 @@
 - [ ] **MECH-02**: Framework provides DSL-like primitives for graph queries and mutations
 - [ ] **MECH-03**: LLM generates valid Python mechanics using the framework from agent action context
 - [ ] **MECH-04**: Generated mechanics are validated (syntax, AST checks) before execution
-- [ ] **MECH-05**: Mechanic changes are versioned with full history
-- [ ] **MECH-06**: Mechanics can be listed, inspected, and queried programmatically
+- [ ] **MECH-05**: Each mechanic is a git-versioned folder (mechanic.py, tests/, meta.yaml); version history via git commits
+- [ ] **MECH-06**: Mechanic registry indexes mechanic folders; mechanics can be listed, inspected, and queried programmatically
 
 ### Simulation Engine
 
@@ -41,8 +41,8 @@
 
 - [ ] **AGENT-01**: Agent initialized with randomly generated personality
 - [ ] **AGENT-02**: Agent interacts with environment via text actions and receives text observations
-- [ ] **AGENT-03**: Agent memory persists across sessions via Claude Code SDK session resumption
-- [ ] **AGENT-04**: Agent session can be forked from a previous point for simulation rollback
+- [ ] **AGENT-03**: Agent memory persists across sessions via custom JSONL session persistence (thin layer over raw Anthropic SDK)
+- [ ] **AGENT-04**: Agent session can be forked from a previous point for simulation rollback (copy + truncate JSONL)
 
 ### Testing
 

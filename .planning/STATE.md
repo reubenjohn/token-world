@@ -42,7 +42,7 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- Claude Code SDK for agent sessions (deferred to Phase 6 -- AGENT-03, AGENT-04)
+- Raw Anthropic Python SDK with thin custom session persistence (Phase 6 -- AGENT-03, AGENT-04)
 - No sandboxing for v1 (hobby project; RestrictedPython deferred per research recommendation)
 - Opus for mechanic generation, Sonnet/Haiku for engine classification (model routing)
 - Use case library comes BEFORE simulation engine (Phase 3) so gap analysis informs engine design

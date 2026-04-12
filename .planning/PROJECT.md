@@ -44,7 +44,7 @@ The simulation engine reliably interprets agent actions, generates coherent mech
 - The knowledge graph must support concepts being introduced dynamically — e.g., temperature doesn't exist until a mechanic creates it, then it becomes a property on relevant nodes
 - Mechanics are pairs of preconditions and side effects, implemented as generated Python code using an engine framework (DSL-like primitives for graph queries and mutations)
 - The simulation engine must always ground its responses in the knowledge graph — no hallucinated state
-- Agent framework: Claude Code SDK (Python: `claude-agent-sdk`) chosen over raw Anthropic SDK. Provides JSONL session persistence, session resumption by ID, and fork-based rollback. Research docs (STACK.md, ARCHITECTURE.md) predate this decision and recommend raw Anthropic SDK — ignore that recommendation.
+- Agent framework: Raw Anthropic Python SDK. The simulation engine is a deterministic orchestrator needing per-call model routing and precise prompt control — not an autonomous agent loop. Thin custom session persistence for agent memory.
 - Mechanic sandboxing deferred for v1 (hobby project); add RestrictedPython if issues arise
 - Cost efficiency matters for future scaling — model choice per agent role should be considered
 
@@ -65,7 +65,8 @@ The simulation engine reliably interprets agent actions, generates coherent mech
 | Flexible schema-less knowledge graph | New concepts (temperature, inventory, routes) must emerge dynamically as mechanics create them | -- Pending |
 | Single agent + engine for v1 | Prove the core loop works before scaling to multi-agent | -- Pending |
 | Full persistence from the start | Enables time-travel debugging, rollback, and replay — foundational for tooling vision | -- Pending |
-| Claude Code SDK for agent sessions | Built-in JSONL persistence, session resumption, fork-based rollback | -- Pending |
+| Raw Anthropic Python SDK (not Claude Code SDK) | Deterministic engine loop needs per-call model routing, precise prompt control, and no subprocess overhead. Thin custom session persistence (~50-100 LOC) for agent memory. Claude Code SDK's autonomous loop conflicts with the controlled simulation pipeline. | -- Pending |
+| Mechanics as git-versioned folders (not DB-stored code) | Each mechanic is a folder with mechanic.py, tests/, and meta.yaml. Git provides versioning (commit hashes, diff, blame) for free. Registry is a lightweight index referencing folders, not a database storing code blobs. Inspectable, testable, dogfooding-friendly. | -- Pending |
 | No sandboxing for v1 | Hobby project; add RestrictedPython when scaling or if issues arise | -- Pending |
 | Opus for mechanic generation, Sonnet/Haiku for engine classification | Code generation quality justifies Opus; action classification is simpler | -- Pending |
 
