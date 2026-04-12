@@ -20,10 +20,10 @@ graph TB
         direction LR
         AI["Interpreter\n(Haiku)"] --> MM["Matcher"]
         MM -->|match| ME["Executor"]
-        MM -->|no match| PAUSE(["⏸ Operator"])
+        MM -->|no match| PAUSE(["⏸ returns to Operator"])
         ME --> KG[("Knowledge\nGraph")]
         KG --> OG["Observer\n(Sonnet)"]
-        OG --> DONE(["✓ result"])
+        OG --> DONE(["✓ tick result\nreturns to Operator"])
     end
 
     UF[("Universe Folder\nuniverse.db · mechanics/ · tick_summaries/")]
