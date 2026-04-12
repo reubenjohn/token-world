@@ -430,22 +430,22 @@ Empty universe. No nodes, no edges, no mechanics.
 | A4 | Jinja2 is overkill for CLAUDE.md template | Anti-Patterns | Low -- Python f-strings or str.format() suffice for a handful of variable substitutions |
 | A5 | `prek` integrates with `ruff` and `mypy` out of the box | Development Tools | Medium -- if prek doesn't support the hook pattern needed, may need custom configuration |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **MCP Server Stub Implementation**
    - What we know: `.mcp.json` points to a server process; the server declares its tools via the MCP protocol
    - What's unclear: Should Phase 0 include a minimal MCP server (using the `mcp` Python package) or just the `.mcp.json` file pointing to a not-yet-existing binary?
-   - Recommendation: Include a minimal MCP stdio server (~30-50 lines) that declares the 4 tools and returns "not implemented" for each. This validates the full Claude Code integration immediately. Use the `mcp` Python package (FastMCP) if it simplifies things, or raw JSON-RPC stdin/stdout if keeping dependencies minimal.
+   - RESOLVED: Include a minimal MCP stdio server (~30-50 lines) using raw JSON-RPC over stdin/stdout (no external MCP library) that declares the 4 tools and returns "not implemented" for each. This validates the full Claude Code integration immediately while keeping dependencies minimal. Implemented in 00-02 Task 2.
 
 2. **pyproject.toml Bootstrap in Existing Git Repo**
    - What we know: `uv init --package` handles existing `.git/` gracefully (does not re-init)
    - What's unclear: Whether `uv init` will conflict with existing files (CLAUDE.md, docs/, .planning/)
-   - Recommendation: Test `uv init --package --python 3.12 .` in the actual repo. If it conflicts, manually create pyproject.toml with the correct content.
+   - RESOLVED: Manually create pyproject.toml with the correct src-layout content rather than running `uv init`. This avoids any conflict with existing files in the repo. Implemented in 00-01 Task 1.
 
 3. **Template Rendering Approach**
    - What we know: CLAUDE.md template needs ~3 variable substitutions (display_name, slug, created_at)
    - What's unclear: Whether to use Python f-strings, `str.format()`, `string.Template`, or Jinja2
-   - Recommendation: Use `string.Template` (stdlib) -- safe substitution, no dependency, clear `$variable` syntax.
+   - RESOLVED: Use `string.Template` (stdlib) -- safe substitution, no dependency, clear `$variable` syntax. Implemented in 00-02 Task 1.
 
 ## Environment Availability
 
