@@ -18,13 +18,13 @@ The simulation engine reliably interprets agent actions, generates coherent mech
 
 - [x] Knowledge graph with flexible schema that supports arbitrary properties and relations — Validated in Phase 1: Graph Foundation
 - [x] Graph state snapshots for rollback and replay — Validated in Phase 1: Graph Foundation
-- [ ] Mechanic framework providing primitives for preconditions (graph queries) and side effects (graph mutations)
+- [x] Mechanic framework providing primitives for preconditions (graph queries) and side effects (graph mutations) — Validated in Phase 2: Mechanic Framework
 - [ ] LLM-powered mechanic generation that produces executable Python code using the framework
 - [ ] Simulation engine that maps resident agent text output to existing mechanics or triggers new mechanic creation
 - [ ] Resident agent with randomly generated personality that interacts with the environment via text
 - [ ] Core simulation loop: agent action → engine interpretation → mechanic execution → observation returned
 - [ ] Full persistence of graph state, mechanics, agent memory/personality, and simulation history
-- [ ] Mechanic versioning so every change to a mechanic is tracked
+- [x] Mechanic versioning so every change to a mechanic is tracked — Validated in Phase 2: Mechanic Framework
 - [x] Graph state snapshots for rollback and replay — Validated in Phase 1: Graph Foundation
 
 ### Out of Scope
