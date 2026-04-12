@@ -32,6 +32,10 @@
 - [ ] **SIM-04**: Engine executes matched/generated mechanic and applies side effects to graph
 - [ ] **SIM-05**: Observations returned to agents are grounded in graph state (no hallucinated state)
 - [ ] **SIM-06**: Simulation history log records actions, mechanics used, mutations, and observations
+- [ ] **SIM-07**: Observations are contextually filtered — only relevant properties appear (e.g. temperature not shown when looking at a keyboard)
+- [ ] **SIM-08**: Conservation laws enforced — matter/energy cannot be created from nothing; mechanics must respect fundamental constraints
+- [ ] **SIM-09**: Action duration and attention threshold — long-running actions skip boring intermediate turns; engine only interrupts when significance exceeds agent's current attention level
+- [ ] **SIM-10**: Attention/consciousness as a reusable mechanic pattern — sleep, daydreaming, drunkenness, autopilot all use the same interruption threshold infrastructure
 
 ### Resident Agent
 
@@ -59,6 +63,12 @@
 - [ ] **AUTO-05**: Simulation playtest with edge-case injection (adversarial inputs, nonsense, repeats) at configurable rates
 - [ ] **AUTO-06**: Quality scoring per simulation turn (grounding accuracy, mechanic validity, observation relevance)
 - [ ] **AUTO-07**: Prompt/instruction change detection triggers automated regression validation
+
+### Design Validation
+
+- [ ] **DVAL-01**: Use case library covering spatial, social, resource, environmental, and edge-case interaction scenarios
+- [ ] **DVAL-02**: Gap analysis — review use cases against architecture and requirements to surface missing mechanics or framework capabilities
+- [ ] **DVAL-03**: Use case regression suite — key scenarios become executable integration tests that validate the core loop end-to-end
 
 ## v2 Requirements
 
@@ -118,6 +128,10 @@
 | SIM-04 | TBD | Pending |
 | SIM-05 | TBD | Pending |
 | SIM-06 | TBD | Pending |
+| SIM-07 | TBD | Pending |
+| SIM-08 | TBD | Pending |
+| SIM-09 | TBD | Pending |
+| SIM-10 | TBD | Pending |
 | AGENT-01 | TBD | Pending |
 | AGENT-02 | TBD | Pending |
 | AGENT-03 | TBD | Pending |
@@ -136,11 +150,14 @@
 | AUTO-05 | TBD | Pending |
 | AUTO-06 | TBD | Pending |
 | AUTO-07 | TBD | Pending |
+| DVAL-01 | TBD | Pending |
+| DVAL-02 | TBD | Pending |
+| DVAL-03 | TBD | Pending |
 
 **Coverage:**
-- v1 requirements: 37 total
+- v1 requirements: 44 total
 - Mapped to phases: 0
-- Unmapped: 37
+- Unmapped: 44
 
 ---
 *Requirements defined: 2026-04-11*
