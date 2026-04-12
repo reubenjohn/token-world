@@ -479,22 +479,19 @@ tags:
 | A3 | O(involuntary_mechanics * mutations) matching is acceptable for v1 | Pitfall 5 | Low -- universe will have few mechanics initially |
 | A4 | Cycle detection via `(mechanic_id, target)` pairs is sufficient | Pitfall 2 | Medium -- more complex cycles (A->B->C->A with different targets) might not be caught; but max depth is the safety net |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Seed mechanic bundling strategy**
+1. **Seed mechanic bundling strategy** (RESOLVED)
    - What we know: Seeds need to exist in universe `mechanics/` folders. They also need to be testable in the main package.
-   - What's unclear: Should scaffold_universe copy them, or should they be bundled as package data and referenced?
-   - Recommendation: Copy during scaffold. Seeds live in `src/token_world/mechanic/seeds/` for development/testing, and `scaffold_universe()` copies them into each new universe's `mechanics/` folder. The registry only ever scans universe folders.
+   - Resolution: Copy during scaffold. Seeds live in `src/token_world/mechanic/seeds/` for development/testing, and `scaffold_universe()` copies them into each new universe's `mechanics/` folder via `shutil.copytree`. The registry only ever scans universe folders. Implemented in Plan 02 Task 1.
 
-2. **Chain execution: target assignment for involuntary mechanics**
+2. **Chain execution: target assignment for involuntary mechanics** (RESOLVED)
    - What we know: D-06 says context has actor and target. For chain-triggered mechanics, the target should be the node whose mutation triggered the match.
-   - What's unclear: If a mutation's target is an edge (e.g., "src->dst"), what's the target?
-   - Recommendation: For edge mutations, use the source node as the target. Document this convention.
+   - Resolution: For edge mutations (target format "src->dst"), use the source node as the target. For property/node mutations, use mutation.target directly. This convention is implemented in Plan 01 Task 1 engine.py `_evaluate_chain` step 3.
 
-3. **query-graph output format**
+3. **query-graph output format** (RESOLVED)
    - What we know: D-19 specifies filters but not output format.
-   - What's unclear: JSON? Table? YAML?
-   - Recommendation: Default to a human-readable table format (Click's echo), with `--json` flag for machine-readable output. Stats mode (`--stats`) outputs counts only.
+   - Resolution: Default to human-readable tabular output via Click's echo (one line per node: `id: prop1=val1, prop2=val2`). `--json` flag for machine-readable JSON array output. `--stats` mode outputs counts only. Implemented in Plan 03 Task 2.
 
 ## Environment Availability
 
