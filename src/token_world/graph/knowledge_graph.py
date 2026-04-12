@@ -11,7 +11,7 @@ import networkx as nx
 
 from token_world.graph.events import EventStore, GraphEvent
 from token_world.graph.identity import claim_id as _claim_id
-from token_world.graph.models import ALLOWED_PROPERTY_TYPES, Mutation
+from token_world.graph.models import ALLOWED_PROPERTY_TYPES, Mutation, SnapshotInfo
 
 
 def _validate_value(value: Any) -> None:
@@ -355,3 +355,70 @@ class KnowledgeGraph:
             self._graph = graph
             self._events.set_events(events)
             self._current_tick = tick
+
+    # --- Snapshot/Restore ---
+
+    def snapshot(self, tick_id: int, summary: str = "") -> int:
+        """Take a snapshot of the current graph state.
+
+        Args:
+            tick_id: The simulation tick to associate with this snapshot.
+            summary: Human-readable summary of what changed.
+
+        Returns:
+            The snapshot_id.
+
+        Raises:
+            RuntimeError: If no persistence (db_path) is configured.
+        """
+        if self._persistence is None:
+            raise RuntimeError(
+                "Cannot snapshot without persistence (db_path required)"
+            )
+        self._current_tick = tick_id
+        # Persist current state first
+        self.save()
+        # Save snapshot
+        snapshot_id = self._persistence.save_snapshot(
+            self._graph, tick_id, summary
+        )
+        # Prune if over retention limit
+        self._persistence.prune_snapshots(max_count=50)
+        # Event compaction: find oldest retained snapshot tick
+        remaining = self._persistence.list_snapshots()
+        if remaining:
+            oldest_tick = remaining[0].tick_id
+            self._events.clear_before(oldest_tick)
+            self._persistence.delete_events_before(oldest_tick)
+        return snapshot_id
+
+    def restore(self, snapshot_id: int) -> None:
+        """Restore the graph to a previous snapshot.
+
+        Args:
+            snapshot_id: The snapshot to restore.
+
+        Raises:
+            RuntimeError: If no persistence (db_path) is configured.
+            ValueError: If snapshot_id does not exist.
+        """
+        if self._persistence is None:
+            raise RuntimeError(
+                "Cannot restore without persistence (db_path required)"
+            )
+        graph, tick_id = self._persistence.load_snapshot(snapshot_id)
+        self._graph = graph
+        self._current_tick = tick_id
+        # Persist the restored state
+        self.save()
+
+    def list_snapshots(self) -> list[SnapshotInfo]:
+        """List all available snapshots.
+
+        Returns:
+            List of SnapshotInfo objects ordered by tick_id, or empty list
+            if no persistence is configured.
+        """
+        if self._persistence is None:
+            return []
+        return self._persistence.list_snapshots()
