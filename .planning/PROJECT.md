@@ -65,6 +65,18 @@ The simulation engine reliably interprets agent actions, generates coherent mech
 | Flexible schema-less knowledge graph | New concepts (temperature, inventory, routes) must emerge dynamically as mechanics create them | -- Pending |
 | Single agent + engine for v1 | Prove the core loop works before scaling to multi-agent | -- Pending |
 | Full persistence from the start | Enables time-travel debugging, rollback, and replay — foundational for tooling vision | -- Pending |
+| Claude Code SDK for agent sessions | Built-in JSONL persistence, session resumption, fork-based rollback | -- Pending |
+| No sandboxing for v1 | Hobby project; add RestrictedPython when scaling or if issues arise | -- Pending |
+| Opus for mechanic generation, Sonnet/Haiku for engine classification | Code generation quality justifies Opus; action classification is simpler | -- Pending |
+
+## Operating Principles
+
+These principles govern how agents work on this project autonomously:
+
+1. **Aggressive subagent delegation** — Coordinating agents must delegate research, implementation, and validation to subagents to prevent context fill. Never let the orchestrator do work a subagent could do.
+2. **ROI awareness** — If a feature implementation seems very complex for the value it brings, something is wrong. Applies to tests too: thousands of tests add value but may be expensive to maintain. Ask: are we missing convenience utilities (graph builders, test helpers) that would make things simpler and more concise?
+3. **Context engineering & grounding** — Agents must have sufficient grounding to operate autonomously. CLAUDE.md must be comprehensive. Tooling (diagnostics, visualizations, playtests, metrics) must scale with the project. If grounding is insufficient, the project stalls waiting for human course correction.
+4. **Continuous retrospective** — After each phase, ask: is grounding sufficient? Do we have more leverage than before? Are agents performing well? Do they need better tools, better instructions, better validation? The grounding infrastructure must grow with the features.
 
 ## Evolution
 
