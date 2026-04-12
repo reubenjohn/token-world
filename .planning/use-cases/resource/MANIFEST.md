@@ -18,10 +18,10 @@ or by surfacing a gap where a naive generated mechanic could break it.
 
 ## Wave 2 Authoring Checklist
 
-- [ ] `.planning/use-cases/resource/UC-R01-craft-sword-from-materials.md`
-- [ ] `.planning/use-cases/resource/UC-R02-consume-food.md`
-- [ ] `.planning/use-cases/resource/UC-R03-gift-currency.md`
-- [ ] `.planning/use-cases/resource/UC-R04-inventory-limit.md`
-- [ ] `.planning/use-cases/resource/UC-R05-degradation-over-time.md`
-- [ ] `.planning/use-cases/resource/UC-R06-fungible-currency.md`
-- [ ] `.planning/use-cases/resource/UC-R07-conservation-violation-attempt.md`
+- [x] `.planning/use-cases/resource/UC-R01-craft-sword-from-materials.md`
+- [x] `.planning/use-cases/resource/UC-R02-consume-food.md`
+- [x] `.planning/use-cases/resource/UC-R03-gift-currency.md`
+- [x] `.planning/use-cases/resource/UC-R04-inventory-limit.md`
+- [x] `.planning/use-cases/resource/UC-R05-degradation-over-time.md`
+- [x] `.planning/use-cases/resource/UC-R06-fungible-currency.md`
+- [x] `.planning/use-cases/resource/UC-R07-conservation-violation-attempt.md`
