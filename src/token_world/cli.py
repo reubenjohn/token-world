@@ -238,3 +238,150 @@ def query_graph(
             click.echo(f"  {n}: {props_str}")
     if truncated:
         click.echo(f"  ... (truncated at {limit})")
+
+
+@cli.command("viz-graph")
+@click.argument("universe")
+@click.option("--node", "anchor_node", default=None, help="Anchor node for the ego-graph.")
+@click.option(
+    "--depth",
+    type=int,
+    default=1,
+    show_default=True,
+    help="Hops from anchor(s) to include.",
+)
+@click.option(
+    "--seed-query",
+    "seed_queries",
+    multiple=True,
+    help="KEY=VALUE; anchor set is all nodes where property KEY equals VALUE. Repeatable.",
+)
+@click.option(
+    "--all-agents",
+    is_flag=True,
+    default=False,
+    help="Use all agent-typed nodes as anchors (depth 1 unless --depth given).",
+)
+@click.option(
+    "--type",
+    "type_filter",
+    type=click.Choice(["agent", "entity"]),
+    default=None,
+    help="Keep only this node type (anchors always preserved).",
+)
+@click.option(
+    "--has-property",
+    "has_property",
+    default=None,
+    help="Keep only nodes that have this property (anchors always preserved).",
+)
+@click.option(
+    "--exclude-property",
+    "exclude_property",
+    default=None,
+    help="Drop nodes that have this property (anchors always preserved).",
+)
+@click.option(
+    "--max-nodes",
+    type=int,
+    default=150,
+    show_default=True,
+    help="Hard cap on node count; exceeds => error with tightening hint.",
+)
+@click.option(
+    "--output",
+    type=click.Path(dir_okay=False, writable=True),
+    default=None,
+    help="Write Mermaid output to FILE instead of stdout.",
+)
+@click.option(
+    "--no-style",
+    "no_style",
+    is_flag=True,
+    default=False,
+    help="Emit minimal Mermaid (no classDef, no emoji).",
+)
+def viz_graph(
+    universe: str,
+    anchor_node: str | None,
+    depth: int,
+    seed_queries: tuple[str, ...],
+    all_agents: bool,
+    type_filter: str | None,
+    has_property: str | None,
+    exclude_property: str | None,
+    max_nodes: int,
+    output: str | None,
+    no_style: bool,
+) -> None:
+    """Emit a filtered Mermaid flowchart for a universe's knowledge graph.
+
+    An anchor is REQUIRED -- provide --node, --seed-query, or --all-agents.
+    Whole-graph rendering is not supported; use filters to focus.
+    """
+    if not (anchor_node or seed_queries or all_agents):
+        click.echo(
+            "Error: an anchor is required. Use --node <id>, "
+            "--seed-query KEY=VALUE, or --all-agents.",
+            err=True,
+        )
+        raise SystemExit(2)
+
+    from pathlib import Path
+
+    from token_world.graph import KnowledgeGraph
+    from token_world.viz import TooManyNodesError, extract_subgraph, to_mermaid
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(universe)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    kg = KnowledgeGraph(db_path=universe_dir / "universe.db")
+    kg.load()
+
+    anchors: list[str] = []
+    if anchor_node:
+        anchors.append(anchor_node)
+    for sq in seed_queries:
+        if "=" not in sq:
+            click.echo(
+                f"Error: --seed-query must be KEY=VALUE (got {sq!r})",
+                err=True,
+            )
+            raise SystemExit(2)
+        k, v = sq.split("=", 1)
+        anchors.extend(kg.nodes(**{k: v}))
+    if all_agents:
+        # KnowledgeGraph stores node type under key "type"
+        anchors.extend(kg.nodes(type="agent"))
+
+    # Dedupe while preserving order
+    anchors = list(dict.fromkeys(anchors))
+    if not anchors:
+        click.echo("Error: anchor set is empty (no matching nodes).", err=True)
+        raise SystemExit(3)
+
+    sub = extract_subgraph(kg, anchors=anchors, depth=depth)
+
+    try:
+        mermaid = to_mermaid(
+            kg,
+            sub,
+            max_nodes=max_nodes,
+            style=not no_style,
+            type_filter=type_filter,
+            has_property=has_property,
+            exclude_property=exclude_property,
+        )
+    except TooManyNodesError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(4) from e
+
+    if output:
+        Path(output).write_text(mermaid, encoding="utf-8")
+        click.echo(f"Wrote {len(mermaid)} bytes to {output}")
+    else:
+        click.echo(mermaid)
