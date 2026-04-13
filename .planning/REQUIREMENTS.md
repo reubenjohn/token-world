@@ -33,7 +33,7 @@
 - [x] **SIM-05**: Observations returned to agents are grounded in graph state (no hallucinated state)
 - [ ] **SIM-06**: Simulation history log records actions, mechanics used, mutations, and observations
 - [x] **SIM-07**: Observations are contextually filtered — only relevant properties appear (e.g. temperature not shown when looking at a keyboard)
-- [ ] **SIM-08**: Conservation laws enforced — matter/energy cannot be created from nothing; mechanics must respect fundamental constraints
+- [x] **SIM-08**: Conservation laws enforced — matter/energy cannot be created from nothing; mechanics must respect fundamental constraints
 - [ ] **SIM-09**: Action duration and attention threshold — long-running actions skip boring intermediate turns; engine only interrupts when significance exceeds agent's current attention level
 - [ ] **SIM-10**: Attention/consciousness as a reusable mechanic pattern — sleep, daydreaming, drunkenness, autopilot all use the same interruption threshold infrastructure
 - [ ] **SIM-11**: Each tick produces a structured summary (action, mechanics invoked, mutations, outcome) persisted as JSON in the universe folder
@@ -146,7 +146,7 @@
 | SIM-05 | Phase 5 | Complete |
 | SIM-06 | Phase 5 | Pending |
 | SIM-07 | Phase 5 | Complete |
-| SIM-08 | Phase 5 | Pending |
+| SIM-08 | Phase 5 | Complete |
 | SIM-09 | Phase 7 | Pending |
 | SIM-10 | Phase 7 | Pending |
 | SIM-11 | Phase 5 | Pending |
