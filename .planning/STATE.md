@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-04-13T12:34:28.205Z"
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-04-13T12:43:08.148Z"
 last_activity: 2026-04-13
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 44
-  completed_plans: 42
-  percent: 95
+  completed_plans: 43
+  percent: 98
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 ## Current Position
 
 Phase: 05 (simulation-engine) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Plans: 12 of 12 merged
 Status: Ready to execute
 Last activity: 2026-04-13
@@ -63,6 +63,7 @@ Progress: [████████░░] 80% (5 of 9 phases complete)
 | Phase 03 P11 | 30min | 1 tasks | 40 files |
 | Phase 03 P12 | 25min | 3 tasks | 4 files |
 | Phase 05-simulation-engine P02 | 35 | 2 tasks | 6 files |
+| Phase 05-simulation-engine P03 | 6 | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,7 @@ Recent decisions affecting current work:
 - [Phase 03]: [Phase 03]: 68 canonical GAP IDs (GAP-GRAPH/MECH/ENG/CROSS) synthesised from 80 Wave-3 category-scoped gaps; 6 cross-category overlap clusters merged (observation projection, graceful refusal, terrain vocab, fungibility, passive-tick sweep, blocked movement); three-way dispositions 52 address-now / 16 defer / 0 out-of-scope
 - [Phase 03]: [Phase 03]: GAP-X01 shadow alias in Cross-Cutting Rationale (no standalone OOS row) — preserves schema regex [GMEX] coverage without breaking frontmatter layer-sum reconciliation
 - [Phase 05-simulation-engine]: _node_type_matches checks type and subtype independently to avoid shadowing subtype='container' with built-in type='entity'
+- [Phase 05-simulation-engine]: CheckResult uses reasons: list[str] not narrative: str — refuse() returns CheckResult(passed=False, reasons=[narrative])
 
 ### Roadmap Evolution
 
@@ -107,6 +109,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-13T12:34:28.202Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-04-13T12:43:08.145Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None
