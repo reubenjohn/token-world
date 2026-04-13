@@ -707,9 +707,9 @@ class TestInvokeResumeTickMcp:
         """Return a replacement for ``claude_agent_sdk.query``."""
         from collections.abc import AsyncIterator
 
-        async def _fake_query(*, prompt: str, options: Any, transport: Any = None) -> AsyncIterator[
-            Any
-        ]:
+        async def _fake_query(
+            *, prompt: str, options: Any, transport: Any = None
+        ) -> AsyncIterator[Any]:
             for m in messages:
                 yield m
 
