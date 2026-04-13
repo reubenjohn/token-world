@@ -38,11 +38,20 @@ class VisibilityProjector:
 
     graph: KnowledgeGraph
 
-    def project_for(self, actor_id: str) -> dict[str, dict[str, Any]]:
+    def project_for(
+        self,
+        actor_id: str,
+        attention_state: dict | None = None,
+    ) -> dict[str, dict[str, Any]]:
         """Return a visibility projection for the given actor.
 
         Args:
             actor_id: The node ID of the actor to project for.
+            attention_state: Optional attention modulation dict (D-12).
+                ``{"suppress": [...], "boost": [...]}``
+                When ``None`` (default) or empty dict, Stage 5 is skipped and
+                the output is byte-for-byte identical to the pre-Phase-7 output
+                (backward-compatible default).
 
         Returns:
             A dict mapping node_id → {type, properties, edges}.
@@ -77,6 +86,10 @@ class VisibilityProjector:
 
         # Stage 4: belief overlay
         projection = self._apply_belief_overlay(projection, actor_id)
+
+        # Stage 5: attention modulation (D-12) — skipped when attention_state is falsy
+        if attention_state:
+            projection = self._apply_attention_state(projection, attention_state)
 
         return projection
 
@@ -219,6 +232,49 @@ class VisibilityProjector:
         return new_projection
 
     # ------------------------------------------------------------------
+    # Stage 5: Attention modulation (D-12)
+    # ------------------------------------------------------------------
+
+    def _apply_attention_state(
+        self,
+        projection: dict[str, dict[str, Any]],
+        attention_state: dict,
+    ) -> dict[str, dict[str, Any]]:
+        """Stage 5 (D-12): suppress/boost properties based on attention_state.
+
+        - suppress: list[str] — remove these property keys from every node's properties
+        - boost:    list[str] — copy these property values (if present) to a new top-level
+          ``attention_boosted`` key on each node; does NOT remove from properties
+
+        Suppress is applied before boost (deterministic order). Unknown top-level keys in
+        attention_state are silently ignored (forward-compat with future stages).
+
+        Returns a new projection dict; neither the input projection nor attention_state
+        is mutated (defensive-copy pattern consistent with other stages).
+        """
+        suppress = attention_state.get("suppress") or []
+        boost = attention_state.get("boost") or []
+        if not isinstance(suppress, list):
+            suppress = []
+        if not isinstance(boost, list):
+            boost = []
+
+        new_projection: dict[str, dict[str, Any]] = {}
+        for node_id, entry in projection.items():
+            props = dict(entry.get("properties", {}))  # defensive copy
+            # Suppress first — removes keys entirely
+            for key in suppress:
+                props.pop(key, None)
+            # Boost reads post-suppression props (so suppressed key yields no boost entry)
+            boosted = {k: props[k] for k in boost if k in props}
+            new_entry = dict(entry)
+            new_entry["properties"] = props
+            if boosted:
+                new_entry["attention_boosted"] = boosted
+            new_projection[node_id] = new_entry
+        return new_projection
+
+    # ------------------------------------------------------------------
     # Stage 4: Belief overlay
     # ------------------------------------------------------------------
 
@@ -259,6 +315,10 @@ class VisibilityProjector:
 # ---------------------------------------------------------------------------
 
 
-def project_for(graph: KnowledgeGraph, actor_id: str) -> dict[str, dict[str, Any]]:
+def project_for(
+    graph: KnowledgeGraph,
+    actor_id: str,
+    attention_state: dict | None = None,
+) -> dict[str, dict[str, Any]]:
     """Convenience function: create a projector and call project_for in one step."""
-    return VisibilityProjector(graph).project_for(actor_id)
+    return VisibilityProjector(graph).project_for(actor_id, attention_state)
