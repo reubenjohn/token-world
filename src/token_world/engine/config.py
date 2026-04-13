@@ -46,9 +46,26 @@ def load_engine_config(universe_path: Path) -> EngineConfig:
         logger.warning("universe_seed in %s is not int — using 0", config_path)
         universe_seed = 0
 
+    raw_depth = engine_section.get("max_chain_depth", 10)
+    try:
+        max_chain_depth = int(raw_depth)
+    except (TypeError, ValueError):
+        logger.warning("engine.max_chain_depth in %s is not int — using 10", config_path)
+        max_chain_depth = 10
+
+    raw_conf = engine_section.get("classifier_min_confidence", 0.6)
+    try:
+        classifier_min_confidence = float(raw_conf)
+    except (TypeError, ValueError):
+        logger.warning(
+            "engine.classifier_min_confidence in %s is not float — using 0.6",
+            config_path,
+        )
+        classifier_min_confidence = 0.6
+
     return EngineConfig(
-        max_chain_depth=int(engine_section.get("max_chain_depth", 10)),
-        classifier_min_confidence=float(engine_section.get("classifier_min_confidence", 0.6)),
+        max_chain_depth=max_chain_depth,
+        classifier_min_confidence=classifier_min_confidence,
         universe_seed=universe_seed,
     )
 
