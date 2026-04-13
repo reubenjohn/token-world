@@ -45,6 +45,10 @@ created: 2026-04-12
 | 04-01-T3 | 04-01 | 1 | UNIV-03 | — | MCP surface = 3 tools; scaffold copies flat files; mirrored test tree | unit | `uv run pytest tests/test_mcp_server.py tests/test_universe/test_scaffold.py -x -q` | ✓ (exists) | ✅ passing |
 | 04-01-T4 | 04-01 | 1 | — (prereq H-01/M-04) | — | find_state_at_tick replays add_node; loader accepts CRLF | unit | `uv run pytest tests/test_graph/test_temporal_index.py::test_find_state_at_tick_handles_remove_then_readd tests/test_design_validation/test_use_case_schema.py::test_load_use_case_accepts_crlf_frontmatter -x -q` | ✓ (created) | ✅ passing |
 | 04-01-T5 | 04-01 | 1 | MECH-05,MECH-06,UNIV-03 | — | Full suite green; lint + mypy clean | phase-gate | `uv run pytest -x -q && uv run ruff check src/ && uv run ruff format --check src/` | ✓ | ✅ passing |
+| 04-02-T1 | 04-02 | 2 | MECH-04 | T-04-AST-BYPASS | AST visitor flags forbidden imports + calls; accumulates all findings before fail | unit | `uv run pytest tests/test_mechanic/test_validation.py -x -q` | ✓ (created) | ✅ passing |
+| 04-02-T2 | 04-02 | 2 | MECH-04 | — | All 21 per-stage + per-rule validation tests cover D-14 | unit | `uv run pytest tests/test_mechanic/test_validation.py -x -q` | ✓ | ✅ passing |
+| 04-02-T3 | 04-02 | 2 | MECH-03,MECH-04 | T-04-TEST-EXEC | validate-mechanic CLI; registry auto-scan excludes invalid; subprocess uses argv list (no shell=True) | integration | `uv run pytest tests/test_cli/test_validate_mechanic.py tests/test_mechanic/test_registry.py -x -q` | ✓ (created) | ✅ passing |
+| 04-02-T4 | 04-02 | 2 | MECH-03,MECH-04 | — | Full suite + lint + format + mypy clean | phase-gate | `uv run pytest -x -q && uv run ruff check src/ && uv run ruff format --check src/ && uv run mypy src/token_world/mechanic/` | ✓ | ✅ passing |
 
 <!--
 Rows will be appended by each plan's final task:

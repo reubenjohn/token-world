@@ -45,6 +45,10 @@ import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from types import ModuleType
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from token_world.mechanic.protocol import Mechanic
 
 FORBIDDEN_CALL_NAMES: frozenset[str] = frozenset(
     {
@@ -327,7 +331,9 @@ def _stage_import(report: ValidationReport, module_path: Path) -> ModuleType | N
     return module
 
 
-def _stage_contract(report: ValidationReport, module: ModuleType, module_path: Path) -> list[type]:
+def _stage_contract(
+    report: ValidationReport, module: ModuleType, module_path: Path
+) -> list[type[Mechanic]]:
     """Verify every concrete Mechanic subclass meets the class contract.
 
     Returns the list of classes that passed the contract checks.
@@ -351,7 +357,7 @@ def _stage_contract(report: ValidationReport, module: ModuleType, module_path: P
         )
         return []
 
-    passing: list[type] = []
+    passing: list[type[Mechanic]] = []
     for cls in classes:
         cls_ok = True
         # id
@@ -432,7 +438,7 @@ def _has_valid_method(cls: type, name: str) -> bool:
     return params == ["self", "ctx"]
 
 
-def _stage_tests(report: ValidationReport, module_path: Path, mechanic_classes: list[type]) -> None:
+def _stage_tests(report: ValidationReport, module_path: Path, mechanic_classes: list[type[Mechanic]]) -> None:
     """Run pytest on the sibling test file if one exists (D-13 stage 5).
 
     Subprocess is invoked with an argv list (never ``shell=True``) so the
@@ -535,7 +541,7 @@ def _candidate_test_paths(module_path: Path, mechanic_id: str) -> list[Path]:
     return candidates
 
 
-def _stage_smoke(report: ValidationReport, mechanic_classes: list[type], module_path: Path) -> None:
+def _stage_smoke(report: ValidationReport, mechanic_classes: list[type[Mechanic]], module_path: Path) -> None:
     """Instantiate each Mechanic subclass and call ``check`` on a minimal fixture.
 
     ``CheckResult(passed=False, ...)`` is NOT a failure -- the mechanic is
