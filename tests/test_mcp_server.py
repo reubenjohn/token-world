@@ -59,8 +59,8 @@ class TestHandleToolsList:
 class TestHandleToolsCall:
     """Tests for the tools/call method."""
 
-    def test_tools_call_returns_not_implemented(self) -> None:
-        """tools/call returns a not-implemented message for any tool."""
+    def test_tools_call_missing_universe_path_returns_error(self) -> None:
+        """tools/call without universe_path returns a JSON-RPC error (not a stub message)."""
         response = handle_request(
             {
                 "jsonrpc": "2.0",
@@ -69,13 +69,12 @@ class TestHandleToolsCall:
                 "params": {"name": "resume_tick", "arguments": {}},
             }
         )
-        content = response["result"]["content"]
-        assert len(content) == 1
-        assert "not yet implemented" in content[0]["text"].lower()
-        assert content[0]["type"] == "text"
+        # Real implementation returns -32602 on missing universe_path (not stub text)
+        assert "error" in response
+        assert response["error"]["code"] == -32602
 
-    def test_tools_call_includes_tool_name_in_response(self) -> None:
-        """tools/call response includes the requested tool name."""
+    def test_tools_call_unknown_tool_returns_error(self) -> None:
+        """tools/call with unknown tool name returns -32602 error."""
         response = handle_request(
             {
                 "jsonrpc": "2.0",
@@ -84,7 +83,9 @@ class TestHandleToolsCall:
                 "params": {"name": "rollback", "arguments": {}},
             }
         )
-        assert "rollback" in response["result"]["content"][0]["text"]
+        # rollback without required params returns -32602
+        assert "error" in response
+        assert response["error"]["code"] == -32602
 
 
 class TestHandleUnknownMethod:
