@@ -174,13 +174,13 @@ Plans:
   4. Playtest runner executes N turns (including adversarial/edge-case inputs) and produces structured quality reports with per-turn grounding accuracy and mechanic validity scores
   5. System prompt or instruction changes automatically trigger grounding regression tests, and key use case scenarios from Phase 3 execute as end-to-end integration tests
   6. Hierarchical tick summary compression runs automatically, compacting tick-level summaries into batch and epoch summaries so agent context stays bounded across long simulations
-**Plans:** 7 plans
+**Plans:** 3/7 plans executed
 
 Plans:
-- [ ] 06-00-PLAN.md — Wave-0 prep: TickResult.projected_state field for groundedness scoring
-- [ ] 06-01-PLAN.md — ResidentAgent module: personality, memory, sessions, agent-turn CLI
+- [x] 06-00-PLAN.md — Wave-0 prep: TickResult.projected_state field for groundedness scoring
+- [x] 06-01-PLAN.md — ResidentAgent module: personality, memory, sessions, agent-turn CLI
 - [ ] 06-02-PLAN.md — TickCompressor: online batch + epoch hierarchical tick-summary compression
-- [ ] 06-03-PLAN.md — Use-case regression suite: 35 Phase-3 UC manifests as E2E integration tests
+- [x] 06-03-PLAN.md — Use-case regression suite: 35 Phase-3 UC manifests as E2E integration tests
 - [ ] 06-04-PLAN.md — PlaytestRunner CLI + quality scoring rubric (bundled)
 - [ ] 06-05-PLAN.md — Prompt-hash registry + automatic regression trigger + optional Sonnet judge
 - [ ] 06-06-PLAN.md — Adversarial scenario pack + expanded AdversarialBank
@@ -212,5 +212,5 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 3. Design Validation | 0/3 | Not started | - |
 | 4. Mechanic Authoring & Validation Infrastructure | 12/12 | Complete | 2026-04-13 |
 | 5. Simulation Engine | 9/9 | Complete   | 2026-04-13 |
-| 6. Resident Agent & End-to-End Loop | 0/7 | Planning complete | - |
+| 6. Resident Agent & End-to-End Loop | 3/7 | In Progress|  |
 | 7. Attention & Consciousness | 0/2 | Not started | - |

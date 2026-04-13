@@ -60,7 +60,7 @@
 - [ ] **TEST-01**: Unit tests for mechanic preconditions/side effects against small hand-crafted graphs
 - [x] **TEST-02**: Integration tests for multi-mechanic chains with realistic graph state
 - [ ] **TEST-03**: Snapshot/restore round-trip tests verify graph and mechanic state integrity
-- [ ] **TEST-04**: LLM-verifier regression tests check observation grounding against rubric (large/expensive, run on milestone boundaries)
+- [x] **TEST-04**: LLM-verifier regression tests check observation grounding against rubric (large/expensive, run on milestone boundaries)
 - [ ] **TEST-05**: System prompt change detection triggers grounding regression tests
 - [ ] **TEST-06**: Convenience graph builder utilities for concise test setup (reduce test maintenance cost)
 - [ ] **TEST-07**: Playtest runner that executes N simulation turns and produces structured quality reports
@@ -79,7 +79,7 @@
 
 - [x] **DVAL-01**: Use case library covering spatial, social, resource, environmental, and edge-case interaction scenarios
 - [x] **DVAL-02**: Gap analysis — review use cases against architecture and requirements to surface missing mechanics or framework capabilities
-- [ ] **DVAL-03**: Use case regression suite — key scenarios become executable integration tests that validate the core loop end-to-end
+- [x] **DVAL-03**: Use case regression suite — key scenarios become executable integration tests that validate the core loop end-to-end
 
 ## v2 Requirements
 
@@ -158,7 +158,7 @@
 | TEST-01 | Phase 2 | Pending |
 | TEST-02 | Phase 4 | Complete |
 | TEST-03 | Phase 1 | Pending |
-| TEST-04 | Phase 6 | Pending |
+| TEST-04 | Phase 6 | Complete |
 | TEST-05 | Phase 6 | Pending |
 | TEST-06 | Phase 1 | Pending |
 | TEST-07 | Phase 6 | Pending |
@@ -171,7 +171,7 @@
 | AUTO-07 | Phase 6 | Pending |
 | DVAL-01 | Phase 3 | Complete |
 | DVAL-02 | Phase 3 | Complete |
-| DVAL-03 | Phase 6 | Pending |
+| DVAL-03 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 52 total
