@@ -66,6 +66,15 @@ FORBIDDEN_IMPORT_PREFIXES: tuple[str, ...] = (
     "token_world.graph.knowledge_graph",
 )
 
+# Exact-match forbidden imports (D-19): names that must NOT be imported because
+# mechanics must use the ctx API instead.  Prefix matching does not apply here —
+# e.g. ``random_extra`` is a different module and must pass.
+FORBIDDEN_EXACT_IMPORTS: frozenset[str] = frozenset(
+    {
+        "random",  # D-19: use ctx.rng for deterministic randomness
+    }
+)
+
 
 # ---------------------------------------------------------------------------
 # Dataclasses
@@ -230,6 +239,10 @@ class _MechanicAstVisitor(ast.NodeVisitor):
 
     @staticmethod
     def _is_forbidden_import(name: str) -> bool:
+        # Exact-match check first (D-19: e.g. "random" — prefix "random_extra" is OK)
+        if name in FORBIDDEN_EXACT_IMPORTS:
+            return True
+        # Prefix-match check (e.g. "networkx", "token_world.graph.knowledge_graph")
         for prefix in FORBIDDEN_IMPORT_PREFIXES:
             if name == prefix or name.startswith(prefix + "."):
                 return True

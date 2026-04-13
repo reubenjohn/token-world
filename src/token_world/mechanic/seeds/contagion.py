@@ -11,19 +11,19 @@ are never re-mutated -- that is the reactive-cycle guard required by
 cross-AI review Suggestion #10 and mirrors the ``fire_spread`` / 04-08
 ``pickup`` idioms.
 
-Determinism (GAP-GRAPH05)
--------------------------
-``ctx.seed`` / ``ctx._seed`` is a documented framework gap: the
-MechanicContext has no seeded-RNG primitive today (see
-``docs/guides/authoring-mechanics.md`` § Known gaps). v1 therefore
-constructs a local :class:`random.Random` instance per apply, seeded
-from the current tick id if accessible via the temporal facade or a
-class-level fallback constant otherwise. This is explicitly a
-determinism gap: two identical calls within one tick may differ
-across processes; under replay the tick id bounds the drift.
-GAP-GRAPH05's Phase-5 seeded-RNG primitive replaces the local
-Random with ``ctx.seed`` without changing the mechanic's public
-shape.
+Determinism (Phase-5 ctx.rng, GAP-GRAPH05 closed)
+--------------------------------------------------
+Randomness is now delegated to ``ctx.rng`` — a :class:`random.Random`
+instance seeded deterministically from ``(universe_seed, tick_id)`` by
+:class:`~token_world.mechanic.context.MechanicContext`. Two identical
+calls within one tick receive the same sequence; replay is fully
+deterministic. The Phase-4 GAP-GRAPH05 workaround (local
+``random.Random`` seeded from temporal event ids) is retired.
+
+If ``ctx.rng`` is unavailable (no tick_id/universe_seed on the context,
+e.g. smoke tests), ``apply`` skips the probabilistic path and treats
+``transmission_rate >= 1.0`` as certain and ``< 1.0`` as zero to keep
+the smoke test deterministic.
 
 UC-V07 mapping
 --------------
@@ -39,13 +39,10 @@ Phase-5 integration notes
 - GAP-ENG07 (passive tick sweep): a future tick-end sweep will invoke
   contagion reactively for every infected carrier without needing an
   explicit manifest action. The mechanic shape is unchanged.
-- GAP-GRAPH05 (seeded RNG): swap the local :class:`random.Random`
-  construction for ``ctx.seed`` when the primitive lands.
 """
 
 from __future__ import annotations
 
-import random
 from typing import TYPE_CHECKING
 
 from token_world.graph import Mutation
@@ -56,10 +53,6 @@ if TYPE_CHECKING:
 
 
 _DEFAULT_TRANSMISSION_RATE = 0.3
-# GAP-GRAPH05 fallback seed: used when no tick id is accessible. Picked
-# so a fresh test graph with default transmission_rate (0.3) has a
-# reproducible outcome across Python versions.
-_FALLBACK_SEED = 42
 
 
 def _find_containing_room(ctx: MechanicContext, node_id: str) -> str | None:
@@ -67,34 +60,6 @@ def _find_containing_room(ctx: MechanicContext, node_id: str) -> str | None:
     for neighbor in ctx.neighbors(node_id, relation="located_in"):
         return neighbor
     return None
-
-
-def _resolve_seed(ctx: MechanicContext) -> int:
-    """Best-effort tick-aware seed until GAP-GRAPH05 ships ctx.seed.
-
-    Reads an accessible tick id from the temporal facade; falls back to
-    :data:`_FALLBACK_SEED` when no tick is in scope. The docstring gap
-    citation is the authoritative determinism contract for v1.
-    """
-    try:
-        temporal = ctx.temporal
-    except Exception:  # pragma: no cover — defensive
-        return _FALLBACK_SEED
-    # TemporalIndex exposes the current session tick through
-    # get_session_events; fall back silently when the API shape
-    # differs. This is a best-effort hook -- Phase 5's ctx.seed
-    # replaces it.
-    try:
-        events = temporal._graph.get_session_events()
-    except Exception:  # pragma: no cover -- defensive
-        return _FALLBACK_SEED
-    if not events:
-        return _FALLBACK_SEED
-    try:
-        # tick_id is a monotonic int on GraphEvent records.
-        return int(events[-1].tick_id)
-    except Exception:  # pragma: no cover -- defensive
-        return _FALLBACK_SEED
 
 
 class ContagionMechanic(Mechanic):
@@ -160,8 +125,13 @@ class ContagionMechanic(Mechanic):
         if room is None:
             return []
 
-        # GAP-GRAPH05 workaround: local Random seeded from the tick id.
-        rng = random.Random(_resolve_seed(ctx))
+        # Use ctx.rng for deterministic randomness (D-19, GAP-GRAPH05 closed).
+        # Fall back to a deterministic rule (rate >= 1.0 => certain) when the
+        # context has no tick_id/universe_seed (e.g. smoke tests).
+        try:
+            rng = ctx.rng
+        except RuntimeError:
+            rng = None
 
         mutations: list[Mutation] = []
         for neighbor in ctx.find_nodes(infected=False):
@@ -174,7 +144,9 @@ class ContagionMechanic(Mechanic):
             neighbor_props = ctx.query_node(neighbor)
             if neighbor_props.get("infected"):
                 continue
-            if rng.random() < rate:
+            # When rng is None (no tick context), treat rate >= 1.0 as certain
+            # and rate < 1.0 as zero — deterministic fallback for smoke tests.
+            if rng is not None and rng.random() < rate or rng is None and rate >= 1.0:
                 mutations.append(ctx.mutate(neighbor, "infected", True))
                 if carrier_disease is not None:
                     mutations.append(ctx.mutate(neighbor, "disease", carrier_disease))
