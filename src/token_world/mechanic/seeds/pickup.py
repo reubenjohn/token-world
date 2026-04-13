@@ -103,7 +103,5 @@ class PickupMechanic(Mechanic):
                 )
         cap = int(ctx.query_node(ctx.actor).get("inventory_cap", 0))
         if _count_holds(ctx, ctx.actor) >= cap:
-            return _refuse_with_narrative(
-                ctx, ctx.actor, _NARRATIVE_FULL, target=ctx.target
-            )
+            return _refuse_with_narrative(ctx, ctx.actor, _NARRATIVE_FULL, target=ctx.target)
         return [ctx.add_edge(ctx.actor, ctx.target, relation="holds")]

@@ -79,19 +79,13 @@ class CraftMechanic(Mechanic):
             return CheckResult(passed=False, reasons=["target does not exist"])
         recipe = ctx.query_node(ctx.target).get("recipe")
         if not isinstance(recipe, dict):
-            return CheckResult(
-                passed=False, reasons=["target has no recipe dict"]
-            )
+            return CheckResult(passed=False, reasons=["target has no recipe dict"])
         inputs = recipe.get("inputs")
         if not isinstance(inputs, list) or not inputs:
-            return CheckResult(
-                passed=False, reasons=["recipe has no non-empty inputs list"]
-            )
+            return CheckResult(passed=False, reasons=["recipe has no non-empty inputs list"])
         output_subtype = recipe.get("output_subtype")
         if not isinstance(output_subtype, str) or not output_subtype:
-            return CheckResult(
-                passed=False, reasons=["recipe missing output_subtype"]
-            )
+            return CheckResult(passed=False, reasons=["recipe missing output_subtype"])
         return CheckResult(passed=True)
 
     def apply(self, ctx: MechanicContext) -> list[Mutation]:

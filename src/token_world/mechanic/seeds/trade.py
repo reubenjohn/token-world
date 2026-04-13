@@ -78,23 +78,15 @@ class TradeMechanic(Mechanic):
         if not ctx.has_node(ctx.actor):
             return CheckResult(passed=False, reasons=["actor does not exist"])
         if not ctx.has_node(ctx.target):
-            return CheckResult(
-                passed=False, reasons=["counterparty (target) does not exist"]
-            )
+            return CheckResult(passed=False, reasons=["counterparty (target) does not exist"])
         if ctx.actor == ctx.target:
-            return CheckResult(
-                passed=False, reasons=["actor and counterparty are the same agent"]
-            )
+            return CheckResult(passed=False, reasons=["actor and counterparty are the same agent"])
         actor_pending = ctx.query_node(ctx.actor).get("pending_trade")
         if not isinstance(actor_pending, dict):
-            return CheckResult(
-                passed=False, reasons=["actor has no pending_trade dict"]
-            )
+            return CheckResult(passed=False, reasons=["actor has no pending_trade dict"])
         counter_pending = ctx.query_node(ctx.target).get("pending_trade")
         if not isinstance(counter_pending, dict):
-            return CheckResult(
-                passed=False, reasons=["counterparty has no pending_trade dict"]
-            )
+            return CheckResult(passed=False, reasons=["counterparty has no pending_trade dict"])
         return CheckResult(passed=True)
 
     def apply(self, ctx: MechanicContext) -> list[Mutation]:
@@ -113,16 +105,12 @@ class TradeMechanic(Mechanic):
             and offer_item == counter_demand
             and demand_item == counter_offer
         ):
-            return _refuse_with_narrative(
-                ctx, ctx.actor, _NARRATIVE_ASYMMETRIC, target=ctx.target
-            )
+            return _refuse_with_narrative(ctx, ctx.actor, _NARRATIVE_ASYMMETRIC, target=ctx.target)
 
         actor_holds = set(ctx.neighbors(ctx.actor, relation="holds"))
         counter_holds = set(ctx.neighbors(ctx.target, relation="holds"))
         if offer_item not in actor_holds or demand_item not in counter_holds:
-            return _refuse_with_narrative(
-                ctx, ctx.actor, _NARRATIVE_NOT_HELD, target=ctx.target
-            )
+            return _refuse_with_narrative(ctx, ctx.actor, _NARRATIVE_NOT_HELD, target=ctx.target)
 
         # Atomic swap: drop both edges, re-add in mirrored directions.
         return [

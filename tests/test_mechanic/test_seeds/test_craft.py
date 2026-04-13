@@ -98,9 +98,7 @@ class TestCraftApply:
         assert not uc_r01_graph.has_edge("alice", "wood_plank")
         # Output: there should be a new sword-subtype entity held by alice.
         held = list(ctx.neighbors("alice", relation="holds"))
-        sword_ids = [
-            h for h in held if uc_r01_graph.query(h).get("subtype") == "sword"
-        ]
+        sword_ids = [h for h in held if uc_r01_graph.query(h).get("subtype") == "sword"]
         assert len(sword_ids) == 1
         # inventory_cap preserved on alice.
         assert uc_r01_graph.query("alice").get("inventory_cap") == 10
@@ -126,11 +124,7 @@ class TestCraftApply:
         mechanic.apply(ctx)
         # Old sword untouched; new node has a suffixed id.
         held = list(ctx.neighbors("alice", relation="holds"))
-        sword_ids = [
-            h
-            for h in held
-            if kg.query(h).get("subtype") == "sword"
-        ]
+        sword_ids = [h for h in held if kg.query(h).get("subtype") == "sword"]
         assert len(sword_ids) == 1
         assert sword_ids[0] != "sword"  # suffixed
         assert sword_ids[0].startswith("sword_")

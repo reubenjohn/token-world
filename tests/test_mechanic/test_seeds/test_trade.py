@@ -72,9 +72,7 @@ class TestTradeCheck:
         ctx = MechanicContext(uc_o01_graph, actor="alice", target="bob")
         assert mechanic.check(ctx).passed is True
 
-    def test_fails_when_counterparty_missing_pending(
-        self, mechanic: TradeMechanic
-    ) -> None:
+    def test_fails_when_counterparty_missing_pending(self, mechanic: TradeMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node(
             "alice",

@@ -96,9 +96,7 @@ class TestGiveItemForm:
         # pending_give cleared.
         assert kg.query("alice").get("pending_give") is None
 
-    def test_refuses_when_actor_does_not_hold_item(
-        self, mechanic: GiveMechanic
-    ) -> None:
+    def test_refuses_when_actor_does_not_hold_item(self, mechanic: GiveMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node(
             "alice",
@@ -137,9 +135,7 @@ class TestGiveScalarForm:
         assert kg.query("bob").get("coin") == 5
         assert kg.query("alice").get("pending_give") is None
 
-    def test_refuses_when_actor_has_insufficient(
-        self, mechanic: GiveMechanic
-    ) -> None:
+    def test_refuses_when_actor_has_insufficient(self, mechanic: GiveMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node(
             "alice",

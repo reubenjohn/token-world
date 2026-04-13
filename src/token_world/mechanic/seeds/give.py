@@ -85,14 +85,10 @@ class GiveMechanic(Mechanic):
             return CheckResult(passed=False, reasons=["actor does not exist"])
         pending = ctx.query_node(ctx.actor).get("pending_give")
         if not isinstance(pending, dict):
-            return CheckResult(
-                passed=False, reasons=["actor has no pending_give dict"]
-            )
+            return CheckResult(passed=False, reasons=["actor has no pending_give dict"])
         recipient = pending.get("recipient")
         if not isinstance(recipient, str) or not recipient:
-            return CheckResult(
-                passed=False, reasons=["pending_give missing recipient"]
-            )
+            return CheckResult(passed=False, reasons=["pending_give missing recipient"])
         has_item = isinstance(pending.get("item"), str) and pending["item"]
         has_scalar = (
             isinstance(pending.get("property"), str)
@@ -119,9 +115,7 @@ class GiveMechanic(Mechanic):
         amount = pending["amount"]
         return self._apply_scalar(ctx, prop, amount, recipient)
 
-    def _apply_item(
-        self, ctx: MechanicContext, item: str, recipient: str
-    ) -> list[Mutation]:
+    def _apply_item(self, ctx: MechanicContext, item: str, recipient: str) -> list[Mutation]:
         held = set(ctx.neighbors(ctx.actor, relation="holds"))
         if item not in held:
             return _refuse_with_narrative(ctx, ctx.actor, _NARRATIVE_NOT_HELD)
