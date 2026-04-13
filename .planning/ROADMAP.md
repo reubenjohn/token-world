@@ -208,6 +208,6 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 2. Mechanic Framework | 0/3 | Planning complete | - |
 | 3. Design Validation | 0/3 | Not started | - |
 | 4. Mechanic Authoring & Validation Infrastructure | 12/12 | Complete | 2026-04-13 |
-| 5. Simulation Engine | 7/9 | In Progress|  |
+| 5. Simulation Engine | 8/9 | In Progress|  |
 | 6. Resident Agent & End-to-End Loop | 0/4 | Not started | - |
 | 7. Attention & Consciousness | 0/2 | Not started | - |

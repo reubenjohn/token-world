@@ -26,12 +26,12 @@
 
 ### Simulation Engine
 
-- [ ] **SIM-01**: Engine interprets resident agent text output into structured actions
+- [x] **SIM-01**: Engine interprets resident agent text output into structured actions
 - [x] **SIM-02**: Engine matches structured actions to existing mechanics
 - [x] **SIM-03**: Engine triggers mechanic generation when no existing mechanic matches
-- [ ] **SIM-04**: Engine executes matched/generated mechanic and applies side effects to graph
+- [x] **SIM-04**: Engine executes matched/generated mechanic and applies side effects to graph
 - [x] **SIM-05**: Observations returned to agents are grounded in graph state (no hallucinated state)
-- [ ] **SIM-06**: Simulation history log records actions, mechanics used, mutations, and observations
+- [x] **SIM-06**: Simulation history log records actions, mechanics used, mutations, and observations
 - [x] **SIM-07**: Observations are contextually filtered — only relevant properties appear (e.g. temperature not shown when looking at a keyboard)
 - [x] **SIM-08**: Conservation laws enforced — matter/energy cannot be created from nothing; mechanics must respect fundamental constraints
 - [ ] **SIM-09**: Action duration and attention threshold — long-running actions skip boring intermediate turns; engine only interrupts when significance exceeds agent's current attention level
@@ -139,12 +139,12 @@
 | MECH-04 | Phase 4 | Complete |
 | MECH-05 | Phase 4 | Complete (revised from Phase 2; see 04-CONTEXT D-03..D-08 — flat layout) |
 | MECH-06 | Phase 4 | Complete (revised from Phase 2; see 04-CONTEXT D-07 — module-based registry discovery) |
-| SIM-01 | Phase 5 | Pending |
+| SIM-01 | Phase 5 | Complete |
 | SIM-02 | Phase 5 | Complete |
 | SIM-03 | Phase 5 | Complete |
-| SIM-04 | Phase 5 | Pending |
+| SIM-04 | Phase 5 | Complete |
 | SIM-05 | Phase 5 | Complete |
-| SIM-06 | Phase 5 | Pending |
+| SIM-06 | Phase 5 | Complete |
 | SIM-07 | Phase 5 | Complete |
 | SIM-08 | Phase 5 | Complete |
 | SIM-09 | Phase 7 | Pending |
