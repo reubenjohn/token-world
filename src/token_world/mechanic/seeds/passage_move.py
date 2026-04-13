@@ -52,7 +52,7 @@ class PassageMoveMechanic(Mechanic):
     voluntary = True
     tags: list[str] = ["spatial", "passage"]
 
-    def check(self, ctx: "MechanicContext") -> CheckResult:
+    def check(self, ctx: MechanicContext) -> CheckResult:
         if not ctx.has_node(ctx.actor):
             return CheckResult(passed=False, reasons=["actor does not exist"])
         if not ctx.has_node(ctx.target):
@@ -75,7 +75,7 @@ class PassageMoveMechanic(Mechanic):
             )
         return CheckResult(passed=True)
 
-    def apply(self, ctx: "MechanicContext") -> list[Mutation]:
+    def apply(self, ctx: MechanicContext) -> list[Mutation]:
         src = _current_location(ctx, ctx.actor)
         muts: list[Mutation] = []
         if src is not None:

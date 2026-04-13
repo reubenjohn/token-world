@@ -3,7 +3,7 @@ id: UC-S06
 category: spatial
 title: "Traversal across terrain"
 status: reviewed
-expected_outcome: yield
+expected_outcome: pass
 setup:
   graph_builder: |
     # Alice in room_a; a river separates room_a from room_b; a bridge spans it.
@@ -30,13 +30,14 @@ setup:
     kg.add_edge("river_thorn", "room_b", relation="borders")
     kg.add_edge("bridge_stone", "room_a", relation="connects")
     kg.add_edge("bridge_stone", "room_b", relation="connects")
+    kg.add_edge("room_a", "bridge_stone", relation="connects")
+    kg.add_edge("room_b", "bridge_stone", relation="connects")
 actions:
   - actor: alice
     intent: "cross the river by walking over the stone bridge"
     classified:
-      verb: move
-      target: bridge_stone
-      indirect_object: room_b
+      verb: passage_move
+      target: room_b
       via: bridge_stone
 expected_observations:
   - actor: alice

@@ -38,7 +38,7 @@ def _is_passage_open(props: dict) -> bool:
     return True
 
 
-def _find_open_passage(ctx: "MechanicContext", src: str, dst: str) -> str | None:
+def _find_open_passage(ctx: MechanicContext, src: str, dst: str) -> str | None:
     """Return the id of an open passage entity connecting *src* to *dst*.
 
     Walks *src*'s outgoing ``connects`` edges looking for an entity P whose
@@ -76,7 +76,7 @@ def _find_open_passage(ctx: "MechanicContext", src: str, dst: str) -> str | None
     return None
 
 
-def _current_location(ctx: "MechanicContext", actor: str) -> str | None:
+def _current_location(ctx: MechanicContext, actor: str) -> str | None:
     """Return the actor's current ``located_in`` target, or ``None``.
 
     A small convenience shared by the three spatial seeds (passage_move,

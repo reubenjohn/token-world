@@ -61,6 +61,9 @@ created: 2026-04-12
 | 04-04-T2 | 04-04 | 3 | TEST-02 | T-04-HARNESS-EXEC, T-04-MANIFEST-SCHEMA-DRIFT | Harness collects 35 UCs; explicit outcome branching via pytest.xfail/fail/skip; DiagnosticsSink exercised per test; import-safe discovery | integration | `uv run pytest tests/test_integration/test_use_cases.py -q` | ✓ (created) | ✅ passing |
 | 04-04-T3 | 04-04 | 3 | TEST-02 | — | Invariant: every manifest has a valid expected_outcome (authoritative pytest check, not grep) | unit | `uv run pytest tests/test_use_cases/test_manifest_outcomes.py -q` | ✓ (created) | ✅ passing |
 | 04-04-T4 | 04-04 | 3 | TEST-02 | — | Full suite green after manifest annotations (skips + xfails only, no fails) | phase-gate | `uv run pytest tests/test_integration/ tests/test_use_cases/ -q && uv run pytest -x -q` | ✓ | ✅ passing |
+| 04-06-T1 | 04-06 | 4 | MECH-03 | — | MECH01 passage_move validates; doorway + direct-connects + bridge paths honored; closed doorway refused | unit | `uv run pytest tests/test_mechanic/test_seeds/test_passage_move.py -x -q` | ✓ | ⬜ pending |
+| 04-06-T2 | 04-06 | 4 | MECH-03 | — | MECH05 terrain_move + MECH06 position_sync validate; UC-V05 stamina 20→18; position_sync fires reactively via ChainExecutionEngine | unit | `uv run pytest tests/test_mechanic/test_seeds/test_terrain_move.py tests/test_mechanic/test_seeds/test_position_sync.py -x -q` | ✓ | ⬜ pending |
+| 04-06-T3 | 04-06 | 4 | MECH-03, TEST-02 | — | UC-S01 / UC-S06 / UC-S07 / UC-V05 flipped to expected_outcome=pass; harness green on all four | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-S01 or UC-S06 or UC-S07 or UC-V05" -q` | ✓ | ⬜ pending |
 
 <!--
 Rows will be appended by each plan's final task:
@@ -69,6 +72,7 @@ Rows will be appended by each plan's final task:
 - 04-03 Task 4 (NEW — registry→sink wiring, closes D-15) appends 04-03-T5
 - 04-04 Task 3 appends 04-04-T1 through 04-04-T4 (now includes 04-04-T3 for invariant test + 04-04-T4 phase-gate)
 - 04-05 through 04-11 append their own rows
+- 04-06 Task 3 appends 04-06-T1 through 04-06-T3 (passage_move / terrain_move / position_sync + 4 UC flips)
 - 04-12 Task 1 flips all ⬜ pending to ✅ done and flips frontmatter
 -->
 

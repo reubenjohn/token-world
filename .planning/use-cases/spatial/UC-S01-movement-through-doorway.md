@@ -3,7 +3,7 @@ id: UC-S01
 category: spatial
 title: "Movement through a doorway"
 status: reviewed
-expected_outcome: yield
+expected_outcome: pass
 setup:
   graph_builder: |
     # Two rooms connected by a doorway entity. Alice starts in room_a.
@@ -24,10 +24,10 @@ actions:
   - actor: alice
     intent: "walk east through the doorway into room_b"
     classified:
-      verb: move
+      verb: passage_move
       direction: east
-      target: doorway_1
-      indirect_object: room_b
+      target: room_b
+      via: doorway_1
 expected_observations:
   - actor: alice
     narrative_contains: ["room_b", "doorway", "east"]

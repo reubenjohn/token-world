@@ -97,7 +97,7 @@ class TerrainMoveMechanic(Mechanic):
     # Edge relations accepted as "adjacency" for a terrain step.
     _ADJACENT_RELATIONS: tuple[str, ...] = ("connects", "adjacent_to")
 
-    def check(self, ctx: "MechanicContext") -> CheckResult:
+    def check(self, ctx: MechanicContext) -> CheckResult:
         if not ctx.has_node(ctx.actor):
             return CheckResult(passed=False, reasons=["actor does not exist"])
         if not ctx.has_node(ctx.target):
@@ -124,7 +124,10 @@ class TerrainMoveMechanic(Mechanic):
         if cost is None:
             return CheckResult(
                 passed=False,
-                reasons=["neither source nor target has terrain info (terrain_type or movement_cost_multiplier)"],
+                reasons=[
+                    "neither source nor target has terrain info "
+                    "(terrain_type or movement_cost_multiplier)"
+                ],
             )
         if cost >= _IMPASSABLE_THRESHOLD:
             return CheckResult(
@@ -135,13 +138,11 @@ class TerrainMoveMechanic(Mechanic):
         if stamina < rounded:
             return CheckResult(
                 passed=False,
-                reasons=[
-                    f"insufficient stamina (need {rounded}, have {stamina})"
-                ],
+                reasons=[f"insufficient stamina (need {rounded}, have {stamina})"],
             )
         return CheckResult(passed=True)
 
-    def apply(self, ctx: "MechanicContext") -> list[Mutation]:
+    def apply(self, ctx: MechanicContext) -> list[Mutation]:
         src = _current_location(ctx, ctx.actor)
         cost = self._effective_cost(ctx, src, ctx.target) or 0.0
         rounded = int(round(cost))
@@ -154,16 +155,13 @@ class TerrainMoveMechanic(Mechanic):
         muts.append(ctx.set(ctx.actor, "location", ctx.target))
         return muts
 
-    def _adjacent(self, ctx: "MechanicContext", src: str, dst: str) -> bool:
+    def _adjacent(self, ctx: MechanicContext, src: str, dst: str) -> bool:
         """True iff an edge ``src → dst`` exists with an accepted relation."""
-        for rel in self._ADJACENT_RELATIONS:
-            if dst in set(ctx.neighbors(src, relation=rel)):
-                return True
-        return False
+        return any(dst in set(ctx.neighbors(src, relation=rel)) for rel in self._ADJACENT_RELATIONS)
 
     def _effective_cost(
         self,
-        ctx: "MechanicContext",
+        ctx: MechanicContext,
         src: str | None,
         dst: str,
     ) -> float | None:

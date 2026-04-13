@@ -71,7 +71,7 @@ class PositionSyncMechanic(Mechanic):
     def watches(self) -> list[Matcher]:
         return [EdgeMatcher(event_type="add_edge", edge_label="located_in")]
 
-    def check(self, ctx: "MechanicContext") -> CheckResult:
+    def check(self, ctx: MechanicContext) -> CheckResult:
         # The chain engine targets the src of the edge (the moved agent).
         actor_id = ctx.target
         if not ctx.has_node(actor_id):
@@ -91,7 +91,7 @@ class PositionSyncMechanic(Mechanic):
             )
         return CheckResult(passed=True)
 
-    def apply(self, ctx: "MechanicContext") -> list[Mutation]:
+    def apply(self, ctx: MechanicContext) -> list[Mutation]:
         actor_id = ctx.target
         dst = _current_location(ctx, actor_id)
         if dst is None:

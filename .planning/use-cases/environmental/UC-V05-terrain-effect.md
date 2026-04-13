@@ -3,7 +3,7 @@ id: UC-V05
 category: environmental
 title: "Terrain effect"
 status: reviewed
-expected_outcome: yield
+expected_outcome: pass
 setup:
   graph_builder: |
     # Alice is knee-deep in swamp when she tries to walk onto the dry path.
@@ -31,7 +31,7 @@ actions:
   - actor: alice
     intent: "slog out of the swamp onto the dry path"
     classified:
-      verb: move
+      verb: terrain_move
       target: dry_land
       direction: east
 expected_observations:
