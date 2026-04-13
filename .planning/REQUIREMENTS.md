@@ -61,7 +61,7 @@
 - [x] **TEST-02**: Integration tests for multi-mechanic chains with realistic graph state
 - [ ] **TEST-03**: Snapshot/restore round-trip tests verify graph and mechanic state integrity
 - [x] **TEST-04**: LLM-verifier regression tests check observation grounding against rubric (large/expensive, run on milestone boundaries)
-- [ ] **TEST-05**: System prompt change detection triggers grounding regression tests
+- [x] **TEST-05**: System prompt change detection triggers grounding regression tests
 - [ ] **TEST-06**: Convenience graph builder utilities for concise test setup (reduce test maintenance cost)
 - [ ] **TEST-07**: Playtest runner that executes N simulation turns and produces structured quality reports
 
@@ -73,7 +73,7 @@
 - [x] **AUTO-04**: Mermaid diagram generation for graph visualization (agent can render and review multimodally)
 - [ ] **AUTO-05**: Simulation playtest with edge-case injection (adversarial inputs, nonsense, repeats) at configurable rates
 - [ ] **AUTO-06**: Quality scoring per simulation turn (grounding accuracy, mechanic validity, observation relevance)
-- [ ] **AUTO-07**: Prompt/instruction change detection triggers automated regression validation
+- [x] **AUTO-07**: Prompt/instruction change detection triggers automated regression validation
 
 ### Design Validation
 
@@ -159,7 +159,7 @@
 | TEST-02 | Phase 4 | Complete |
 | TEST-03 | Phase 1 | Pending |
 | TEST-04 | Phase 6 | Complete |
-| TEST-05 | Phase 6 | Pending |
+| TEST-05 | Phase 6 | Complete |
 | TEST-06 | Phase 1 | Pending |
 | TEST-07 | Phase 6 | Pending |
 | AUTO-01 | Phase 1 | Pending |
@@ -168,7 +168,7 @@
 | AUTO-04 | Phase 3 | Complete |
 | AUTO-05 | Phase 6 | Pending |
 | AUTO-06 | Phase 6 | Pending |
-| AUTO-07 | Phase 6 | Pending |
+| AUTO-07 | Phase 6 | Complete |
 | DVAL-01 | Phase 3 | Complete |
 | DVAL-02 | Phase 3 | Complete |
 | DVAL-03 | Phase 6 | Complete |
