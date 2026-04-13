@@ -127,6 +127,14 @@ def scaffold_universe(universe_dir: Path, *, name: str, slug: str) -> None:
             encoding="utf-8",
         )
 
+    # Seed conservation.yaml ONLY if it does not already exist (idempotent).
+    # Default is empty (no enforcement) — universes opt-in by listing properties (D-16).
+    conservation_yaml_path = universe_dir / "conservation.yaml"
+    if not conservation_yaml_path.exists():
+        from token_world.universe.templates.conservation_yaml import render_conservation_yaml
+
+        conservation_yaml_path.write_text(render_conservation_yaml(), encoding="utf-8")
+
     # Generate CLAUDE.md from template
     claude_md = render_claude_md(name=name, slug=slug)
     (universe_dir / "CLAUDE.md").write_text(claude_md)
