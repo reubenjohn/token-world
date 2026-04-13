@@ -81,7 +81,7 @@ Plans:
   2. Gap analysis report identifies missing mechanics or framework capabilities, and each gap has a disposition (address now, defer, out of scope)
   3. Spatial queries via R-tree index and temporal queries via time-range index are available as optional primitives that mechanics can use
   4. Mermaid diagrams can be generated from graph state for visual inspection of world topology
-**Plans**: TBD
+**Plans:** 7 plans
 
 Plans:
 - [x] 03-01-PLAN.md — Wave-0 scaffolding (use-cases directory layout, manifest schema, shared fixtures)
@@ -156,7 +156,7 @@ Plans:
   5. Conservation laws are enforced — mechanics cannot create matter/energy from nothing; attempts produce appropriate failure observations
   6. Per-tick summaries are written to tick_summaries/ after each simulation tick, enabling agent catch-up and context compaction
   7. Classifier, matcher, and observer LLM calls write prompts, raw responses, and parsed output to the Phase 4 diagnostics substrate (AUTO-02 fully wired end-to-end)
-**Plans**: TBD
+**Plans:** 7 plans
 
 Plans:
 - [x] 05-01: TBD
@@ -193,11 +193,16 @@ Plans:
   1. Long-running actions skip boring intermediate turns and only interrupt the agent when significance exceeds the current attention threshold
   2. Sleep, daydreaming, and autopilot travel all use the same interruption threshold infrastructure, demonstrating the pattern's composability
   3. An agent traveling a long distance experiences compressed time with interruptions only for significant events (demonstrating both SIM-09 and SIM-10 working together)
-**Plans**: TBD
+**Plans:** 7 plans
 
 Plans:
-- [ ] 07-01: TBD
-- [ ] 07-02: TBD
+- [ ] 07-01-PLAN.md — LongRunningAction + ThresholdSpec + ThresholdEvaluator (pure dataclasses + evaluator)
+- [ ] 07-02-PLAN.md — VisibilityProjector attention_state extension (Stage 5 suppress/boost)
+- [ ] 07-03-PLAN.md — MechanicContext.begin_long_action() helper (mechanic-facing API)
+- [ ] 07-04-PLAN.md — Engine tick hook + synthetic action routing + tick summary + runner integration
+- [ ] 07-05-PLAN.md — Sleep seed mechanic (bounded, noise/health thresholds)
+- [ ] 07-06-PLAN.md — Autopilot-travel seed mechanic + per-tick advance passive (bounded, hazard thresholds)
+- [ ] 07-07-PLAN.md — Drunk seed mechanic + sober_up passive (indefinite, sobriety threshold)
 
 ## Progress
 
@@ -213,4 +218,4 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. Mechanic Authoring & Validation Infrastructure | 12/12 | Complete | 2026-04-13 |
 | 5. Simulation Engine | 9/9 | Complete   | 2026-04-13 |
 | 6. Resident Agent & End-to-End Loop | 7/7 | Complete   | 2026-04-13 |
-| 7. Attention & Consciousness | 0/2 | Not started | - |
+| 7. Attention & Consciousness | 0/7 | Planning complete | - |
