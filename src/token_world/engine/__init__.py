@@ -19,6 +19,11 @@ from __future__ import annotations
 from token_world.engine.compressor import TickCompressor
 from token_world.engine.conservation import ConservationChecker, ConservationVerdict
 from token_world.engine.engine import SimulationEngine, TickResult
+from token_world.engine.long_running import (
+    LongRunningAction,
+    ThresholdEvaluator,
+    ThresholdSpec,
+)
 from token_world.engine.models import (
     BatchSummary,
     ClassifiedAction,
@@ -44,6 +49,9 @@ from token_world.engine.summary_writer import TickSummaryWriter, build_tick_summ
 __all__ = [
     "BatchSummary",
     "ClassifiedAction",
+    "LongRunningAction",
+    "ThresholdEvaluator",
+    "ThresholdSpec",
     "TickCompressor",
     "ClassifierVerdict",
     "ConservationChecker",
