@@ -2,28 +2,37 @@
 
 from __future__ import annotations
 
-_ESCAPES = str.maketrans(
+# Order matters: entity-escape all angle brackets and other hostile chars
+# BEFORE we introduce our own literal '<br/>' for newlines. This prevents
+# an attacker-supplied label like '<script>' from surviving the escape.
+_ENTITY_ESCAPES = str.maketrans(
     {
         '"': "#quot;",
-        "\n": "<br/>",
         "[": "&#91;",
         "]": "&#93;",
         "|": "&#124;",
+        "<": "&lt;",
+        ">": "&gt;",
     }
 )
+
+_NEWLINE_TOKEN = "<br/>"
 
 
 def escape_label(text: str, *, max_len: int = 60) -> str:
     """Escape characters that break Mermaid flowchart labels.
 
-    Replaces ``" \\n [ ] |`` with Mermaid-safe HTML entities and truncates the
-    result to ``max_len`` characters (appending ``…`` when truncated).
-
-    Truncation is performed on the *escaped* string, but the cut point is
-    walked backwards off any incomplete escape entity (``&#NN...;`` / ``<br/>``)
-    so the output never contains a malformed fragment like ``&#12…``.
+    Steps:
+      1. Entity-escape ``" [ ] | < >`` so attacker-controlled HTML/Mermaid
+         syntax in ``text`` cannot survive.
+      2. Replace each ``\\n`` with the literal token ``<br/>`` -- this is the
+         ONLY ``<br/>`` that appears in output; any ``<br/>`` in the input has
+         already been escaped to ``&lt;br/&gt;`` in step 1.
+      3. Truncate to ``max_len``, walking the cut backwards off any
+         incomplete ``&...;`` entity or ``<...>`` tag so the result never
+         contains a malformed fragment (M-01 invariant).
     """
-    escaped = text.translate(_ESCAPES)
+    escaped = text.translate(_ENTITY_ESCAPES).replace("\n", _NEWLINE_TOKEN)
     if len(escaped) > max_len:
         cut = max_len - 1
         # If the cut lands inside an unterminated entity, walk back to before
