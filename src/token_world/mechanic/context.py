@@ -95,6 +95,36 @@ class MechanicContext:
         """
         return self._graph.neighbors(node_id)
 
+    def neighbors(self, node_id: str, *, relation: str | None = None) -> list[str]:
+        """Get adjacent node IDs, optionally filtered by an edge ``relation``.
+
+        Authoring-facing alias for :meth:`query_neighbors` that additionally
+        supports an edge ``relation`` filter — the common case in seed
+        mechanics (``ctx.neighbors(actor, relation="holds")``).
+
+        Args:
+            node_id: The node whose neighbors to query.
+            relation: Optional edge ``relation`` property to filter by. When
+                provided, only neighbors reached via an edge whose
+                ``relation`` property equals this value are returned.
+
+        Returns:
+            List of neighbor node IDs.
+        """
+        if relation is None:
+            return self._graph.neighbors(node_id)
+        # Walk out-edges, keeping only those whose edge-data `relation`
+        # matches. Uses the public ego_subgraph copy so we stay off the
+        # private `_graph._graph` attribute (D-14 mutation-discipline
+        # rationale applies symmetrically to reads).
+        sub = self._graph.ego_subgraph(node_id, depth=1, undirected=False)
+        out = []
+        for nbr in sub.successors(node_id):
+            data = sub.get_edge_data(node_id, nbr) or {}
+            if data.get("relation") == relation:
+                out.append(nbr)
+        return out
+
     def has_node(self, node_id: str) -> bool:
         """Check if a node exists in the graph."""
         return self._graph.has_node(node_id)
@@ -128,6 +158,32 @@ class MechanicContext:
             A Mutation record describing the change.
         """
         return self._graph.set(node_id, property, value)
+
+    def set(self, node_id: str, property: str, value: Any) -> Mutation:
+        """Authoring-facing alias for :meth:`mutate`.
+
+        Mirrors the ``KnowledgeGraph.set`` name so mechanics can use whichever
+        reads more naturally in context. Behaviour is identical to
+        :meth:`mutate`.
+        """
+        return self._graph.set(node_id, property, value)
+
+    def claim_id(self, name: str) -> str:
+        """Claim a unique, human-readable node ID.
+
+        Thin delegator to :meth:`KnowledgeGraph.claim_id`. Mechanics that
+        create new nodes (e.g., ``craft``) should use this to deconflict IDs
+        rather than hardcoding strings that may collide with operator-authored
+        content.
+
+        Args:
+            name: The readable ID to claim (e.g., ``"sword"``). If taken,
+                returns a suffixed variant (``"sword_a7"``).
+
+        Returns:
+            A unique ID safe to pass to :meth:`add_node`.
+        """
+        return self._graph.claim_id(name)
 
     def add_node(self, node_id: str, *, node_type: str, **props: Any) -> Mutation:
         """Add a new node to the graph.

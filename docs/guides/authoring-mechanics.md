@@ -169,14 +169,19 @@ class MechanicContext:
     def has_edge(self, src: str, dst: str) -> bool: ...
     def query_node(self, node_id: str, property: str | None = None) -> Any: ...
     def query_neighbors(self, node_id: str) -> list[str]: ...
+    def neighbors(self, node_id: str, *, relation: str | None = None) -> list[str]: ...
     def find_nodes(self, **filters: Any) -> list[str]: ...
 
     # Mutations (each returns a Mutation record, which is also auto-logged)
     def mutate(self, node_id: str, property: str, value: Any) -> Mutation: ...
+    def set(self, node_id: str, property: str, value: Any) -> Mutation: ...  # alias
     def add_node(self, node_id: str, *, node_type: str, **props: Any) -> Mutation: ...
     def remove_node(self, node_id: str) -> Mutation: ...
     def add_edge(self, src: str, dst: str, **props: Any) -> Mutation: ...
     def remove_edge(self, src: str, dst: str) -> Mutation: ...
+
+    # Identity
+    def claim_id(self, name: str) -> str: ...
 ```
 
 ### Query methods
@@ -209,6 +214,63 @@ Never hardcode node IDs that might collide with operator-authored content. Use `
 ### Property values
 
 **All property values must be JSON-serializable**: `str, int, float, bool, None, list, dict`. This is enforced by `ALLOWED_PROPERTY_TYPES` inside `KnowledgeGraph`. Sets, tuples, bytes, custom objects, `datetime` objects — not allowed. Store ISO strings for times; store lists for sets.
+
+### MechanicContext DSL Surface (Frozen)
+
+The public surface of `MechanicContext` is **frozen** and pinned by `tests/test_mechanic/test_context_api.py`. Seed mechanics may rely on exactly these names and signatures; anything not listed here is either private, a known gap, or a yet-to-be-added method that requires a paired test + docs update to land.
+
+Additions must:
+1. Land with a delegator implementation in `src/token_world/mechanic/context.py`,
+2. Be added to `EXPECTED_CALLABLES` / `EXPECTED_ATTRS` in the test, AND
+3. Be documented in this section.
+
+Silent drift fails the test. If the test fails, read it — the failure message points at what changed.
+
+#### Core graph API (always available)
+
+| Symbol | Signature | Purpose | Example |
+|---|---|---|---|
+| `ctx.actor` | `str` | Node ID of the action initiator | `ctx.query_node(ctx.actor)` |
+| `ctx.target` | `str` | Node ID / string of the action's object | `ctx.has_node(ctx.target)` |
+| `has_node` | `(node_id) -> bool` | Existence check; always gate before `query_node` | `if not ctx.has_node(x): ...` |
+| `has_edge` | `(src, dst) -> bool` | Directed-edge existence | `ctx.has_edge("alice", "sword")` |
+| `query_node` | `(node_id, property=None) -> Any` | Fetch all props or one | `ctx.query_node("alice", "hunger")` |
+| `query_neighbors` | `(node_id) -> list[str]` | All out-neighbors | `ctx.query_neighbors("room_a")` |
+| `neighbors` | `(node_id, *, relation=None) -> list[str]` | Out-neighbors filtered by edge `relation` property | `ctx.neighbors(actor, relation="holds")` |
+| `find_nodes` | `(**filters) -> list[str]` | Nodes matching property equality (AND-ed) | `ctx.find_nodes(subtype="weapon")` |
+| `mutate` | `(node_id, property, value) -> Mutation` | Set/update a property | `ctx.mutate(actor, "hp", 10)` |
+| `set` | `(node_id, property, value) -> Mutation` | Alias for `mutate` (matches `KnowledgeGraph.set` naming) | `ctx.set(actor, "hunger", 0)` |
+| `add_node` | `(node_id, *, node_type, **props) -> Mutation` | Create node; `node_type` must be `"agent"` or `"entity"` | `ctx.add_node(new_id, node_type="entity", subtype="sword")` |
+| `remove_node` | `(node_id) -> Mutation` | Delete node + cascade edges | `ctx.remove_node(target)` |
+| `add_edge` | `(src, dst, **props) -> Mutation` | Directed edge with arbitrary props (common: `relation="..."`) | `ctx.add_edge(a, b, relation="holds")` |
+| `remove_edge` | `(src, dst) -> Mutation` | Remove forward edge only | `ctx.remove_edge(a, b)` |
+| `claim_id` | `(name) -> str` | Unique readable ID (delegates to `KnowledgeGraph.claim_id`) | `new_id = ctx.claim_id(recipe.output_subtype)` |
+
+#### Spatial queries (lazy — `ctx.spatial`)
+
+First access builds a `SpatialIndex` (R-tree over the graph) and caches it on the context. Mechanics that never touch spatial queries pay zero rtree cost.
+
+| Symbol | Signature | Purpose |
+|---|---|---|
+| `ctx.spatial.nearest` | `(point, *, k=1, node_type=None, subtype=None) -> list[str]` | k nearest node IDs (Euclidean, post-filtered) |
+| `ctx.spatial.within` | `(bbox, *, node_type=None, subtype=None) -> list[str]` | Node IDs intersecting a bbox |
+| `ctx.spatial.intersects` | `(node_id, *, node_type=None, subtype=None) -> list[str]` | Node IDs overlapping another node's bbox (excluding self) |
+
+#### Temporal queries (lazy — `ctx.temporal`)
+
+Present and callable; see `src/token_world/graph/temporal.py` for available methods. Not exhaustively pinned by the surface test — the temporal facade is less heavily consumed by Phase 4 seed mechanics.
+
+#### Known gaps — plans MUST stub these
+
+These are **referenced by plans 04-06..04-11 but intentionally absent from `MechanicContext`**. A mechanic that needs one must ship as a framework-gap stub (§8): class-level `blocked_by`, `check()` returns `passed=False` with the gap ID in `reason`, `apply()` returns `[]`. Adding one of these to the framework is a scoped follow-up, not a Phase 4 seed-plan concern.
+
+| Missing symbol | Blocked by | Used by | Stub pattern |
+|---|---|---|---|
+| `ctx.actors` | GAP-ENG02 | MECH12 (broadcast) | `blocked_by = ["GAP-ENG02"]`; check returns `passed=False, reasons=["blocked_by GAP-ENG02"]` |
+| `ctx.spatial.segment_intersections` | GAP-GRAPH02 | MECH02 (look with occluders) | Stub mechanic OR fall back to neighbor-by-subtype scan (documented in module docstring) |
+| `ctx.seed` / `ctx._seed` | GAP-GRAPH05 | MECH21 (fire_spread), any sampling mechanic | Stub OR seed Python `random` with `tick_id` and document nondeterminism |
+
+Do not reach into `ctx._graph` or any other private attribute to paper over these gaps — mechanics caught doing so fail the `forbidden` AST rules in the validation gate (D-14).
 
 ---
 
