@@ -1,7 +1,9 @@
 """Tests for the operator diagnostics namespace (Phase 4.1 D-15, D-16).
 
-Plan 04.1-02 Task 1: write-side context manager (lifecycle, atomic writes,
-schema versioning, auto-close on exit).
+Plan 04.1-02:
+    - Task 1: write-side context manager (lifecycle, atomic writes,
+      schema versioning, auto-close on exit).
+    - Task 2: read-side OperatorDiagnosticsReader + DiagnosticsSink integration.
 
 Threats covered:
     - T-04.1-05 (schema_version tampering — Task 2)
@@ -18,10 +20,12 @@ from pathlib import Path
 
 import pytest
 
+from token_world.mechanic.diagnostics import DiagnosticsSink
 from token_world.operator import YieldSignal
 from token_world.operator.diagnostics import (
     OPERATOR_SCHEMA_VERSION,
     OperatorDiagnosticsContext,
+    OperatorDiagnosticsReader,
 )
 
 # ---------------------------------------------------------------------------
@@ -348,3 +352,208 @@ class TestAtomicWrites:
 
 def test_schema_version_constant() -> None:
     assert OPERATOR_SCHEMA_VERSION == 1
+
+
+# ---------------------------------------------------------------------------
+# Task 2: OperatorDiagnosticsReader (round-trip + tolerance + version guard)
+# ---------------------------------------------------------------------------
+
+
+class TestReaderRoundTrip:
+    """Reader returns whatever the writer produced — full round-trip fidelity."""
+
+    def test_reader_round_trips_write_side(
+        self,
+        universe: Path,
+        stub_yield: Callable[..., YieldSignal],
+    ) -> None:
+        signal = stub_yield(verb="pickup", actor="alice", target="rock_1")
+        diff = "--- a/x\n+++ b/x\n@@ -0,0 +1,1 @@\n+pass\n"
+        outcome = {
+            "success": True,
+            "mechanic_id": "pickup",
+            "cost_usd": 0.42,
+            "turns": 5,
+            "tick_continued": True,
+            "error": None,
+        }
+        with OperatorDiagnosticsContext(universe, "tick_1") as ctx:
+            ctx.write_yield_signal(signal)
+            ctx.append_attempt({"attempt": 1, "kind": "assistant", "text": "thinking"})
+            ctx.append_attempt({"attempt": 1, "kind": "tool_use", "tool": "Write"})
+            ctx.write_validation_report(1, {"passed": False, "findings": ["a"]})
+            ctx.write_validation_report(2, {"passed": True, "findings": []})
+            ctx.write_mechanic_diff(diff)
+            ctx.close(outcome)
+
+        reader = OperatorDiagnosticsReader(universe, "tick_1")
+
+        assert reader.yield_signal() == signal
+        attempts = reader.attempts()
+        assert len(attempts) == 2
+        assert attempts[0]["kind"] == "assistant"
+        assert attempts[1]["tool"] == "Write"
+
+        reports = reader.validation_reports()
+        assert len(reports) == 2
+        assert reports[0]["passed"] is False
+        assert reports[1]["passed"] is True
+
+        assert reader.mechanic_diff() == diff
+        ro = reader.resume_outcome()
+        assert ro is not None
+        assert ro["success"] is True
+        assert ro["mechanic_id"] == "pickup"
+        assert reader.schema_version == 1
+
+    def test_reader_normalises_int_tick_id(
+        self,
+        universe: Path,
+        stub_yield: Callable[..., YieldSignal],
+    ) -> None:
+        signal = stub_yield(verb="pickup", actor="alice")
+        with OperatorDiagnosticsContext(universe, 42) as ctx:
+            ctx.write_yield_signal(signal)
+            ctx.close({"success": True, "mechanic_id": "pickup"})
+
+        reader_int = OperatorDiagnosticsReader(universe, 42)
+        reader_str = OperatorDiagnosticsReader(universe, "42")
+        assert reader_int.operator_dir == reader_str.operator_dir
+        assert reader_int.yield_signal() == signal
+
+
+class TestReaderTolerance:
+    """Reader gracefully handles partial sessions, missing files, malformed lines."""
+
+    def test_reader_tolerates_partial_session(
+        self,
+        universe: Path,
+        stub_yield: Callable[..., YieldSignal],
+    ) -> None:
+        """Write yield + 1 attempt; do NOT close. Reader still works."""
+        signal = stub_yield(verb="pickup", actor="alice")
+        ctx = OperatorDiagnosticsContext(universe, "tick_1")
+        ctx.write_yield_signal(signal)
+        ctx.append_attempt({"attempt": 1, "kind": "assistant"})
+        # Deliberately do not enter a `with` block — no auto-close fires.
+
+        reader = OperatorDiagnosticsReader(universe, "tick_1")
+        assert reader.yield_signal() == signal
+        assert reader.attempts() == [{"attempt": 1, "kind": "assistant"}]
+        assert reader.validation_reports() == []
+        assert reader.mechanic_diff() is None
+        assert reader.resume_outcome() is None
+
+    def test_reader_tolerates_malformed_jsonl_line(self, universe: Path) -> None:
+        """A truncated final line (e.g. crash mid-append) is skipped, not raised."""
+        ctx = OperatorDiagnosticsContext(universe, "tick_1")
+        ctx.append_attempt({"attempt": 1, "ok": True})
+        ctx.append_attempt({"attempt": 2, "ok": True})
+
+        # Manually corrupt the file by appending an unparseable line.
+        path = (
+            universe / "diagnostics" / "tick_tick_1" / "operator" / "authoring_attempts.jsonl"
+        )
+        with path.open("a", encoding="utf-8") as f:
+            f.write('{"truncated_partial": tr')  # truncated mid-token
+
+        reader = OperatorDiagnosticsReader(universe, "tick_1")
+        attempts = reader.attempts()
+        # Only the two valid lines survive; the partial line is skipped.
+        assert len(attempts) == 2
+        assert attempts[0]["attempt"] == 1
+        assert attempts[1]["attempt"] == 2
+
+    def test_reader_skips_blank_lines_in_jsonl(self, universe: Path) -> None:
+        """Blank lines are silently skipped (whitespace tolerance)."""
+        path_dir = universe / "diagnostics" / "tick_tick_1" / "operator"
+        path_dir.mkdir(parents=True)
+        (path_dir / "validation").mkdir()
+        (path_dir / "authoring_attempts.jsonl").write_text(
+            '{"a": 1}\n\n{"b": 2}\n   \n', encoding="utf-8"
+        )
+        reader = OperatorDiagnosticsReader(universe, "tick_1")
+        attempts = reader.attempts()
+        assert attempts == [{"a": 1}, {"b": 2}]
+
+    def test_reader_missing_session_raises_filenotfounderror(self, universe: Path) -> None:
+        """Reader points at a tick that never existed: yield_signal() raises."""
+        reader = OperatorDiagnosticsReader(universe, "tick_9999")
+        with pytest.raises(FileNotFoundError, match="tick_9999"):
+            reader.yield_signal()
+        # But best-effort accessors still return safe defaults.
+        assert reader.attempts() == []
+        assert reader.validation_reports() == []
+        assert reader.mechanic_diff() is None
+        assert reader.resume_outcome() is None
+
+
+class TestReaderSchemaVersionGuard:
+    """T-04.1-05: unknown schema_version in resume_outcome.json must raise."""
+
+    def test_reader_rejects_unknown_schema_version(self, universe: Path) -> None:
+        with OperatorDiagnosticsContext(universe, "tick_1") as ctx:
+            ctx.close({"success": True, "mechanic_id": "x"})
+
+        # Tamper with the on-disk version.
+        path = universe / "diagnostics" / "tick_tick_1" / "operator" / "resume_outcome.json"
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+        loaded["schema_version"] = 99
+        path.write_text(json.dumps(loaded), encoding="utf-8")
+
+        reader = OperatorDiagnosticsReader(universe, "tick_1")
+        with pytest.raises(ValueError, match="schema_version=99"):
+            _ = reader.schema_version
+
+    def test_reader_returns_current_version_when_outcome_missing(
+        self, universe: Path
+    ) -> None:
+        """Unclosed session: schema_version assumes the current build's version."""
+        # Create the operator dir but never close.
+        OperatorDiagnosticsContext(universe, "tick_1")
+        reader = OperatorDiagnosticsReader(universe, "tick_1")
+        # Per the contract in the plan: assume current if unclosed.
+        assert reader.schema_version == OPERATOR_SCHEMA_VERSION
+
+
+# ---------------------------------------------------------------------------
+# Task 2: DiagnosticsSink.open_operator_session integration
+# ---------------------------------------------------------------------------
+
+
+class TestDiagnosticsSinkIntegration:
+    """Phase-4 DiagnosticsSink exposes a sanctioned entry-point to the namespace."""
+
+    def test_diagnosticssink_open_operator_session_returns_context(
+        self, universe: Path
+    ) -> None:
+        sink = DiagnosticsSink(universe)
+        ctx = sink.open_operator_session("tick_42")
+        assert isinstance(ctx, OperatorDiagnosticsContext)
+        assert ctx.tick_id == "tick_42"
+        assert ctx.operator_dir == universe / "diagnostics" / "tick_tick_42" / "operator"
+        assert ctx.operator_dir.is_dir()
+
+    def test_diagnosticssink_accepts_int_tick(self, universe: Path) -> None:
+        """sink.open_operator_session(42) and ('42') produce the same dir."""
+        sink = DiagnosticsSink(universe)
+        ctx_int = sink.open_operator_session(42)
+        ctx_str = sink.open_operator_session("42")
+        assert ctx_int.operator_dir == ctx_str.operator_dir
+        assert ctx_int.operator_dir.parent.name == "tick_42"
+
+    def test_diagnosticssink_session_writes_and_reader_reads(
+        self,
+        universe: Path,
+        stub_yield: Callable[..., YieldSignal],
+    ) -> None:
+        """End-to-end: open via sink, write, then read with OperatorDiagnosticsReader."""
+        signal = stub_yield(verb="pickup", actor="alice")
+        sink = DiagnosticsSink(universe)
+        with sink.open_operator_session("tick_7") as ctx:
+            ctx.write_yield_signal(signal)
+            ctx.close({"success": True, "mechanic_id": "pickup"})
+
+        reader = OperatorDiagnosticsReader(universe, "tick_7")
+        assert reader.yield_signal() == signal
+        assert reader.resume_outcome()["success"] is True  # type: ignore[index]
