@@ -19,10 +19,10 @@
 
 - [ ] **MECH-01**: Mechanic protocol defines check(preconditions) and apply(side effects) against the graph
 - [ ] **MECH-02**: Framework provides DSL-like primitives for graph queries and mutations
-- [ ] **MECH-03**: LLM generates valid Python mechanics using the framework from agent action context
-- [ ] **MECH-04**: Generated mechanics are validated (syntax, AST checks) before execution
-- [ ] **MECH-05**: Each mechanic is a Python module (`mechanics/<id>.py`) containing a `Mechanic` subclass with class-level id/description/voluntary/tags; versioned by the universe's git repo; shared helpers via `_*.py` modules
-- [ ] **MECH-06**: Mechanic registry indexes mechanics by importing modules and collecting `Mechanic` subclasses; mechanics can be listed, inspected, and queried (by id or tag) programmatically
+- [x] **MECH-03**: LLM generates valid Python mechanics using the framework from agent action context
+- [x] **MECH-04**: Generated mechanics are validated (syntax, AST checks) before execution
+- [x] **MECH-05**: Each mechanic is a Python module (`mechanics/<id>.py`) containing a `Mechanic` subclass with class-level id/description/voluntary/tags; versioned by the universe's git repo; shared helpers via `_*.py` modules
+- [x] **MECH-06**: Mechanic registry indexes mechanics by importing modules and collecting `Mechanic` subclasses; mechanics can be listed, inspected, and queried (by id or tag) programmatically
 
 ### Simulation Engine
 
@@ -50,7 +50,7 @@
 
 - [ ] **UNIV-01**: Universe scaffolding creates a self-contained folder with CLAUDE.md, AGENTS.md (symlink), .mcp.json, universe.db, mechanics/, agents/, and .git/
 - [ ] **UNIV-02**: Generated CLAUDE.md per universe contains world rules, available tools documentation, and current state summary
-- [ ] **UNIV-03**: Generated .mcp.json per universe exposes minimal simulation tools (resume_tick, rollback, list_mechanics) — operator uses filesystem + SQLite directly for inspection
+- [x] **UNIV-03**: Generated .mcp.json per universe exposes minimal simulation tools (resume_tick, rollback, list_mechanics) — operator uses filesystem + SQLite directly for inspection
 - [ ] **UNIV-04**: Universe manager supports create, load, list, and delete operations
 - [ ] **UNIV-05**: Harness-agnostic design — universe works with any agent coding harness that reads instruction files + MCP
 - [ ] **UNIV-06**: Universe folder contains tick_summaries/ with hierarchical JSON summaries readable by any agent or tool
@@ -58,7 +58,7 @@
 ### Testing
 
 - [ ] **TEST-01**: Unit tests for mechanic preconditions/side effects against small hand-crafted graphs
-- [ ] **TEST-02**: Integration tests for multi-mechanic chains with realistic graph state
+- [x] **TEST-02**: Integration tests for multi-mechanic chains with realistic graph state
 - [ ] **TEST-03**: Snapshot/restore round-trip tests verify graph and mechanic state integrity
 - [ ] **TEST-04**: LLM-verifier regression tests check observation grounding against rubric (large/expensive, run on milestone boundaries)
 - [ ] **TEST-05**: System prompt change detection triggers grounding regression tests
@@ -68,8 +68,8 @@
 ### Agent Autonomy & Tooling
 
 - [ ] **AUTO-01**: CLAUDE.md with architecture overview, critical constraints, validation protocols, and script catalog
-- [ ] **AUTO-02**: Diagnostics filesystem — each simulation turn can dump system prompts, raw responses, and parsed output to inspectable files
-- [ ] **AUTO-03**: CLI scripts for common operations (run simulation, inspect graph, list mechanics, run playtests) so agents don't need to compose commands
+- [x] **AUTO-02**: Diagnostics filesystem — each simulation turn can dump system prompts, raw responses, and parsed output to inspectable files
+- [x] **AUTO-03**: CLI scripts for common operations (run simulation, inspect graph, list mechanics, run playtests) so agents don't need to compose commands
 - [x] **AUTO-04**: Mermaid diagram generation for graph visualization (agent can render and review multimodally)
 - [ ] **AUTO-05**: Simulation playtest with edge-case injection (adversarial inputs, nonsense, repeats) at configurable rates
 - [ ] **AUTO-06**: Quality scoring per simulation turn (grounding accuracy, mechanic validity, observation relevance)
@@ -122,7 +122,7 @@
 |-------------|-------|--------|
 | UNIV-01 | Phase 0 | Pending |
 | UNIV-02 | Phase 0 | Pending |
-| UNIV-03 | Phase 0 | Pending |
+| UNIV-03 | Phase 4 | Complete (revised from Phase 0; see 04-CONTEXT D-19 — 3-tool MCP surface) |
 | UNIV-04 | Phase 0 | Pending |
 | UNIV-05 | Phase 0 | Pending |
 | UNIV-06 | Phase 0 | Pending |
@@ -135,10 +135,10 @@
 | GRAPH-07 | Phase 3 | Complete |
 | MECH-01 | Phase 2 | Pending |
 | MECH-02 | Phase 2 | Pending |
-| MECH-03 | Phase 4 | Pending |
-| MECH-04 | Phase 4 | Pending |
-| MECH-05 | Phase 2 | Pending |
-| MECH-06 | Phase 2 | Pending |
+| MECH-03 | Phase 4 | Complete |
+| MECH-04 | Phase 4 | Complete |
+| MECH-05 | Phase 4 | Complete (revised from Phase 2; see 04-CONTEXT D-03..D-08 — flat layout) |
+| MECH-06 | Phase 4 | Complete (revised from Phase 2; see 04-CONTEXT D-07 — module-based registry discovery) |
 | SIM-01 | Phase 5 | Pending |
 | SIM-02 | Phase 5 | Pending |
 | SIM-03 | Phase 5 | Pending |
@@ -156,15 +156,15 @@
 | AGENT-03 | Phase 6 | Pending |
 | AGENT-04 | Phase 6 | Pending |
 | TEST-01 | Phase 2 | Pending |
-| TEST-02 | Phase 4 | Pending |
+| TEST-02 | Phase 4 | Complete |
 | TEST-03 | Phase 1 | Pending |
 | TEST-04 | Phase 6 | Pending |
 | TEST-05 | Phase 6 | Pending |
 | TEST-06 | Phase 1 | Pending |
 | TEST-07 | Phase 6 | Pending |
 | AUTO-01 | Phase 1 | Pending |
-| AUTO-02 | Phase 4 | Pending |
-| AUTO-03 | Phase 4 | Pending |
+| AUTO-02 | Phase 4 | Complete |
+| AUTO-03 | Phase 4 | Complete (absorbed into Phase 4; see 04-CONTEXT D-39 — validate-mechanic + scaffold-mechanic + prune-diagnostics CLIs) |
 | AUTO-04 | Phase 3 | Complete |
 | AUTO-05 | Phase 6 | Pending |
 | AUTO-06 | Phase 6 | Pending |

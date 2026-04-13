@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Graph Foundation** - Knowledge graph with persistence, snapshots, and test infrastructure
 - [x] **Phase 2: Mechanic Framework** - Protocol, DSL primitives, seed mechanics, versioning, and CLI tooling (NOTE: D-15 folder-per-mechanic layout superseded by Phase 4; seeds flatten in plan 04-01)
 - [x] **Phase 3: Design Validation** - Use case library (35 UCs across spatial/social/resource/environmental/edge-case), gap analysis (GAP-ANALYSIS.md / GAP-HANDOFF.md), optional spatial + temporal indexes, filtered Mermaid graph visualization
-- [ ] **Phase 4: Mechanic Authoring & Validation Infrastructure** - Flat mechanic layout (supersedes folder-per-mechanic), validation pipeline, diagnostics substrate, integration-test harness, authoring guides, and seed mechanic authoring waves (MECH01–MECH27) — so the top-level coding agent (Opus via Agent SDK) authors mechanics as normal Python SDLC
+- [x] **Phase 4: Mechanic Authoring & Validation Infrastructure** - Flat mechanic layout (supersedes folder-per-mechanic), validation pipeline, diagnostics substrate, integration-test harness, authoring guides, and seed mechanic authoring waves (MECH01–MECH27) — so the top-level coding agent (Opus via Agent SDK) authors mechanics as normal Python SDLC
 - [ ] **Phase 5: Simulation Engine** - Action classification (Haiku), mechanic matching, execution, grounded observation synthesis (Sonnet), conservation enforcement, tick summaries. Under inversion of control: when no mechanic matches, the engine yields to the operator — it does NOT generate code.
 - [ ] **Phase 6: Resident Agent & End-to-End Loop** - Agent with personality and memory, playtesting, quality scoring, regression suite
 - [ ] **Phase 7: Attention & Consciousness** - Duration-aware actions and reusable interruption threshold pattern
@@ -109,18 +109,18 @@ Plans:
 
 
 Plans (12 plans):
-- [ ] 04-01-PLAN.md — Flatten mechanic layout + 3-tool MCP surface + Phase 3 H-01/M-04 fixes
-- [ ] 04-02-PLAN.md — Validation pipeline (6 stages) + validate-mechanic CLI + registry auto-scan
-- [ ] 04-03-PLAN.md — Diagnostics substrate (DiagnosticsSink + schema + prune-diagnostics CLI)
-- [ ] 04-04-PLAN.md — Integration test harness (parametrized from 35 UCs; tri-state outcomes)
-- [ ] 04-05-PLAN.md — Authoring guide + scaffold-mechanic CLI + framework-gap-stub convention
-- [ ] 04-06-PLAN.md — Seed cluster: spatial movement extensions (MECH01 passage_move, MECH05 terrain_move, MECH06 position_sync)
-- [ ] 04-07-PLAN.md — Seed cluster: spatial queries + speak + try_door (MECH02/03/04/13/27)
-- [ ] 04-08-PLAN.md — Seed cluster: object interaction (MECH07 trade, MECH08 give, MECH14 craft, MECH15 consume, MECH16 pickup)
-- [ ] 04-09-PLAN.md — Seed cluster: social/belief + framework-gap stubs (MECH10/11/25 + MECH09/MECH12 stubs)
-- [ ] 04-10-PLAN.md — Seed cluster: resource durability + fungible currency (MECH17 degrade, MECH18 fungible_pay)
-- [ ] 04-11-PLAN.md — Seed cluster: environmental family (MECH20/22/23/24 + MECH21 stub)
-- [ ] 04-12-PLAN.md — Phase gate: VALIDATION.md finalization + retrospective
+- [x] 04-01-PLAN.md — Flatten mechanic layout + 3-tool MCP surface + Phase 3 H-01/M-04 fixes
+- [x] 04-02-PLAN.md — Validation pipeline (6 stages) + validate-mechanic CLI + registry auto-scan
+- [x] 04-03-PLAN.md — Diagnostics substrate (DiagnosticsSink + schema + prune-diagnostics CLI)
+- [x] 04-04-PLAN.md — Integration test harness (parametrized from 35 UCs; tri-state outcomes)
+- [x] 04-05-PLAN.md — Authoring guide + scaffold-mechanic CLI + framework-gap-stub convention
+- [x] 04-06-PLAN.md — Seed cluster: spatial movement extensions (MECH01 passage_move, MECH05 terrain_move, MECH06 position_sync)
+- [x] 04-07-PLAN.md — Seed cluster: spatial queries + speak + try_door (MECH02/03/04/13/27)
+- [x] 04-08-PLAN.md — Seed cluster: object interaction (MECH07 trade, MECH08 give, MECH14 craft, MECH15 consume, MECH16 pickup)
+- [x] 04-09-PLAN.md — Seed cluster: social/belief + framework-gap stubs (MECH10/11/25 + MECH09/MECH12 stubs)
+- [x] 04-10-PLAN.md — Seed cluster: resource durability + fungible currency (MECH17 degrade, MECH18 fungible_pay)
+- [x] 04-11-PLAN.md — Seed cluster: environmental family (MECH20/22/23/24 + MECH21 stub)
+- [x] 04-12-PLAN.md — Phase gate: VALIDATION.md finalization + retrospective
 
 ### Phase 04.1: Operator Agent Harness (INSERTED)
 
@@ -207,7 +207,7 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 1. Graph Foundation | 0/3 | Planning complete | - |
 | 2. Mechanic Framework | 0/3 | Planning complete | - |
 | 3. Design Validation | 0/3 | Not started | - |
-| 4. LLM Mechanic Generation | 0/3 | Not started | - |
+| 4. Mechanic Authoring & Validation Infrastructure | 12/12 | Complete | 2026-04-13 |
 | 5. Simulation Engine | 0/3 | Not started | - |
 | 6. Resident Agent & End-to-End Loop | 0/4 | Not started | - |
 | 7. Attention & Consciousness | 0/2 | Not started | - |
