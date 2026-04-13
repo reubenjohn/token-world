@@ -152,10 +152,20 @@ class TestIlluminationApply:
         # lit sources: torch_a=5 + torch_b=3; unlit torch_off excluded.
         assert illum[0].new_value == 8
 
-    def test_apply_zero_when_no_lit_sources(
-        self, dark_room_graph: KnowledgeGraph, mechanic: IlluminationMechanic
+    def test_apply_recomputes_to_zero_when_source_extinguished(
+        self, mechanic: IlluminationMechanic
     ) -> None:
-        ctx = MechanicContext(dark_room_graph, actor="torch", target="torch")
+        """Room that previously had illumination>0 flips back to 0 when
+        every occupant is unlit. The idempotent guard only kicks in when
+        current equals computed, so a room at illumination=5 with an
+        unlit torch must emit a single mutation to 0."""
+        kg = KnowledgeGraph()
+        kg.add_node("room", node_type="entity", subtype="room", illumination=5)
+        kg.add_node(
+            "torch", node_type="entity", subtype="torch", lit=False, light_radius=5
+        )
+        kg.add_edge("torch", "room", relation="located_in")
+        ctx = MechanicContext(kg, actor="torch", target="torch")
         muts = mechanic.apply(ctx)
         illum = [m for m in muts if m.property == "illumination"]
         assert len(illum) == 1
