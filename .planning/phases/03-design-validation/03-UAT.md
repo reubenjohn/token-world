@@ -4,7 +4,7 @@ phase: 03-design-validation
 source: [03-01-SUMMARY.md, 03-02-SUMMARY.md, 03-03-SUMMARY.md, 03-04-SUMMARY.md, 03-05-SUMMARY.md, 03-06-SUMMARY.md, 03-07-SUMMARY.md, 03-08-SUMMARY.md, 03-09-SUMMARY.md, 03-10-SUMMARY.md, 03-11-SUMMARY.md, 03-12-SUMMARY.md]
 started: 2026-04-13T02:03:22Z
 updated: 2026-04-13T02:45:00Z
-verdict: CONDITIONAL PASS (3 gaps — 1 minor, 2 major — block advance to Phase 04)
+verdict: PASS (3 gaps closed by 03-13/14/15 gap-closure plans)
 ---
 
 ## Current Test
@@ -25,9 +25,10 @@ evidence: 291 passed in 3.66s (up from 280 reported in 03-12-SUMMARY as more reg
 
 ### 3. Lint / Format / Type-Check Green
 expected: `uv run ruff check src/` → "All checks passed"; `uv run ruff format --check src/` → all files formatted; `uv run mypy src/token_world/graph/` → 0 issues.
-result: issue
+result: pass
 reported: "mypy src/token_world/graph/ reports 2 errors at knowledge_graph.py:450 and :479 — 'Returning Any from function declared to return int' and '...list[SnapshotInfo]'. ruff check and ruff format pass."
 severity: minor
+resolution: "Closed by 03-13 (commits e4bd871, 1981f12). Replaced ignore with typing.cast in persistence + knowledge_graph; mypy now exits 0. Regression guard added in tests/test_graph/test_mypy_clean.py."
 
 ### 4. SpatialIndex API via ctx.spatial
 expected: Inside a mechanic, `ctx.spatial.nearest(point=[0,0], k=3)` / `ctx.spatial.within(bbox=...)` / `ctx.spatial.intersects(node_id)` return correct results. `position` and `bbox` nodes both indexed; malformed coords logged + skipped (no crash). `ctx._spatial is None` until first access (lazy).
@@ -46,17 +47,19 @@ evidence: scripts/uat_phase_03.py check_viz_graph_cli → PASS; output includes 
 
 ### 7. Mermaid Injection Safety (escape_label)
 expected: A node whose label contains `"`, `[`, `]`, `|`, `<`, `>` is rendered with HTML-entity-escaped tokens (`#quot;`, `&#91;`, etc.). Output still parses as valid Mermaid; no injection of subgraph / classDef / arrow syntax via label text.
-result: issue
+result: pass
 reported: "escape_label escapes `\"` `[` `]` `|` but leaves raw `<` and `>` untouched. A label containing `<script>alert(1)</script>` passes through unescaped. Mermaid accepts HTML in labels depending on `securityLevel`; relying on deployment config is not defense-in-depth."
 severity: major
 evidence: 'independent agent found escape_label(\'<script>\') → \'<script>\' (no escape); _ESCAPES table in src/token_world/viz/mermaid.py covers only " \n [ ] |'
+resolution: "Closed by 03-14 (commits 6b9b931, 8b007b0). Added < → &lt; and > → &gt; to _ESCAPES with <br/> reinsertion preserved; 7 adversarial test cases added; CLI smoke test verifies no raw <script substring in output."
 
 ### 8. Use Case Library (35 UC files)
 expected: `.planning/use-cases/` contains `_README.md`, `_TEMPLATE.md`, and 5 category folders (spatial/social/resource/environmental/edge-case) with 7+8+7+7+6=35 `UC-*.md` files. Every UC has valid YAML frontmatter with required keys; IDs match `^UC-[SOVRE]\d{2}$`; all 35 unique. `graph_assertion.kind` values constrained to the documented 6-kind vocabulary. `tests/test_design_validation/test_use_case_schema.py` PASSES.
-result: issue
+result: pass
 reported: "35 UC files present + schema fields validate, BUT `validate_frontmatter` does NOT enforce the fixed 6-kind `graph_assertion` vocabulary (has_node|has_edge|has_property|property_equals|not_has_edge|not_has_property). Independent agent injected `kind: totally_fake_kind` into a UC's graph_assertion and validator returned zero errors. The 6-kind claim in _README.md and 03-05-SUMMARY is enforced by convention only."
 severity: major
 evidence: src/token_world/use_cases/loader.py validate_frontmatter checks REQUIRED_KEYS but has no VALID_ASSERTION_KINDS whitelist
+resolution: "Closed by 03-15 (commits 867f44e, e8228f3). Added VALID_ASSERTION_KINDS frozenset; validate_frontmatter rejects unknown kinds in setup.graph_assertions and action.graph_assertions; 17 new regression tests; live adversarial probe rejected totally_fake_kind."
 
 ### 9. Category Aggregation Summaries
 expected: 5 `CATEGORY-SUMMARY.md` files under `.planning/use-cases/{spatial,social,resource,environmental,edge-case}/` deduplicating 104 inline gaps to 80 category-scoped entries. Each summary lists cross-category overlap flags for Wave 4.
@@ -76,11 +79,12 @@ evidence: scripts/uat_phase_03.py check_gap_handoff → PASS; handoff file at .p
 ## Summary
 
 total: 11
-passed: 8
-issues: 3
+passed: 11
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0
+gaps_closed: 3 (03-13 minor, 03-14 major, 03-15 major)
 
 ## Gaps
 
