@@ -89,6 +89,10 @@ Recent decisions affecting current work:
 - [Phase 03]: [Phase 03]: 68 canonical GAP IDs (GAP-GRAPH/MECH/ENG/CROSS) synthesised from 80 Wave-3 category-scoped gaps; 6 cross-category overlap clusters merged (observation projection, graceful refusal, terrain vocab, fungibility, passive-tick sweep, blocked movement); three-way dispositions 52 address-now / 16 defer / 0 out-of-scope
 - [Phase 03]: [Phase 03]: GAP-X01 shadow alias in Cross-Cutting Rationale (no standalone OOS row) — preserves schema regex [GMEX] coverage without breaking frontmatter layer-sum reconciliation
 
+### Roadmap Evolution
+
+- Phase 4.1 inserted after Phase 4: Operator Agent Harness (URGENT) — Agent SDK driver required to verify Phase 5's yield→author→resume loop end-to-end; existing roadmap had no phase for the operator-side orchestration that Phase 5 depends on
+
 ### Pending Todos
 
 None yet.

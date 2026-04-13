@@ -106,19 +106,41 @@ Plans:
   2. Mechanics use only the framework protocol (check/apply) and `MechanicContext` DSL; AST enforcement guarantees this without relying on reviewer discipline
   3. Multi-mechanic chains execute correctly, verified by the integration-test harness parametrized from Phase 3's use-case action-observation manifests
   4. Per-tick diagnostics folders capture prompts, raw LLM responses, parsed output, execution traces, mutations, and observation synthesis; schema is versioned and populated via a shared `DiagnosticsSink` API ready for Phase 5 wiring
-**Plans**: ~11 plans (infrastructure + seed-mechanic authoring waves; planner finalizes decomposition)
+
+
+Plans (12 plans):
+- [ ] 04-01-PLAN.md — Flatten mechanic layout + 3-tool MCP surface + Phase 3 H-01/M-04 fixes
+- [ ] 04-02-PLAN.md — Validation pipeline (6 stages) + validate-mechanic CLI + registry auto-scan
+- [ ] 04-03-PLAN.md — Diagnostics substrate (DiagnosticsSink + schema + prune-diagnostics CLI)
+- [ ] 04-04-PLAN.md — Integration test harness (parametrized from 35 UCs; tri-state outcomes)
+- [ ] 04-05-PLAN.md — Authoring guide + scaffold-mechanic CLI + framework-gap-stub convention
+- [ ] 04-06-PLAN.md — Seed cluster: spatial movement extensions (MECH01 passage_move, MECH05 terrain_move, MECH06 position_sync)
+- [ ] 04-07-PLAN.md — Seed cluster: spatial queries + speak + try_door (MECH02/03/04/13/27)
+- [ ] 04-08-PLAN.md — Seed cluster: object interaction (MECH07 trade, MECH08 give, MECH14 craft, MECH15 consume, MECH16 pickup)
+- [ ] 04-09-PLAN.md — Seed cluster: social/belief + framework-gap stubs (MECH10/11/25 + MECH09/MECH12 stubs)
+- [ ] 04-10-PLAN.md — Seed cluster: resource durability + fungible currency (MECH17 degrade, MECH18 fungible_pay)
+- [ ] 04-11-PLAN.md — Seed cluster: environmental family (MECH20/22/23/24 + MECH21 stub)
+- [ ] 04-12-PLAN.md — Phase gate: VALIDATION.md finalization + retrospective
+
+### Phase 04.1: Operator Agent Harness (INSERTED)
+
+**Goal:** The operator — the concrete realisation of PROJECT.md's Hybrid-SDK operator layer — exists as a working Agent-SDK-driven harness that catches yield signals from the simulation, spawns an Opus mechanic-authoring subagent, validates via Phase 4's pipeline, and resumes the tick. Works identically from an interactive Claude Code session inside a universe folder and from a programmatic Agent SDK driver (the latter unblocks Phase 6's playtest runner).
+**Depends on:** Phase 4
+**Requirements**: AGENT-03, AGENT-04 (operator layer), AUTO-02 (diagnostics — operator namespace extension), UNIV-03 (3-tool MCP surface — preserved, not extended) — planner confirms final list
+**Success Criteria** (what must be TRUE):
+  1. A fabricated yield signal from a test-only engine stub triggers the harness to spawn an Opus subagent; the subagent authors a valid mechanic; validation passes; `resume_tick` picks up the new mechanic and the tick completes — all autonomously, no human steps
+  2. The same yield→author→resume loop completes from an interactive Claude Code session inside a universe folder, using only the 3-tool MCP surface and the universe's CLAUDE.md guidance
+  3. A structured `YieldSignal` dataclass is defined as the contract between engine and operator; its shape is what Phase 5 will emit and 4.1's engine stub fabricates
+  4. CLI commands `run-tick`, `inspect-yield`, `resume-tick`, `replay-tick` work against a universe and render diagnostics from Phase 4's substrate (extended with an operator subfolder)
+  5. The throwaway engine stub is clearly isolated (imports only from tests or a `testing` module); swapping in the real Phase 5 engine requires no operator-code changes
+**Plans:** 0 plans
 
 Plans:
-- [ ] 04-01 — Flatten mechanic layout (supersedes Phase 2 D-15) + Phase 3 code fixes (H-01, M-04)
-- [ ] 04-02 — Validation pipeline (syntax → AST rules → import → contract → tests → dry-execute) + `validate-mechanic` CLI + registry auto-scan wiring
-- [ ] 04-03 — Diagnostics substrate (per-tick folder schema, `DiagnosticsSink` API, `prune-diagnostics` CLI)
-- [ ] 04-04 — Integration test harness (consumes existing `src/token_world/use_cases/loader.py`; parametrized tests with pass / yield / blocked-by-framework-gap outcomes)
-- [ ] 04-05 — Authoring guides (`docs/guides/authoring-mechanics.md`, universe CLAUDE.md template update, `scaffold-mechanic` CLI)
-- [ ] 04-06..04-NN — Seed mechanic authoring waves (MECH01–MECH27 from GAP-HANDOFF.md; thematic clusters; planner picks boundaries)
+- [ ] TBD (planner decomposes — CONTEXT.md proposes ~5 plans: yield-protocol+stub, operator-core, dev-UX-CLI, diagnostics-operator-namespace, interactive-polish)
 
 ### Phase 5: Simulation Engine
 **Goal**: The engine interprets text actions, routes them to mechanics (or yields to the operator when none match), executes selected mechanics, and returns grounded observations — the full pipeline works end-to-end without a live agent. Under the inversion-of-control model established in Phase 4, the engine NEVER generates code; when no mechanic matches, it halts the tick and yields to the operator, which authors the needed mechanic via normal SDLC before the tick resumes.
-**Depends on**: Phase 4
+**Depends on**: Phase 4.1
 **Requirements**: SIM-01, SIM-02, SIM-03, SIM-04, SIM-05, SIM-06, SIM-07, SIM-08, SIM-11 (plus absorbs the Phase-5 half of GAP-ENG16 per 04-CONTEXT.md D-34)
 **Success Criteria** (what must be TRUE):
   1. A text action (e.g. "pick up the rock") is classified into a structured action (Haiku) and matched to the correct existing mechanic; classifier returns `no_viable_action` for nonsense rather than triggering yield
