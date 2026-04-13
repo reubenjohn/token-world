@@ -42,6 +42,16 @@ created: 2026-04-12
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
 | — | — | — | — | — | — | — | — | — | ⬜ pending |
 
+<!--
+Rows will be appended by each plan's final task:
+- 04-02 Task 4 appends 04-02-T1 through 04-02-T4
+- 04-03 Task 3 appends 04-03-T1 through 04-03-T4
+- 04-03 Task 4 (NEW — registry→sink wiring, closes D-15) appends 04-03-T5
+- 04-04 Task 3 appends 04-04-T1 through 04-04-T4 (now includes 04-04-T3 for invariant test + 04-04-T4 phase-gate)
+- 04-05 through 04-11 append their own rows
+- 04-12 Task 1 flips all ⬜ pending to ✅ done and flips frontmatter
+-->
+
 ---
 
 ## Wave 0 Requirements
@@ -51,6 +61,7 @@ created: 2026-04-12
 - [ ] `tests/test_mechanic/test_diagnostics.py` — DiagnosticsSink API + atomic writes (AUTO-02)
 - [ ] `tests/test_integration/conftest.py` — shared fixtures for use-case-driven tests (TEST-02)
 - [ ] `tests/test_integration/test_use_cases.py` — parametrized harness stub (TEST-02)
+- [ ] `tests/test_use_cases/test_manifest_outcomes.py` — invariant: every UC manifest has a valid `expected_outcome` (TEST-02 / W7 mitigation from 04-04)
 - [ ] `tests/test_mechanic/test_seeds/` — mirrored seed test tree (MECH-03)
 - [ ] No new framework install required (pytest already in `pyproject.toml`)
 

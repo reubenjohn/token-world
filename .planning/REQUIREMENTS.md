@@ -164,7 +164,7 @@
 | TEST-07 | Phase 6 | Pending |
 | AUTO-01 | Phase 1 | Pending |
 | AUTO-02 | Phase 4 | Pending |
-| AUTO-03 | Phase 2 | Pending |
+| AUTO-03 | Phase 4 | Pending |
 | AUTO-04 | Phase 3 | Complete |
 | AUTO-05 | Phase 6 | Pending |
 | AUTO-06 | Phase 6 | Pending |

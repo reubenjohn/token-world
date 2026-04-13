@@ -155,6 +155,19 @@ Explicitly OUT of scope for this phase:
 - **D-37:** Authoring approach — each seed mechanic plan authors a small thematically-related cluster (e.g., "object interaction seeds" for MECH07/MECH08/MECH14/MECH15; "environmental family" for MECH20/MECH21/MECH22/MECH24; "spatial movement extensions" for MECH01/MECH05/MECH06). Clustering allows shared `_helpers.py` to grow organically. Planner decides the exact groupings.
 - **D-38:** Gating on framework extensions — some MECH gaps depend on engine/framework extensions routed to Phase 5 (e.g., MECH09 needs GAP-ENG03 `llm_adjudicated` category; MECH12 needs `actors: list[NodeId]`). These seed mechanics ship with stub implementations that declare their framework prerequisite and are skipped with a clear message until Phase 5 delivers the extension. The integration test harness records these as "blocked by framework gap", distinguishing them from correctness failures.
 
+
+### AUTO-03 Absorption into Phase 4
+- **D-39:** AUTO-03 ("CLI scripts for common operations so agents don't need to compose commands") is ABSORBED into Phase 4. Rationale: the CLIs that Phase 4 ships — `validate-mechanic` (04-02), `scaffold-mechanic` (04-05), and `prune-diagnostics` (04-03) — are exactly the operator-facing SDLC tooling that AUTO-03 intended. These commands collectively:
+  - Let the operator validate an authored mechanic without running a tick (`validate-mechanic`).
+  - Let the operator bootstrap a new mechanic module + test stub in one command (`scaffold-mechanic`).
+  - Let the operator manage diagnostics filesystem growth safely (`prune-diagnostics` dry-run + --confirm).
+  Plus `token-world create` / `list` / `delete` (already shipped in Phase 0) covers the universe-management portion of AUTO-03.
+
+  Action items triggered by this decision:
+  - REQUIREMENTS.md Traceability row for AUTO-03 flips from `Phase 2 | Pending` to `Phase 4 | Pending` (completion flip happens in 04-12 Task 2).
+  - Plan 04-05 and 04-12 already list `AUTO-03` in their `requirements:` frontmatter; those references are retained under this decision.
+
+  Alternative considered: silently drop AUTO-03 from 04-05/04-12 frontmatter and leave the requirement mapped to Phase 2. Rejected — the Phase 4 CLIs genuinely satisfy the requirement; accurate traceability beats a silent re-queue.
 ### Claude's Discretion
 - **D-11:** Code-reuse style (free functions vs base classes vs mixins)
 - **D-32:** Whether `scaffold-mechanic` emits a full test stub or just the class skeleton
