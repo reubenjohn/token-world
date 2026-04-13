@@ -19,14 +19,17 @@ from __future__ import annotations
 from token_world.engine.conservation import ConservationChecker, ConservationVerdict
 from token_world.engine.engine import SimulationEngine, TickResult
 from token_world.engine.models import (
+    BatchSummary,
     ClassifiedAction,
     ClassifierVerdict,
     Decision,
+    EpochSummary,
     ExecuteDecision,
     MatchedResult,
     MatchResult,
     NoMatchResult,
     RefuseDecision,
+    SummaryV2,
     TickSummary,
     VerdictLowConfidence,
     VerdictNoSuchTarget,
@@ -38,11 +41,13 @@ from token_world.engine.observer import Observer
 from token_world.engine.summary_writer import TickSummaryWriter, build_tick_summary
 
 __all__ = [
+    "BatchSummary",
     "ClassifiedAction",
     "ClassifierVerdict",
     "ConservationChecker",
     "ConservationVerdict",
     "Decision",
+    "EpochSummary",
     "ExecuteDecision",
     "MatchedResult",
     "MatchResult",
@@ -50,6 +55,7 @@ __all__ = [
     "Observer",
     "RefuseDecision",
     "SimulationEngine",
+    "SummaryV2",
     "TickResult",
     "TickSummary",
     "TickSummaryWriter",

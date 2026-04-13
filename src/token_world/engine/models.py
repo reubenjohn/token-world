@@ -134,3 +134,52 @@ class TickSummary(BaseModel):
     duration_ms: int
     llm_tokens_by_stage: dict[str, dict[str, int]]
     llm_cost_usd_by_stage: dict[str, float]
+
+
+class BatchSummary(BaseModel):
+    """D-18: schema v2 batch summary — compresses N tick files into one.
+
+    Written to universe/tick_summaries/batch_<N>.json after every batch
+    compression pass.  The ``kind`` literal and ``schema_version: 2`` serve as
+    discriminator and forward-compat version stamp respectively.
+    ``haiku_prompt_hash`` stores the SHA-256 of the compression prompt so that
+    prompt changes can be detected by downstream tooling.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    schema_version: Literal[2] = 2
+    kind: Literal["batch"] = "batch"
+    batch_id: int
+    first_tick: str
+    last_tick: str
+    tick_count: int
+    key_events: list[str]
+    mechanic_ids_used: list[str]
+    total_mutations: int
+    agent_id: str
+    haiku_prompt_hash: str
+
+
+class EpochSummary(BaseModel):
+    """D-18: schema v2 epoch summary — compresses N batch files into one.
+
+    Written to universe/tick_summaries/epoch_<N>.json after every epoch
+    compression pass.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    schema_version: Literal[2] = 2
+    kind: Literal["epoch"] = "epoch"
+    epoch_id: int
+    first_batch: int
+    last_batch: int
+    batch_count: int
+    synopsis: str
+
+
+SummaryV2 = Annotated[
+    BatchSummary | EpochSummary,
+    Field(discriminator="kind"),
+]
