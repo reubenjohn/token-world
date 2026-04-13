@@ -1,10 +1,11 @@
 ---
 phase: 4
 slug: llm-mechanic-generation
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: approved
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-12
+approved: 2026-04-13
 ---
 
 # Phase 4 — Validation Strategy
@@ -61,12 +62,12 @@ created: 2026-04-12
 | 04-04-T2 | 04-04 | 3 | TEST-02 | T-04-HARNESS-EXEC, T-04-MANIFEST-SCHEMA-DRIFT | Harness collects 35 UCs; explicit outcome branching via pytest.xfail/fail/skip; DiagnosticsSink exercised per test; import-safe discovery | integration | `uv run pytest tests/test_integration/test_use_cases.py -q` | ✓ (created) | ✅ passing |
 | 04-04-T3 | 04-04 | 3 | TEST-02 | — | Invariant: every manifest has a valid expected_outcome (authoritative pytest check, not grep) | unit | `uv run pytest tests/test_use_cases/test_manifest_outcomes.py -q` | ✓ (created) | ✅ passing |
 | 04-04-T4 | 04-04 | 3 | TEST-02 | — | Full suite green after manifest annotations (skips + xfails only, no fails) | phase-gate | `uv run pytest tests/test_integration/ tests/test_use_cases/ -q && uv run pytest -x -q` | ✓ | ✅ passing |
-| 04-06-T1 | 04-06 | 4 | MECH-03 | — | MECH01 passage_move validates; doorway + direct-connects + bridge paths honored; closed doorway refused | unit | `uv run pytest tests/test_mechanic/test_seeds/test_passage_move.py -x -q` | ✓ | ⬜ pending |
-| 04-06-T2 | 04-06 | 4 | MECH-03 | — | MECH05 terrain_move + MECH06 position_sync validate; UC-V05 stamina 20→18; position_sync fires reactively via ChainExecutionEngine | unit | `uv run pytest tests/test_mechanic/test_seeds/test_terrain_move.py tests/test_mechanic/test_seeds/test_position_sync.py -x -q` | ✓ | ⬜ pending |
-| 04-06-T3 | 04-06 | 4 | MECH-03, TEST-02 | — | UC-S01 / UC-S06 / UC-S07 / UC-V05 flipped to expected_outcome=pass; harness green on all four | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-S01 or UC-S06 or UC-S07 or UC-V05" -q` | ✓ | ⬜ pending |
-| 04-07-T1 | 04-07 | 4 | MECH-03 | — | MECH02/03/04 spatial-query mechanics validate + pass tests | unit | `uv run pytest tests/test_mechanic/test_seeds/test_look.py tests/test_mechanic/test_seeds/test_find_nearest.py tests/test_mechanic/test_seeds/test_aoe.py -x -q` | ✓ | ⬜ pending |
-| 04-07-T2 | 04-07 | 4 | MECH-03 | — | MECH13/27 speak + try_door validate + refusal-narrative pattern | unit | `uv run pytest tests/test_mechanic/test_seeds/test_speak.py tests/test_mechanic/test_seeds/test_try_door.py -x -q` | ✓ | ⬜ pending |
-| 04-07-T3 | 04-07 | 4 | MECH-03, TEST-02 | — | UC-S02/S03/S04/O08/E06 flip to pass | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-S02 or UC-S03 or UC-S04 or UC-O08 or UC-E06" -x -q` | ✓ | ⬜ pending |
+| 04-06-T1 | 04-06 | 4 | MECH-03 | — | MECH01 passage_move validates; doorway + direct-connects + bridge paths honored; closed doorway refused | unit | `uv run pytest tests/test_mechanic/test_seeds/test_passage_move.py -x -q` | ✓ | ✅ passing |
+| 04-06-T2 | 04-06 | 4 | MECH-03 | — | MECH05 terrain_move + MECH06 position_sync validate; UC-V05 stamina 20→18; position_sync fires reactively via ChainExecutionEngine | unit | `uv run pytest tests/test_mechanic/test_seeds/test_terrain_move.py tests/test_mechanic/test_seeds/test_position_sync.py -x -q` | ✓ | ✅ passing |
+| 04-06-T3 | 04-06 | 4 | MECH-03, TEST-02 | — | UC-S01 / UC-S06 / UC-S07 / UC-V05 flipped to expected_outcome=pass; harness green on all four | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-S01 or UC-S06 or UC-S07 or UC-V05" -q` | ✓ | ✅ passing |
+| 04-07-T1 | 04-07 | 4 | MECH-03 | — | MECH02/03/04 spatial-query mechanics validate + pass tests | unit | `uv run pytest tests/test_mechanic/test_seeds/test_look.py tests/test_mechanic/test_seeds/test_find_nearest.py tests/test_mechanic/test_seeds/test_aoe.py -x -q` | ✓ | ✅ passing |
+| 04-07-T2 | 04-07 | 4 | MECH-03 | — | MECH13/27 speak + try_door validate + refusal-narrative pattern | unit | `uv run pytest tests/test_mechanic/test_seeds/test_speak.py tests/test_mechanic/test_seeds/test_try_door.py -x -q` | ✓ | ✅ passing |
+| 04-07-T3 | 04-07 | 4 | MECH-03, TEST-02 | — | UC-S02/S03/S04/O08/E06 flip to pass | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-S02 or UC-S03 or UC-S04 or UC-O08 or UC-E06" -x -q` | ✓ | ✅ passing |
 | 04-08-T1 | 04-08 | 4 | MECH-03 | — | MECH15/16 consume + pickup; _count_holds + _refuse_with_narrative helpers | unit | `uv run pytest tests/test_mechanic/test_seeds/test_pickup.py tests/test_mechanic/test_seeds/test_consume.py -x -q` | ✓ | ✅ passing |
 | 04-08-T2 | 04-08 | 4 | MECH-03 | — | MECH07/08/14 trade + give + craft | unit | `uv run pytest tests/test_mechanic/test_seeds/test_trade.py tests/test_mechanic/test_seeds/test_give.py tests/test_mechanic/test_seeds/test_craft.py -x -q` | ✓ | ✅ passing |
 | 04-08-T3 | 04-08 | 4 | MECH-03, TEST-02 | T-04-AST-BYPASS | 6 object-interaction UCs flip from yield/blocked to pass (UC-O01 single-tick; multi-turn is GAP-ENG01 Phase 5) | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-O01 or UC-O03 or UC-R01 or UC-R02 or UC-R03 or UC-R04" -x -q` | ✓ | ✅ passing |
@@ -87,21 +88,21 @@ Rows will be appended by each plan's final task:
 - 04-04 Task 3 appends 04-04-T1 through 04-04-T4 (now includes 04-04-T3 for invariant test + 04-04-T4 phase-gate)
 - 04-05 through 04-11 append their own rows
 - 04-06 Task 3 appends 04-06-T1 through 04-06-T3 (passage_move / terrain_move / position_sync + 4 UC flips)
-- 04-12 Task 1 flips all ⬜ pending to ✅ done and flips frontmatter
+- 04-12 Task 1 flips all pending rows to passing and flips frontmatter (done 2026-04-13)
 -->
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `tests/test_mechanic/test_validation.py` — unit tests for AST walker + ValidationReport (MECH-04)
-- [ ] `tests/test_mechanic/test_loader_flat.py` — new module-based discovery (MECH-03)
-- [ ] `tests/test_mechanic/test_diagnostics.py` — DiagnosticsSink API + atomic writes (AUTO-02)
-- [ ] `tests/test_integration/conftest.py` — shared fixtures for use-case-driven tests (TEST-02)
-- [ ] `tests/test_integration/test_use_cases.py` — parametrized harness stub (TEST-02)
-- [ ] `tests/test_use_cases/test_manifest_outcomes.py` — invariant: every UC manifest has a valid `expected_outcome` (TEST-02 / W7 mitigation from 04-04)
-- [ ] `tests/test_mechanic/test_seeds/` — mirrored seed test tree (MECH-03)
-- [ ] No new framework install required (pytest already in `pyproject.toml`)
+- [x] `tests/test_mechanic/test_validation.py` — unit tests for AST walker + ValidationReport (MECH-04)
+- [x] `tests/test_mechanic/test_loader.py` — new module-based discovery (MECH-03) — plan originally referenced `test_loader_flat.py`; the actual file shipped as `test_loader.py` in 04-01
+- [x] `tests/test_mechanic/test_diagnostics.py` — DiagnosticsSink API + atomic writes (AUTO-02)
+- [x] `tests/test_integration/conftest.py` — shared fixtures for use-case-driven tests (TEST-02)
+- [x] `tests/test_integration/test_use_cases.py` — parametrized harness stub (TEST-02)
+- [x] `tests/test_use_cases/test_manifest_outcomes.py` — invariant: every UC manifest has a valid `expected_outcome` (TEST-02 / W7 mitigation from 04-04)
+- [x] `tests/test_mechanic/test_seeds/` — mirrored seed test tree (MECH-03)
+- [x] No new framework install required (pytest already in `pyproject.toml`)
 
 ---
 
@@ -116,11 +117,11 @@ Rows will be appended by each plan's final task:
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 60s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 60s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-04-13
