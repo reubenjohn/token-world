@@ -201,7 +201,7 @@ Plans:
 - [x] 07-03-PLAN.md — MechanicContext.begin_long_action() helper (mechanic-facing API)
 - [x] 07-04-PLAN.md — Engine tick hook + synthetic action routing + tick summary + runner integration
 - [x] 07-05-PLAN.md — Sleep seed mechanic (bounded, noise/health thresholds)
-- [ ] 07-06-PLAN.md — Autopilot-travel seed mechanic + per-tick advance passive (bounded, hazard thresholds)
+- [x] 07-06-PLAN.md — Autopilot-travel seed mechanic + per-tick advance passive (bounded, hazard thresholds)
 - [ ] 07-07-PLAN.md — Drunk seed mechanic + sober_up passive (indefinite, sobriety threshold)
 
 ## Progress

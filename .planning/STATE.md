@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 07-05-PLAN.md (sleep seed mechanic)
-last_updated: "2026-04-13T19:24:24.452Z"
+stopped_at: Completed 07-attention-and-consciousness/07-06-PLAN.md
+last_updated: "2026-04-13T19:39:25.481Z"
 last_activity: 2026-04-13 -- Plan 07-04 complete (engine hook + synthetic tick routing + PlaytestRunner LRA integration, 42 new tests)
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 63
-  completed_plans: 61
-  percent: 97
+  completed_plans: 62
+  percent: 98
 ---
 
 # Project State
@@ -80,6 +80,7 @@ Progress: [████████░░] 87% (Phase 07 in progress — 4 plans
 | Phase 07-attention-and-consciousness P03 | 15 | 2 tasks | 3 files |
 | Phase 07-attention-and-consciousness P04 | 45 | 3 tasks | 10 files |
 | Phase 07-attention-and-consciousness P05 | 6 | 2 tasks | 4 files |
+| Phase 07-attention-and-consciousness P06 | 647 | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -141,6 +142,8 @@ Recent decisions affecting current work:
 - [Phase 07-04]: TickSummary.long_running_action optional field; schema_version stays 1 (additive D-17)
 - [Phase 07-04]: "Time passes. You continue {action_text}." static template for continuing case (D-22, no LLM call)
 - [Phase 07-attention-and-consciousness]: SleepMechanic uses location property (not edge) for threshold construction; integration tests need both property + type=location edge for projector inclusion
+- [Phase 07-attention-and-consciousness]: Location-edge update alongside location-property in autopilot_advance: VisibilityProjector follows type=location edges not the property value, so both must be updated for threshold evaluation to see the new room
+- [Phase 07-attention-and-consciousness]: 2-step begin-then-augment pattern for payload extension: ctx.begin_long_action then ctx.set adds route/next_index to payload without modifying Plan 03 helper API
 
 ### Roadmap Evolution
 
@@ -157,6 +160,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-13T19:24:24.448Z
-Stopped at: Completed 07-05-PLAN.md (sleep seed mechanic)
+Last session: 2026-04-13T19:39:25.477Z
+Stopped at: Completed 07-attention-and-consciousness/07-06-PLAN.md
 Resume file: None
