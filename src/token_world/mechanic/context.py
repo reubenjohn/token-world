@@ -14,6 +14,10 @@ if TYPE_CHECKING:
     from token_world.graph.spatial import SpatialIndex
     from token_world.graph.temporal import TemporalIndex
 
+    # CheckResult is used as return type for refuse(); runtime import is lazy
+    # (inside the method body) to avoid the engine→mechanic→engine cycle.
+    from token_world.mechanic.protocol import CheckResult
+
 
 class MechanicContext:
     """DSL context provided to mechanics during check/apply.
@@ -278,3 +282,33 @@ class MechanicContext:
             A Mutation record describing the change.
         """
         return self._graph.remove_edge(src, dst)
+
+    # --- Refusal helper (D-13) ---
+
+    def refuse(self, reason_code: str, details: dict[str, Any] | None = None) -> CheckResult:
+        """Return a CheckResult(passed=False) with a standard refusal narrative (D-13).
+
+        Mechanics call this inside ``check()`` when preconditions fail and they want
+        consistent user-facing narrative. The narrative template lives in
+        :mod:`token_world.engine.refusal`; we lazy-import to avoid a reverse dep.
+
+        The rendered narrative is placed as the first element of ``reasons`` so it
+        surfaces in observation synthesis and diagnostics.
+
+        Args:
+            reason_code: A known reason code (no_viable_action, no_such_target,
+                low_confidence, mechanic_check_failed, conservation_violation,
+                inventory_full, locked, blocked) or any arbitrary string.
+            details: Template variables for the narrative (e.g. ``{"target": "gate"}``).
+
+        Returns:
+            :class:`~token_world.mechanic.protocol.CheckResult` with
+            ``passed=False`` and the rendered narrative in ``reasons[0]``.
+        """
+        # Lazy import breaks the engine→mechanic→engine cycle (engine imports
+        # Mechanic/MechanicContext; context lazy-imports RefusalTemplate).
+        from token_world.engine.refusal import RefusalTemplate
+        from token_world.mechanic.protocol import CheckResult
+
+        narrative = RefusalTemplate.render(reason_code, details or {})
+        return CheckResult(passed=False, reasons=[narrative])

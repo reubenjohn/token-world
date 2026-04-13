@@ -77,6 +77,11 @@ EXPECTED_CALLABLES: dict[str, list[tuple[str, str]]] = {
     ],
     # --- Identity ---
     "claim_id": [("name", "POSITIONAL_OR_KEYWORD")],
+    # --- Refusal helper (D-13, Plan 05-03) ---
+    "refuse": [
+        ("reason_code", "POSITIONAL_OR_KEYWORD"),
+        ("details", "POSITIONAL_OR_KEYWORD"),
+    ],
 }
 
 EXPECTED_ATTRS: dict[str, type | None] = {
