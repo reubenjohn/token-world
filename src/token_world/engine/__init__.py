@@ -11,11 +11,13 @@ Components available in this package:
   (D-16, GAP-ENG06, Plan 05-06). Orchestrator wired in Plan 05-08.
 - TickSummaryWriter / build_tick_summary — per-tick JSON summary writer (D-20, SIM-11,
   Plan 05-07). Orchestrator wired in Plan 05-08.
+- SimulationEngine / TickResult — the D-01 staged-pipeline orchestrator (Plan 05-08).
 """
 
 from __future__ import annotations
 
 from token_world.engine.conservation import ConservationChecker, ConservationVerdict
+from token_world.engine.engine import SimulationEngine, TickResult
 from token_world.engine.models import (
     ClassifiedAction,
     ClassifierVerdict,
@@ -47,6 +49,8 @@ __all__ = [
     "NoMatchResult",
     "Observer",
     "RefuseDecision",
+    "SimulationEngine",
+    "TickResult",
     "TickSummary",
     "TickSummaryWriter",
     "VerdictLowConfidence",
