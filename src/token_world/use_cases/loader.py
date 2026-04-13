@@ -24,6 +24,10 @@ ID_PATTERN = re.compile(r"^UC-[SOVRE]\d{2}$")
 GAP_KEYS = {"layer", "severity", "summary", "proposed_fix"}
 VALID_LAYERS = {"graph", "mechanic", "engine"}
 VALID_SEVERITIES = {"address-now", "defer", "out-of-scope"}
+# Tri-state outcome model for the integration harness (D-29b, 04-04 Task 1).
+# Absence means "default to pass"; callers that rely on explicit outcomes should
+# check `"expected_outcome" in fm` rather than `fm.get("expected_outcome")`.
+VALID_EXPECTED_OUTCOMES = {"pass", "yield", "blocked"}
 VALID_ASSERTION_KINDS = frozenset(
     {
         "has_node",
@@ -88,6 +92,16 @@ def validate_frontmatter(fm: dict[str, Any], *, source: str = "<unknown>") -> li
             errors.append(f"{source}: gaps[{idx}].layer {gap.get('layer')!r} invalid")
         if gap.get("severity") not in VALID_SEVERITIES:
             errors.append(f"{source}: gaps[{idx}].severity {gap.get('severity')!r} invalid")
+
+    # Optional tri-state outcome model for the integration harness (D-29b).
+    # Missing key is legal (backward compat); only an unknown VALUE is an error.
+    if "expected_outcome" in fm:
+        val = fm["expected_outcome"]
+        if val not in VALID_EXPECTED_OUTCOMES:
+            errors.append(
+                f"{source}: expected_outcome {val!r} not in "
+                f"{sorted(VALID_EXPECTED_OUTCOMES)}"
+            )
 
     # Enforce the fixed 6-kind graph_assertion vocabulary (UAT #8).
     # Assertions live primarily under expected_observations[*].graph_assertions,
