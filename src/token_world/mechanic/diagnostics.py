@@ -33,7 +33,10 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from token_world.operator.diagnostics import OperatorDiagnosticsContext
 
 SCHEMA_VERSION = 1
 
@@ -151,6 +154,50 @@ class DiagnosticsSink:
             yield ctx
         finally:
             ctx.finalize()
+
+    # ------------------------------------------------------------------
+    # Operator namespace (Phase 4.1 D-15)
+    # ------------------------------------------------------------------
+
+    def open_operator_session(self, tick_id: str | int) -> OperatorDiagnosticsContext:
+        """Open the operator diagnostics namespace for ``tick_id``.
+
+        Returns an :class:`OperatorDiagnosticsContext` that writes into
+        ``<universe>/diagnostics/tick_<id>/operator/``. Use as a context
+        manager so the safety-net ``__exit__`` lands a final
+        ``resume_outcome.json`` even on exception::
+
+            with sink.open_operator_session(tick_id) as op_ctx:
+                op_ctx.write_yield_signal(signal)
+                ...
+                op_ctx.close({"success": True, "mechanic_id": mid, ...})
+
+        Decoupling note: we resolve the universe root via ``self._root.parent``
+        rather than referencing the private ``_universe_dir`` attribute. The
+        Phase 4 invariant is that ``_root`` points at ``<universe>/diagnostics``
+        (asserted by ``test_sink_creates_diagnostics_root_on_init``); reading
+        ``.parent`` gives us the universe folder portably across any future
+        rename of the private attribute.
+
+        Args:
+            tick_id: Tick identifier. Accepts str or int; stringified internally
+                so ``open_operator_session(42)`` and ``open_operator_session("42")``
+                produce the same directory.
+
+        Returns:
+            A new :class:`OperatorDiagnosticsContext` with the operator/
+            and operator/validation/ subfolders already created.
+        """
+        # Local import keeps the operator subpackage from being eagerly loaded
+        # whenever Phase 4 diagnostics is imported (matters for the mechanic
+        # framework's startup time and avoids a hard dep cycle if the operator
+        # subpackage ever needs to import from mechanic.*).
+        from token_world.operator.diagnostics import OperatorDiagnosticsContext
+
+        return OperatorDiagnosticsContext(
+            universe_path=self._root.parent,
+            tick_id=tick_id,
+        )
 
     # ------------------------------------------------------------------
     # Per-validation diagnostics

@@ -451,9 +451,7 @@ class TestReaderTolerance:
         ctx.append_attempt({"attempt": 2, "ok": True})
 
         # Manually corrupt the file by appending an unparseable line.
-        path = (
-            universe / "diagnostics" / "tick_tick_1" / "operator" / "authoring_attempts.jsonl"
-        )
+        path = universe / "diagnostics" / "tick_tick_1" / "operator" / "authoring_attempts.jsonl"
         with path.open("a", encoding="utf-8") as f:
             f.write('{"truncated_partial": tr')  # truncated mid-token
 
@@ -505,9 +503,7 @@ class TestReaderSchemaVersionGuard:
         with pytest.raises(ValueError, match="schema_version=99"):
             _ = reader.schema_version
 
-    def test_reader_returns_current_version_when_outcome_missing(
-        self, universe: Path
-    ) -> None:
+    def test_reader_returns_current_version_when_outcome_missing(self, universe: Path) -> None:
         """Unclosed session: schema_version assumes the current build's version."""
         # Create the operator dir but never close.
         OperatorDiagnosticsContext(universe, "tick_1")
@@ -524,9 +520,7 @@ class TestReaderSchemaVersionGuard:
 class TestDiagnosticsSinkIntegration:
     """Phase-4 DiagnosticsSink exposes a sanctioned entry-point to the namespace."""
 
-    def test_diagnosticssink_open_operator_session_returns_context(
-        self, universe: Path
-    ) -> None:
+    def test_diagnosticssink_open_operator_session_returns_context(self, universe: Path) -> None:
         sink = DiagnosticsSink(universe)
         ctx = sink.open_operator_session("tick_42")
         assert isinstance(ctx, OperatorDiagnosticsContext)

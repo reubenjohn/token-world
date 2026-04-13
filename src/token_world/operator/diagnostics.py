@@ -48,6 +48,7 @@ from token_world.operator.yield_signal import YieldSignal
 __all__ = [
     "OPERATOR_SCHEMA_VERSION",
     "OperatorDiagnosticsContext",
+    "OperatorDiagnosticsReader",
 ]
 
 
@@ -227,3 +228,141 @@ class OperatorDiagnosticsContext(AbstractContextManager["OperatorDiagnosticsCont
             )
         # Do NOT suppress the original exception.
         return None
+
+
+# ---------------------------------------------------------------------------
+# Read side
+# ---------------------------------------------------------------------------
+
+
+class OperatorDiagnosticsReader:
+    """Read an already-written operator session from disk (D-16).
+
+    The single sanctioned entry-point for parsing operator namespace artefacts.
+    Used by ``replay-tick`` (Plan 04.1-04) and any future consumer. Constructing
+    a reader does NOT require the session to exist; individual accessors raise
+    on missing critical artefacts (yield_signal) but return safe defaults for
+    optional ones (attempts, validation_reports, mechanic_diff, resume_outcome).
+
+    Threats:
+        - T-04.1-05: :attr:`schema_version` raises :class:`ValueError` on
+          unknown versions in ``resume_outcome.json``.
+        - T-04.1-06: :meth:`attempts` skips unparseable JSONL lines (logged
+          warning) instead of crashing on a partial final line.
+    """
+
+    universe_path: Path
+    tick_id: str
+    operator_dir: Path
+
+    def __init__(self, universe_path: Path, tick_id: str | int) -> None:
+        self.universe_path = universe_path
+        self.tick_id = str(tick_id)
+        self.operator_dir = universe_path / "diagnostics" / f"tick_{self.tick_id}" / "operator"
+
+    def yield_signal(self) -> YieldSignal:
+        """Return the persisted :class:`YieldSignal` for this tick.
+
+        Raises:
+            FileNotFoundError: if the session never started for this tick.
+                Message names the expected path so the operator can debug
+                directly.
+            json.JSONDecodeError, TypeError, ValueError: propagated from
+                :meth:`YieldSignal.from_json` (corrupt payload, schema drift).
+        """
+        path = self.operator_dir / _YIELD_FILE
+        if not path.exists():
+            raise FileNotFoundError(
+                f"No yield signal at {path}. "
+                f"Operator session may not have started for tick {self.tick_id!r}."
+            )
+        return YieldSignal.from_json(path.read_text(encoding="utf-8"))
+
+    def attempts(self) -> list[dict[str, Any]]:
+        """Return the list of authoring-attempt records (one dict per JSONL line).
+
+        Empty list if no attempts were appended. Malformed lines (e.g. a
+        truncated final line from a crashed harness) are skipped with a
+        :func:`logger.warning` (T-04.1-06 — graceful degradation rather than
+        hard failure for forensic readability).
+        """
+        path = self.operator_dir / _ATTEMPTS_FILE
+        if not path.exists():
+            return []
+        out: list[dict[str, Any]] = []
+        for line_num, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            line = raw_line.strip()
+            if not line:
+                continue
+            try:
+                parsed = json.loads(line)
+            except json.JSONDecodeError:
+                logger.warning("Skipping malformed JSONL line {} in {}", line_num, path)
+                continue
+            if not isinstance(parsed, dict):
+                logger.warning(
+                    "Skipping non-object JSONL line {} in {} (got {})",
+                    line_num,
+                    path,
+                    type(parsed).__name__,
+                )
+                continue
+            out.append(parsed)
+        return out
+
+    def validation_reports(self) -> list[dict[str, Any]]:
+        """Return validation reports sorted by attempt number (zero-padded glob)."""
+        vdir = self.operator_dir / _VALIDATION_DIR
+        if not vdir.is_dir():
+            return []
+        return [
+            json.loads(p.read_text(encoding="utf-8")) for p in sorted(vdir.glob("attempt_*.json"))
+        ]
+
+    def mechanic_diff(self) -> str | None:
+        """Return the unified diff produced by the authoring subagent.
+
+        Returns ``None`` if no diff was written. An empty string is a valid
+        result and means "subagent wrote nothing" (distinguished from a
+        missing file).
+        """
+        path = self.operator_dir / _DIFF_FILE
+        if not path.exists():
+            return None
+        return path.read_text(encoding="utf-8")
+
+    def resume_outcome(self) -> dict[str, Any] | None:
+        """Return the final outcome dict, or ``None`` if the session never closed.
+
+        :meth:`OperatorDiagnosticsContext.close` and the safety-net
+        ``__exit__`` both produce this artefact; ``None`` means the harness
+        crashed hard enough to bypass even ``__exit__`` (rare).
+        """
+        path = self.operator_dir / _OUTCOME_FILE
+        if not path.exists():
+            return None
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(loaded, dict):
+            raise ValueError(f"Expected JSON object in {path}, got {type(loaded).__name__}")
+        return loaded
+
+    @property
+    def schema_version(self) -> int:
+        """Return the on-disk schema_version, or raise on mismatch.
+
+        Returns :data:`OPERATOR_SCHEMA_VERSION` if the session never closed
+        (no outcome on disk → assume current). Raises :class:`ValueError` if
+        the persisted version differs from the build's supported version
+        (T-04.1-05 — prevents silent consumption of incompatible payloads).
+        """
+        outcome = self.resume_outcome()
+        if outcome is None:
+            return OPERATOR_SCHEMA_VERSION
+        version = outcome.get("schema_version", 1)
+        if version != OPERATOR_SCHEMA_VERSION:
+            raise ValueError(
+                f"Unsupported operator diagnostics schema_version={version} at "
+                f"{self.operator_dir / _OUTCOME_FILE}; "
+                f"this build understands v{OPERATOR_SCHEMA_VERSION}."
+            )
+        return int(version)
