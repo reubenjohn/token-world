@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 from token_world.mechanic.context import MechanicContext
+from token_world.mechanic.diagnostics import (
+    SCHEMA_VERSION,
+    DiagnosticsSink,
+    TickDiagnostics,
+)
 from token_world.mechanic.engine import ChainExecutionEngine
 from token_world.mechanic.loader import discover_mechanic_modules, load_mechanic_classes
 from token_world.mechanic.matchers import (
@@ -16,8 +21,10 @@ from token_world.mechanic.registry import MechanicInfo, MechanicRegistry, Mechan
 from token_world.mechanic.trace import ExecutionTrace, TraceNode
 
 __all__ = [
+    "SCHEMA_VERSION",
     "ChainExecutionEngine",
     "CheckResult",
+    "DiagnosticsSink",
     "EdgeMatcher",
     "ExecutionTrace",
     "Matcher",
@@ -28,6 +35,7 @@ __all__ = [
     "MechanicVersion",
     "NodeMatcher",
     "PropertyChangeMatcher",
+    "TickDiagnostics",
     "TraceNode",
     "discover_mechanic_modules",
     "load_mechanic_classes",
