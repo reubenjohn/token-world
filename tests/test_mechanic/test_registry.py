@@ -256,6 +256,7 @@ class TestSeedUniverse:
             "persuade",
             "pickup",
             "position_sync",
+            "sleep",
             "speak",
             "teach",
             "tell",
