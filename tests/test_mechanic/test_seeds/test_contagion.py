@@ -224,6 +224,70 @@ class TestContagionApply:
 
 
 # ---------------------------------------------------------------------------
+# WR-01 regression: rng-None fallback semantics (explicit branching check)
+# ---------------------------------------------------------------------------
+
+
+class TestContagionRngNoneFallback:
+    """WR-01: Verify deterministic fallback is correct for both rate boundary cases.
+
+    These tests run without tick_id/universe_seed so ctx.rng raises RuntimeError
+    and contagion falls back to the deterministic rule:
+      - rate < 1.0  → no infection
+      - rate >= 1.0 → certain infection
+    """
+
+    def test_rng_none_rate_below_1_infects_nobody(self, mechanic: ContagionMechanic) -> None:
+        """With no RNG and rate=0.5, deterministic fallback must yield no infections."""
+        kg = KnowledgeGraph()
+        kg.add_node("office", node_type="entity")
+        kg.add_node("alice", node_type="agent", infected=True, transmission_rate=0.5)
+        kg.add_node("bob", node_type="agent", infected=False)
+        kg.add_edge("alice", "office", relation="located_in")
+        kg.add_edge("bob", "office", relation="located_in")
+        # No tick_id / universe_seed → ctx.rng raises → rng = None
+        ctx = MechanicContext(kg, actor="alice", target="alice")
+        muts = mechanic.apply(ctx)
+        infected_targets = {m.target for m in muts if m.property == "infected"}
+        assert infected_targets == set(), (
+            "rate=0.5 with rng=None should infect nobody (deterministic fallback)"
+        )
+
+    def test_rng_none_rate_exactly_1_infects_all(self, mechanic: ContagionMechanic) -> None:
+        """With no RNG and rate=1.0, deterministic fallback must infect all uninfected."""
+        kg = KnowledgeGraph()
+        kg.add_node("office", node_type="entity")
+        kg.add_node("alice", node_type="agent", infected=True, transmission_rate=1.0)
+        kg.add_node("bob", node_type="agent", infected=False)
+        kg.add_node("carol", node_type="agent", infected=False)
+        kg.add_edge("alice", "office", relation="located_in")
+        kg.add_edge("bob", "office", relation="located_in")
+        kg.add_edge("carol", "office", relation="located_in")
+        # No tick_id / universe_seed → ctx.rng raises → rng = None
+        ctx = MechanicContext(kg, actor="alice", target="alice")
+        muts = mechanic.apply(ctx)
+        infected_targets = {m.target for m in muts if m.property == "infected"}
+        assert infected_targets == {"bob", "carol"}, (
+            "rate=1.0 with rng=None should infect all uninfected (deterministic fallback)"
+        )
+
+    def test_rng_none_rate_above_1_infects_all(self, mechanic: ContagionMechanic) -> None:
+        """With no RNG and rate=1.5 (>= 1.0), deterministic fallback infects all."""
+        kg = KnowledgeGraph()
+        kg.add_node("office", node_type="entity")
+        kg.add_node("alice", node_type="agent", infected=True, transmission_rate=1.5)
+        kg.add_node("bob", node_type="agent", infected=False)
+        kg.add_edge("alice", "office", relation="located_in")
+        kg.add_edge("bob", "office", relation="located_in")
+        ctx = MechanicContext(kg, actor="alice", target="alice")
+        muts = mechanic.apply(ctx)
+        infected_targets = {m.target for m in muts if m.property == "infected"}
+        assert infected_targets == {"bob"}, (
+            "rate=1.5 with rng=None should infect bob (deterministic fallback: rate >= 1.0)"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Module docstring must reference GAP-GRAPH05 (per PLAN acceptance criterion)
 # ---------------------------------------------------------------------------
 

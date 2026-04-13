@@ -114,7 +114,7 @@ class ContagionMechanic(Mechanic):
         target_props = ctx.query_node(ctx.target)
         rate_raw = target_props.get("transmission_rate", _DEFAULT_TRANSMISSION_RATE)
         # Accept int or float; coerce to float. bool is rejected (bool-is-int).
-        if isinstance(rate_raw, bool) or not isinstance(rate_raw, (int, float)):
+        if isinstance(rate_raw, bool) or not isinstance(rate_raw, int | float):
             rate = _DEFAULT_TRANSMISSION_RATE
         else:
             rate = float(rate_raw)
@@ -144,9 +144,16 @@ class ContagionMechanic(Mechanic):
             neighbor_props = ctx.query_node(neighbor)
             if neighbor_props.get("infected"):
                 continue
-            # When rng is None (no tick context), treat rate >= 1.0 as certain
-            # and rate < 1.0 as zero — deterministic fallback for smoke tests.
-            if rng is not None and rng.random() < rate or rng is None and rate >= 1.0:
+            # Explicit branching avoids operator-precedence fragility (WR-01).
+            # When rng is available, use probabilistic roll.
+            # When rng is None (no tick context), deterministic fallback:
+            #   rate >= 1.0 → certain; rate < 1.0 → zero.
+            # noqa: SIM108 — ternary would defeat the readability intent here.
+            if rng is not None:  # noqa: SIM108
+                should_infect = rng.random() < rate
+            else:
+                should_infect = rate >= 1.0
+            if should_infect:
                 mutations.append(ctx.mutate(neighbor, "infected", True))
                 if carrier_disease is not None:
                     mutations.append(ctx.mutate(neighbor, "disease", carrier_disease))
