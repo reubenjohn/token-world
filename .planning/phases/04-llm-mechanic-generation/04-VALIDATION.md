@@ -1,0 +1,77 @@
+---
+phase: 4
+slug: llm-mechanic-generation
+status: draft
+nyquist_compliant: false
+wave_0_complete: false
+created: 2026-04-12
+---
+
+# Phase 4 — Validation Strategy
+
+> Per-phase validation contract for feedback sampling during execution.
+
+---
+
+## Test Infrastructure
+
+| Property | Value |
+|----------|-------|
+| **Framework** | pytest (project-standard; see `pyproject.toml`) |
+| **Config file** | `pyproject.toml` + existing `tests/conftest.py`, `tests/test_graph/conftest.py` |
+| **Quick run command** | `uv run pytest -x -q` |
+| **Full suite command** | `uv run pytest -v` |
+| **Estimated runtime** | ~30–60 seconds (full suite at end of phase, including 35 parametrized use-case tests + 27 seed-mechanic unit tests) |
+
+---
+
+## Sampling Rate
+
+- **After every task commit:** Run `uv run pytest tests/ -x -q`
+- **After every plan wave:** Run `uv run pytest -v`
+- **Before `/gsd-verify-work`:** Full suite must be green + `uv run ruff check src/` clean + `uv run mypy src/token_world/mechanic/` clean
+- **Max feedback latency:** ~60 seconds
+
+---
+
+## Per-Task Verification Map
+
+*To be filled by planner. Each plan task must emit a row here or declare a Wave 0 dependency.*
+
+| Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
+|---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
+| — | — | — | — | — | — | — | — | — | ⬜ pending |
+
+---
+
+## Wave 0 Requirements
+
+- [ ] `tests/test_mechanic/test_validation.py` — unit tests for AST walker + ValidationReport (MECH-04)
+- [ ] `tests/test_mechanic/test_loader_flat.py` — new module-based discovery (MECH-03)
+- [ ] `tests/test_mechanic/test_diagnostics.py` — DiagnosticsSink API + atomic writes (AUTO-02)
+- [ ] `tests/test_integration/conftest.py` — shared fixtures for use-case-driven tests (TEST-02)
+- [ ] `tests/test_integration/test_use_cases.py` — parametrized harness stub (TEST-02)
+- [ ] `tests/test_mechanic/test_seeds/` — mirrored seed test tree (MECH-03)
+- [ ] No new framework install required (pytest already in `pyproject.toml`)
+
+---
+
+## Manual-Only Verifications
+
+| Behavior | Requirement | Why Manual | Test Instructions |
+|----------|-------------|------------|-------------------|
+| Authoring-guide quality | MECH-03 (readability) | Prose quality not grep-able | Read `docs/guides/authoring-mechanics.md` end-to-end; attempt to author a new mechanic using only the guide |
+| Operator SDLC feel | MECH-03 (ergonomics) | Qualitative dogfooding | `cd` into a scaffolded universe; author one mechanic; run `validate-mechanic`; assess friction |
+
+---
+
+## Validation Sign-Off
+
+- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
+- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
+- [ ] Wave 0 covers all MISSING references
+- [ ] No watch-mode flags
+- [ ] Feedback latency < 60s
+- [ ] `nyquist_compliant: true` set in frontmatter
+
+**Approval:** pending
