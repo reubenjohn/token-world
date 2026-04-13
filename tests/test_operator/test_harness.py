@@ -333,6 +333,96 @@ async def test_handle_yield_message_serialisation_does_not_crash_on_unexpected_s
 
 
 # ---------------------------------------------------------------------------
+# _parse_final — robustness regressions (WR-01)
+# ---------------------------------------------------------------------------
+
+
+def test_parse_final_handles_nested_json_object() -> None:
+    """WR-01: final-message JSON with a nested ``{...}`` value must parse.
+
+    The old ``\\{[^{}]*\\}`` regex excluded braces inside the candidate, so a
+    payload like ``{"success": true, "params": {"x": 1}, "attempts": 3}`` only
+    matched the *inner* object and reported failure. The fix uses
+    ``json.JSONDecoder.raw_decode`` which respects brace nesting.
+    """
+    text = '{"success": true, "mechanic_id": "meditate", "params": {"x": 1}, "attempts": 3}'
+    success, mechanic_id, attempts = OperatorHarness._parse_final(text)
+    assert success is True
+    assert mechanic_id == "meditate"
+    assert attempts == 3
+
+
+def test_parse_final_handles_nested_json_wrapped_in_prose() -> None:
+    """Nested JSON embedded in prose (the pessimistic real-model case)."""
+    text = (
+        "I called validate with params {duration: 5} and got "
+        '{"success": true, "mechanic_id": "meditate", '
+        '"params": {"x": 1, "y": {"z": 2}}, "attempts": 2} '
+        "so we're done."
+    )
+    success, mechanic_id, attempts = OperatorHarness._parse_final(text)
+    assert success is True
+    assert mechanic_id == "meditate"
+    assert attempts == 2
+
+
+def test_parse_final_prefers_last_json_candidate_in_prose() -> None:
+    """If multiple JSON objects appear, the LAST one (summary) wins."""
+    text = (
+        'First attempt: {"success": false, "mechanic_id": null, "attempts": 1}. '
+        'Retried: {"success": true, "mechanic_id": "final", "attempts": 2}.'
+    )
+    success, mechanic_id, attempts = OperatorHarness._parse_final(text)
+    assert success is True
+    assert mechanic_id == "final"
+    assert attempts == 2
+
+
+def test_parse_final_prose_only_returns_failure_tuple() -> None:
+    """Prose with no JSON object still returns ``(False, None, 0)``."""
+    success, mechanic_id, attempts = OperatorHarness._parse_final(
+        "I tried but it didn't work because reasons."
+    )
+    assert success is False
+    assert mechanic_id is None
+    assert attempts == 0
+
+
+def test_parse_final_flat_json_still_parses() -> None:
+    """Backwards compatibility: flat JSON (the common case) keeps working."""
+    text = '{"success": true, "mechanic_id": "meditate", "attempts": 1}'
+    success, mechanic_id, attempts = OperatorHarness._parse_final(text)
+    assert success is True
+    assert mechanic_id == "meditate"
+    assert attempts == 1
+
+
+@pytest.mark.asyncio
+async def test_handle_yield_handles_nested_json_in_final(
+    universe: Path,
+    stub_yield: Callable[..., YieldSignal],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """End-to-end: a final message with nested JSON produces ``success=True``."""
+    fake_msgs = [
+        _make_result_msg(
+            result=(
+                '{"success": true, "mechanic_id": "meditate", '
+                '"params": {"duration": 5}, "attempts": 1}'
+            )
+        ),
+    ]
+    monkeypatch.setattr("token_world.operator.harness.query", _fake_query_factory(fake_msgs))
+
+    h = OperatorHarness(universe)
+    signal = stub_yield(verb="meditate", actor="alice")
+    result = await h.handle_yield(signal)
+    assert result.success is True
+    assert result.mechanic_id == "meditate"
+    assert result.attempts == 1
+
+
+# ---------------------------------------------------------------------------
 # OperatorResult shape
 # ---------------------------------------------------------------------------
 
