@@ -135,14 +135,14 @@ Plans (12 plans):
   3. A structured `YieldSignal` dataclass is defined as the contract between engine and operator; its shape is what Phase 5 will emit and 4.1's engine stub fabricates
   4. CLI commands `run-tick`, `inspect-yield`, `resume-tick`, `replay-tick` work against a universe and render diagnostics from Phase 4's substrate (extended with an operator subfolder)
   5. The throwaway engine stub is clearly isolated (imports only from tests or a `testing` module); swapping in the real Phase 5 engine requires no operator-code changes
-**Plans:** 5 plans
+**Plans:** 5/5 plans complete
 
 Plans:
-- [ ] 04.1-01-PLAN.md — YieldSignal contract + EngineStub + Wave-0 test scaffolding (claude-agent-sdk dep, integration marker)
-- [ ] 04.1-02-PLAN.md — Operator diagnostics namespace (extends Phase 4 DiagnosticsSink with operator/ subfolder; write + read APIs)
-- [ ] 04.1-03-PLAN.md — Operator harness core (Agent SDK driver + mechanic-author subagent + validation @tool + real-Opus integration test)
-- [ ] 04.1-04-PLAN.md — Dev-UX CLI (run-tick, inspect-yield, resume-tick, replay-tick on the existing token-world Click group)
-- [ ] 04.1-05-PLAN.md — Interactive entry-point polish (universe CLAUDE.md Operator Flow + .claude/agents/mechanic-author.md scaffold + VALIDATION.md finalisation + architecture diagram)
+- [x] 04.1-01-PLAN.md — YieldSignal contract + EngineStub + Wave-0 test scaffolding (claude-agent-sdk dep, integration marker)
+- [x] 04.1-02-PLAN.md — Operator diagnostics namespace (extends Phase 4 DiagnosticsSink with operator/ subfolder; write + read APIs)
+- [x] 04.1-03-PLAN.md — Operator harness core (Agent SDK driver + mechanic-author subagent + validation @tool + real-Opus integration test)
+- [x] 04.1-04-PLAN.md — Dev-UX CLI (run-tick, inspect-yield, resume-tick, replay-tick on the existing token-world Click group)
+- [x] 04.1-05-PLAN.md — Interactive entry-point polish (universe CLAUDE.md Operator Flow + .claude/agents/mechanic-author.md scaffold + VALIDATION.md finalisation + architecture diagram)
 
 ### Phase 5: Simulation Engine
 **Goal**: The engine interprets text actions, routes them to mechanics (or yields to the operator when none match), executes selected mechanics, and returns grounded observations — the full pipeline works end-to-end without a live agent. Under the inversion-of-control model established in Phase 4, the engine NEVER generates code; when no mechanic matches, it halts the tick and yields to the operator, which authors the needed mechanic via normal SDLC before the tick resumes.
