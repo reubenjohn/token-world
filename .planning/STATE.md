@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: 07-CONTEXT.md written; 23 decisions locked (SIM-09, SIM-10 addressed); ready for gsd-plan-phase
-stopped_at: Completed 07-attention-and-consciousness-02-PLAN.md
-last_updated: "2026-04-13T18:59:00.000Z"
+stopped_at: Completed 07-attention-and-consciousness-03-PLAN.md
+last_updated: "2026-04-13T18:54:31Z"
 last_activity: 2026-04-13 -- Phase 07 context gathered
 progress:
   total_phases: 9
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 
 ## Current Position
 
-Phase: 07 (attention-and-consciousness) — CONTEXT GATHERED
-Plans: 0 of TBD
-Status: 07-CONTEXT.md written; 23 decisions locked (SIM-09, SIM-10 addressed); ready for gsd-plan-phase
-Last activity: 2026-04-13 -- Phase 07 context gathered
+Phase: 07 (attention-and-consciousness) — IN PROGRESS
+Plans: 3 of TBD
+Status: Plans 01-03 complete (LongRunningAction primitives, VisibilityProjector attention extension, begin_long_action helper)
+Last activity: 2026-04-13 -- Plan 07-03 complete (begin_long_action helper, 11 tests)
 
-Progress: [███████░░░] 78% (7 of 9 phases complete; Phase 07 in context phase)
+Progress: [████████░░] 85% (Phase 07 in progress — 3 plans landed)
 
 ## Performance Metrics
 
@@ -77,6 +77,7 @@ Progress: [███████░░░] 78% (7 of 9 phases complete; Phase 07
 | Phase 06 P06 | 22 | 2 tasks | 12 files |
 | Phase 07-attention-and-consciousness P01 | 18 | 3 tasks | 3 files |
 | Phase 07-attention-and-consciousness P02 | 15 | 2 tasks | 2 files |
+| Phase 07-attention-and-consciousness P03 | 15 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -131,6 +132,7 @@ Recent decisions affecting current work:
 - [Phase 07-attention-and-consciousness]: D-16: turns_total=None = indefinite duration; JSON null roundtrips correctly through to_dict/from_dict
 - [Phase 07-attention-and-consciousness]: Serialization boundary: tuple[ThresholdSpec,...] in-memory; list[dict] in to_dict() to satisfy ALLOWED_PROPERTY_TYPES
 - [Phase 07-02]: attention_state suppress-then-boost order: boosting a suppressed key yields no attention_boosted entry; attention_boosted is a separate top-level key (not inside properties) so Observer can reference property AND prominence marker independently
+- [Phase 07-03]: begin_long_action returns Mutation (not LongRunningAction) — stays within list[Mutation] protocol (D-05); no engine changes needed; no import of long_running from context.py (loose coupling, D-15)
 
 ### Roadmap Evolution
 
@@ -147,6 +149,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-13T18:44:43.125Z
-Stopped at: Completed 07-attention-and-consciousness-01-PLAN.md
+Last session: 2026-04-13T18:54:31Z
+Stopped at: Completed 07-attention-and-consciousness-03-PLAN.md
 Resume file: None
