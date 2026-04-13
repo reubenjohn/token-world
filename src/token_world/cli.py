@@ -2,11 +2,26 @@
 
 from __future__ import annotations
 
+import asyncio
 import json as _json
+import re
+import sys
 from pathlib import Path
 
 import click
 
+from token_world.operator.cli_support import (
+    latest_halted_tick,
+    render_replay_human,
+    render_replay_json,
+    render_yield_human,
+    render_yield_json,
+    resolve_universe,
+)
+from token_world.operator.diagnostics import OperatorDiagnosticsReader
+from token_world.operator.harness import OperatorHarness
+from token_world.operator.testing import EngineStub
+from token_world.operator.yield_signal import YieldSignal
 from token_world.universe.manager import UniverseManager
 
 
@@ -659,3 +674,352 @@ def prune_diagnostics(
         click.echo(f"  {label}")
     if not confirm:
         click.echo("(dry-run -- rerun with --confirm to actually delete)")
+
+
+# =========================================================================== #
+# Operator commands (Phase 04.1-04)
+#
+# run-tick, inspect-yield, resume-tick, replay-tick: the developer-facing
+# interface to the Agent SDK driver shipped by Plan 04.1-03. All four honour
+# the standard universe-resolution order (slug > env > cwd) and ALL four
+# follow the documented exit-code contract:
+#
+#   run-tick      0 success | 1 harness failure | 2 universe not found | 3 no halted
+#   inspect-yield 0 success | 2 universe not found | 4 no yield
+#   resume-tick   0 success | 1 MCP failure       | 2 universe not found
+#   replay-tick   0 success | 2 universe not found | 4 tick not found
+#
+# Zero new MCP tools are added (D-06, UNIV-03). replay-tick and inspect-yield
+# use the sole-sanctioned OperatorDiagnosticsReader (D-16).
+# =========================================================================== #
+
+
+# tick_id may safely appear as a path segment inside <universe>/diagnostics/.
+# Keep the regex small — alphanumerics, underscore, hyphen, dot. Rejects
+# traversal chars (/ \ ..) and shell metacharacters (T-04.1-18).
+_TICK_ID_RE = re.compile(r"^[A-Za-z0-9_.\-]+$")
+
+# --stub KEY=VALUE whitelist. Adding a key here is an intentional action;
+# the default set is the minimum needed to fabricate a valid YieldSignal
+# (T-04.1-19).
+_STUB_ALLOWED_KEYS: frozenset[str] = frozenset({"verb", "actor", "target", "action_text"})
+
+
+def _cli_resolve_or_exit(slug: str | None, *, exit_code: int) -> Path:
+    """Resolve a universe or exit with *exit_code* and a user-readable error."""
+    try:
+        return resolve_universe(slug)
+    except click.ClickException as e:
+        click.echo(f"Error: {e.message}", err=True)
+        sys.exit(exit_code)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(exit_code)
+
+
+def _check_tick_id(tick_id: str) -> None:
+    """Reject tick ids that would allow filesystem traversal (T-04.1-18)."""
+    if not _TICK_ID_RE.match(tick_id):
+        raise click.ClickException(f"Invalid tick id {tick_id!r}: must match [A-Za-z0-9_.-]+")
+
+
+def _build_stub_signal(universe: Path, stub_kvs: tuple[str, ...], tick_id: str) -> YieldSignal:
+    """Fabricate a :class:`YieldSignal` from ``--stub KEY=VALUE`` pairs.
+
+    Whitelisted keys only (T-04.1-19). Missing ``verb`` or ``actor`` raises
+    :class:`click.ClickException` with a remediation message.
+    """
+    kwargs: dict[str, object] = {}
+    for kv in stub_kvs:
+        if "=" not in kv:
+            raise click.ClickException(f"--stub expects KEY=VALUE; got {kv!r}")
+        key, value = kv.split("=", 1)
+        if key not in _STUB_ALLOWED_KEYS:
+            allowed = ", ".join(sorted(_STUB_ALLOWED_KEYS))
+            raise click.ClickException(f"--stub key {key!r} not allowed. Allowed keys: {allowed}")
+        kwargs[key] = value
+    if "verb" not in kwargs or "actor" not in kwargs:
+        raise click.ClickException(
+            f"--stub requires at least verb=... and actor=... (got keys: {sorted(kwargs.keys())})"
+        )
+    return EngineStub(universe).fabricate_yield(tick_id=tick_id, **kwargs)  # type: ignore[arg-type]
+
+
+async def _invoke_resume_tick_mcp(universe: Path, tick_id: str) -> None:
+    """Call ``mcp__token-world__resume_tick`` via a short one-shot SDK session.
+
+    Preserves D-05 parity: the programmatic CLI path uses the same MCP tool
+    surface the interactive Claude Code path uses. No new MCP tools are added
+    (UNIV-03 preserved).
+
+    Monkeypatchable for tests via the module-level symbol; tests replace this
+    function to avoid a real SDK subprocess.
+    """
+    from claude_agent_sdk import ClaudeAgentOptions, query
+
+    from token_world.operator.mcp_client import load_universe_mcp_config
+
+    mcp_servers = load_universe_mcp_config(universe)
+    prompt = (
+        f"Call mcp__token-world__resume_tick with tick_id={tick_id!r}, "
+        "then summarise the result as a single JSON object on the last line."
+    )
+    options = ClaudeAgentOptions(
+        model="haiku",
+        max_turns=3,
+        mcp_servers=mcp_servers,
+        allowed_tools=["mcp__token-world__resume_tick"],
+        permission_mode="bypassPermissions",
+        cwd=str(universe),
+    )
+    async for _msg in query(prompt=prompt, options=options):
+        # Streaming discarded — one-shot invocation; the MCP tool either
+        # succeeds (no exception) or raises. D-05: same entry surface as the
+        # interactive path.
+        pass
+
+
+# --------------------------------------------------------------------------- #
+# run-tick
+# --------------------------------------------------------------------------- #
+
+
+@cli.command("run-tick")
+@click.argument("universe_slug", required=False)
+@click.option(
+    "--manual",
+    is_flag=True,
+    help="Print the yield and exit; do NOT invoke the mechanic-author subagent.",
+)
+@click.option(
+    "--tick",
+    "tick_id",
+    default=None,
+    help="Specific halted tick id; defaults to the latest halted tick.",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["human", "json"]),
+    default="json",
+    show_default=True,
+    help="Output format (default json for programmatic callers).",
+)
+@click.option(
+    "--stub",
+    "stub_kvs",
+    multiple=True,
+    metavar="KEY=VALUE",
+    help=(
+        "Fabricate a yield via EngineStub. Repeatable KEY=VALUE. Required: "
+        "verb=..., actor=...; optional: target=..., action_text=..."
+    ),
+)
+def run_tick(
+    universe_slug: str | None,
+    manual: bool,
+    tick_id: str | None,
+    output_format: str,
+    stub_kvs: tuple[str, ...],
+) -> None:
+    """Drain one halted tick via the OperatorHarness.
+
+    If a halted tick exists (``--tick`` or the latest detected), load its
+    :class:`YieldSignal`. Otherwise if ``--stub verb=... --stub actor=...``
+    is given, fabricate one via :class:`EngineStub`.
+
+    ``--manual`` skips the mechanic-author subagent (prints the yield and
+    exits 0); use :command:`token-world resume-tick` after hand-authoring.
+    """
+    universe = _cli_resolve_or_exit(universe_slug, exit_code=2)
+
+    if stub_kvs:
+        effective_tick = tick_id or "tick_1"
+        _check_tick_id(effective_tick)
+        signal = _build_stub_signal(universe, stub_kvs, effective_tick)
+        # BLOCKER-3: persist the fabricated signal BEFORE deciding about
+        # --manual. Both inspect-yield and replay-tick depend on it existing
+        # on disk; a mid-harness crash without this persistence would leave
+        # no artefact to debug from.
+        from token_world.mechanic.diagnostics import DiagnosticsSink
+
+        sink = DiagnosticsSink(universe)
+        with sink.open_operator_session(effective_tick) as ctx:
+            ctx.write_yield_signal(signal)
+            if manual:
+                # Close immediately with a pending outcome so latest_halted_tick
+                # picks up the tick on subsequent invocations.
+                ctx.close(
+                    {
+                        "success": False,
+                        "mechanic_id": None,
+                        "cost_usd": None,
+                        "turns": 0,
+                        "tick_continued": False,
+                        "error": "manual_mode_no_harness_invoked",
+                    }
+                )
+        tick_id = effective_tick
+    else:
+        tick_id = tick_id or latest_halted_tick(universe)
+        if tick_id is None:
+            click.echo(
+                "No halted ticks. Use --stub to fabricate one, or wait for "
+                "the Phase 5 engine to produce a real yield.",
+                err=True,
+            )
+            sys.exit(3)
+        _check_tick_id(tick_id)
+        try:
+            signal = OperatorDiagnosticsReader(universe, tick_id).yield_signal()
+        except FileNotFoundError as e:
+            click.echo(f"Error: {e}", err=True)
+            sys.exit(3)
+
+    if manual:
+        if output_format == "json":
+            click.echo(render_yield_json(signal))
+        else:
+            click.echo(render_yield_human(signal))
+        return  # exit 0
+
+    try:
+        harness = OperatorHarness(universe)
+        result = asyncio.run(harness.handle_yield(signal))
+    except Exception as e:
+        click.echo(f"Harness failed: {e}", err=True)
+        sys.exit(1)
+
+    payload: dict[str, object] = {
+        "success": result.success,
+        "tick_id": result.tick_id,
+        "mechanic_id": result.mechanic_id,
+        "attempts": result.attempts,
+        "cost_usd": result.cost_usd,
+        "turns": result.turns,
+        "error": result.error,
+    }
+    if output_format == "json":
+        click.echo(_json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        status = "SUCCESS" if result.success else "FAILURE"
+        click.echo(
+            f"{status} tick={result.tick_id} mechanic={result.mechanic_id} "
+            f"attempts={result.attempts} cost_usd={result.cost_usd}"
+        )
+    if not result.success:
+        sys.exit(1)
+
+
+# --------------------------------------------------------------------------- #
+# inspect-yield
+# --------------------------------------------------------------------------- #
+
+
+@cli.command("inspect-yield")
+@click.argument("universe_slug", required=False)
+@click.option(
+    "--tick",
+    "tick_id",
+    default=None,
+    help="Specific tick id; defaults to the latest halted tick.",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["human", "json"]),
+    default="human",
+    show_default=True,
+)
+def inspect_yield(universe_slug: str | None, tick_id: str | None, output_format: str) -> None:
+    """Render the :class:`YieldSignal` for a halted tick."""
+    universe = _cli_resolve_or_exit(universe_slug, exit_code=2)
+    tick_id = tick_id or latest_halted_tick(universe)
+    if tick_id is None:
+        click.echo("No halted ticks found.", err=True)
+        sys.exit(4)
+    _check_tick_id(tick_id)
+    try:
+        signal = OperatorDiagnosticsReader(universe, tick_id).yield_signal()
+    except FileNotFoundError:
+        click.echo(f"No yield signal for tick {tick_id}.", err=True)
+        sys.exit(4)
+    if output_format == "json":
+        click.echo(render_yield_json(signal))
+    else:
+        click.echo(render_yield_human(signal))
+
+
+# --------------------------------------------------------------------------- #
+# resume-tick
+# --------------------------------------------------------------------------- #
+
+
+@cli.command("resume-tick")
+@click.argument("universe_slug", required=False)
+@click.option("--tick", "tick_id", required=True, help="Tick id to resume.")
+def resume_tick_cmd(universe_slug: str | None, tick_id: str) -> None:
+    """Resume a manually-authored tick via the ``resume_tick`` MCP tool.
+
+    Thin wrapper: opens a short one-shot Agent SDK session with only the
+    token-world MCP server + ``resume_tick`` tool allowed. No authoring
+    surface; for drain-and-author workflows use :command:`run-tick`.
+    """
+    universe = _cli_resolve_or_exit(universe_slug, exit_code=2)
+    _check_tick_id(tick_id)
+    try:
+        asyncio.run(_invoke_resume_tick_mcp(universe, tick_id))
+    except Exception as e:
+        click.echo(f"Resume failed: {e}", err=True)
+        sys.exit(1)
+    click.echo(f"Resumed tick {tick_id}")
+
+
+# --------------------------------------------------------------------------- #
+# replay-tick
+# --------------------------------------------------------------------------- #
+
+
+@cli.command("replay-tick")
+@click.argument("universe_slug_or_tick_id")
+@click.argument("tick_id", required=False)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["human", "json"]),
+    default="human",
+    show_default=True,
+)
+def replay_tick(
+    universe_slug_or_tick_id: str,
+    tick_id: str | None,
+    output_format: str,
+) -> None:
+    """Render the full operator diagnostics namespace for a tick.
+
+    Two calling forms:
+
+    - ``replay-tick <slug> <tick_id>`` — explicit universe slug.
+    - ``replay-tick <tick_id>`` — universe via env / cwd.
+    """
+    # Disambiguate: one positional = tick_id; two = slug + tick_id.
+    if tick_id is None:
+        slug_or_none: str | None = None
+        actual_tick_id = universe_slug_or_tick_id
+    else:
+        slug_or_none = universe_slug_or_tick_id
+        actual_tick_id = tick_id
+
+    universe = _cli_resolve_or_exit(slug_or_none, exit_code=2)
+    _check_tick_id(actual_tick_id)
+
+    op_dir = universe / "diagnostics" / f"tick_{actual_tick_id}" / "operator"
+    if not op_dir.is_dir():
+        click.echo(f"No operator session for tick {actual_tick_id}.", err=True)
+        sys.exit(4)
+
+    reader = OperatorDiagnosticsReader(universe, actual_tick_id)
+    if output_format == "json":
+        click.echo(render_replay_json(reader))
+    else:
+        click.echo(render_replay_human(reader))
