@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Design Validation** - Use case library (35 UCs across spatial/social/resource/environmental/edge-case), gap analysis (GAP-ANALYSIS.md / GAP-HANDOFF.md), optional spatial + temporal indexes, filtered Mermaid graph visualization
 - [x] **Phase 4: Mechanic Authoring & Validation Infrastructure** - Flat mechanic layout (supersedes folder-per-mechanic), validation pipeline, diagnostics substrate, integration-test harness, authoring guides, and seed mechanic authoring waves (MECH01–MECH27) — so the top-level coding agent (Opus via Agent SDK) authors mechanics as normal Python SDLC
 - [x] **Phase 5: Simulation Engine** - Action classification (Haiku), mechanic matching, execution, grounded observation synthesis (Sonnet), conservation enforcement, tick summaries. Under inversion of control: when no mechanic matches, the engine yields to the operator — it does NOT generate code. (completed 2026-04-13)
-- [ ] **Phase 6: Resident Agent & End-to-End Loop** - Agent with personality and memory, playtesting, quality scoring, regression suite
+- [x] **Phase 6: Resident Agent & End-to-End Loop** - Agent with personality and memory, playtesting, quality scoring, regression suite (completed 2026-04-13)
 - [ ] **Phase 7: Attention & Consciousness** - Duration-aware actions and reusable interruption threshold pattern
 
 ## Phase Details
@@ -174,7 +174,7 @@ Plans:
   4. Playtest runner executes N turns (including adversarial/edge-case inputs) and produces structured quality reports with per-turn grounding accuracy and mechanic validity scores
   5. System prompt or instruction changes automatically trigger grounding regression tests, and key use case scenarios from Phase 3 execute as end-to-end integration tests
   6. Hierarchical tick summary compression runs automatically, compacting tick-level summaries into batch and epoch summaries so agent context stays bounded across long simulations
-**Plans:** 6/7 plans executed
+**Plans:** 7/7 plans complete
 
 Plans:
 - [x] 06-00-PLAN.md — Wave-0 prep: TickResult.projected_state field for groundedness scoring
@@ -183,7 +183,7 @@ Plans:
 - [x] 06-03-PLAN.md — Use-case regression suite: 35 Phase-3 UC manifests as E2E integration tests
 - [x] 06-04-PLAN.md — PlaytestRunner CLI + quality scoring rubric (bundled)
 - [x] 06-05-PLAN.md — Prompt-hash registry + automatic regression trigger + optional Sonnet judge
-- [ ] 06-06-PLAN.md — Adversarial scenario pack + expanded AdversarialBank
+- [x] 06-06-PLAN.md — Adversarial scenario pack + expanded AdversarialBank
 
 ### Phase 7: Attention & Consciousness
 **Goal**: Long-running actions and consciousness states use a single composable interruption threshold pattern, making the simulation feel temporally alive
@@ -212,5 +212,5 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 3. Design Validation | 0/3 | Not started | - |
 | 4. Mechanic Authoring & Validation Infrastructure | 12/12 | Complete | 2026-04-13 |
 | 5. Simulation Engine | 9/9 | Complete   | 2026-04-13 |
-| 6. Resident Agent & End-to-End Loop | 6/7 | In Progress|  |
+| 6. Resident Agent & End-to-End Loop | 7/7 | Complete   | 2026-04-13 |
 | 7. Attention & Consciousness | 0/2 | Not started | - |

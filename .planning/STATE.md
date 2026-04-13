@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 06-05-PLAN.md
-last_updated: "2026-04-13T17:26:42.330Z"
+stopped_at: Completed 06-06-PLAN.md
+last_updated: "2026-04-13T17:37:11.259Z"
 last_activity: 2026-04-13 -- Phase 06 Plan 04 complete (PlaytestRunner + TurnScorer + Scenario YAML + CLI)
 progress:
   total_phases: 9
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 56
-  completed_plans: 55
-  percent: 98
+  completed_plans: 56
+  percent: 100
 ---
 
 # Project State
@@ -74,6 +74,7 @@ Progress: [█████████░] 98% (8 of 9 phases complete including
 | Phase 06-resident-agent-end-to-end-loop P03 | 25 | 2 tasks | 6 files |
 | Phase 06 P02 | 25 | 3 tasks | 7 files |
 | Phase 06 P05 | 40 | 4 tasks | 9 files |
+| Phase 06 P06 | 22 | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -123,6 +124,7 @@ Recent decisions affecting current work:
 - [Phase 06]: TickCompressor._BATCH_PROMPT_TEMPLATE set post-class-definition due to slots=True dataclass restriction
 - [Phase 06]: pytest summary regex uses three independent patterns (passed/failed/duration) for correct parsing regardless of ordering
 - [Phase 06]: judge_evaluate imported at cli.py module level so patch('token_world.cli.judge_evaluate') works in tests without deferred import
+- [Phase 06]: AdversarialBank uses ClassVar frozen dataclasses — stateless, deterministic via caller-supplied RNG
 
 ### Roadmap Evolution
 
@@ -139,6 +141,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-13T17:26:42.326Z
-Stopped at: Completed 06-05-PLAN.md
+Last session: 2026-04-13T17:37:11.255Z
+Stopped at: Completed 06-06-PLAN.md
 Resume file: None
