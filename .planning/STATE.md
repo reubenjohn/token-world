@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: 07-CONTEXT.md written; 23 decisions locked (SIM-09, SIM-10 addressed); ready for gsd-plan-phase
-stopped_at: Completed 07-attention-and-consciousness-03-PLAN.md
-last_updated: "2026-04-13T18:54:31Z"
+status: Phase 07 Wave 3 complete — keystone plan 07-04 landed; LRA infrastructure fully wired into engine + runner
+stopped_at: Completed 07-attention-and-consciousness-04-PLAN.md
+last_updated: "2026-04-13T19:12:43Z"
 last_activity: 2026-04-13 -- Phase 07 context gathered
 progress:
   total_phases: 9
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 ## Current Position
 
 Phase: 07 (attention-and-consciousness) — IN PROGRESS
-Plans: 3 of TBD
-Status: Plans 01-03 complete (LongRunningAction primitives, VisibilityProjector attention extension, begin_long_action helper)
-Last activity: 2026-04-13 -- Plan 07-03 complete (begin_long_action helper, 11 tests)
+Plans: 4 of TBD
+Status: Plans 01-04 complete — Wave 3 keystone landed. LRA infrastructure fully wired (engine hook, run_tick routing, tick summary, runner integration)
+Last activity: 2026-04-13 -- Plan 07-04 complete (engine hook + synthetic tick routing + PlaytestRunner LRA integration, 42 new tests)
 
-Progress: [████████░░] 85% (Phase 07 in progress — 3 plans landed)
+Progress: [████████░░] 87% (Phase 07 in progress — 4 plans landed, Wave 4 seed mechanics remain)
 
 ## Performance Metrics
 
@@ -78,6 +78,7 @@ Progress: [████████░░] 85% (Phase 07 in progress — 3 plans
 | Phase 07-attention-and-consciousness P01 | 18 | 3 tasks | 3 files |
 | Phase 07-attention-and-consciousness P02 | 15 | 2 tasks | 2 files |
 | Phase 07-attention-and-consciousness P03 | 15 | 2 tasks | 3 files |
+| Phase 07-attention-and-consciousness P04 | 45 | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -133,6 +134,11 @@ Recent decisions affecting current work:
 - [Phase 07-attention-and-consciousness]: Serialization boundary: tuple[ThresholdSpec,...] in-memory; list[dict] in to_dict() to satisfy ALLOWED_PROPERTY_TYPES
 - [Phase 07-02]: attention_state suppress-then-boost order: boosting a suppressed key yields no attention_boosted entry; attention_boosted is a separate top-level key (not inside properties) so Observer can reference property AND prominence marker independently
 - [Phase 07-03]: begin_long_action returns Mutation (not LongRunningAction) — stays within list[Mutation] protocol (D-05); no engine changes needed; no import of long_running from context.py (loose coupling, D-15)
+- [Phase 07-04]: LongRunningHook only invoked on _handle_long_running_tick path (never on _handle_execute) — Pitfall 1 insta-cancel mitigated by routing design, not hook-internal logic
+- [Phase 07-04]: run_tick(str | None) — None routes to synthetic continuation; real string + active LRA = D-11 implicit cancellation (clear before classify); None + no LRA = ValueError
+- [Phase 07-04]: PlaytestRunner uses `_lra_check(agent_id) is True` (not truthy) — MagicMock-safe; existing test fakes unaffected
+- [Phase 07-04]: TickSummary.long_running_action optional field; schema_version stays 1 (additive D-17)
+- [Phase 07-04]: "Time passes. You continue {action_text}." static template for continuing case (D-22, no LLM call)
 
 ### Roadmap Evolution
 
