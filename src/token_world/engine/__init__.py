@@ -2,6 +2,11 @@
 
 Per Phase 5 CONTEXT D-01: five explicit stages (classify -> match -> decide ->
 execute -> observe), orchestrated by :class:`SimulationEngine.run_tick`.
+
+Components available in this package:
+- Models (ClassifiedAction, ClassifierVerdict, Decision, …) — Pydantic pipeline types.
+- Observer — Sonnet-backed observation synthesiser (D-15 hard-grounding, Plan 05-05).
+  Wired into the tick pipeline by Plan 05-08; standalone and testable here.
 """
 
 from __future__ import annotations
@@ -22,6 +27,7 @@ from token_world.engine.models import (
     VerdictOk,
     YieldDecision,
 )
+from token_world.engine.observer import Observer
 
 __all__ = [
     "ClassifiedAction",
@@ -31,6 +37,7 @@ __all__ = [
     "MatchedResult",
     "MatchResult",
     "NoMatchResult",
+    "Observer",
     "RefuseDecision",
     "TickSummary",
     "VerdictLowConfidence",
