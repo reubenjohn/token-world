@@ -35,7 +35,6 @@ from token_world.operator.diagnostics import (
 )
 from token_world.operator.testing import EngineStub
 
-
 # --------------------------------------------------------------------------- #
 # Shared helpers
 # --------------------------------------------------------------------------- #
@@ -88,9 +87,7 @@ def _seed_halted_tick(
 
 
 class TestResolveUniverse:
-    def test_from_slug(
-        self, tmp_data_dir: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_from_slug(self, tmp_data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """``resolve_universe("slug")`` loads via UniverseManager()."""
         from token_world.universe.manager import UniverseManager
 
@@ -166,9 +163,7 @@ class TestResolveUniverse:
 
 
 class TestRenderers:
-    def test_render_yield_human_contains_verb_and_actor(
-        self, tmp_path: Path
-    ) -> None:
+    def test_render_yield_human_contains_verb_and_actor(self, tmp_path: Path) -> None:
         universe = tmp_path / "u"
         universe.mkdir()
         signal = _build_signal(universe, verb="pickup", actor="alice")
@@ -209,9 +204,7 @@ class TestRenderers:
         assert "3" in out  # attempt count
         assert "attempt" in out.lower()
 
-    def test_render_replay_human_handles_missing_outcome(
-        self, tmp_path: Path
-    ) -> None:
+    def test_render_replay_human_handles_missing_outcome(self, tmp_path: Path) -> None:
         universe = tmp_path / "u"
         universe.mkdir()
         ctx = OperatorDiagnosticsContext(universe, "tick_1")
