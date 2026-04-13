@@ -3,6 +3,7 @@ id: UC-O08
 category: social
 title: "Speech broadcast"
 status: reviewed
+expected_outcome: yield
 setup:
   graph_builder: |
     # Alice shouts in room_a. Bob is with her; charlie is in the next room behind a wall.

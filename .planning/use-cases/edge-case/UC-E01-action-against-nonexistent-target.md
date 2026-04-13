@@ -3,6 +3,7 @@ id: UC-E01
 category: edge-case
 title: "Action against nonexistent target"
 status: reviewed
+expected_outcome: blocked
 validator_exception: target_may_not_exist
 setup:
   graph_builder: |

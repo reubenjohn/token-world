@@ -3,6 +3,7 @@ id: UC-O06
 category: social
 title: "Cooperation to lift a heavy object"
 status: reviewed
+expected_outcome: blocked
 setup:
   graph_builder: |
     # A boulder too heavy for one person blocks a path; two agents together can shift it.

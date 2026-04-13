@@ -3,6 +3,7 @@ id: UC-R03
 category: resource
 title: "Gift currency"
 status: reviewed
+expected_outcome: blocked
 setup:
   graph_builder: |
     # Alice has 10 coin; bob is broke. Both are in the tavern.

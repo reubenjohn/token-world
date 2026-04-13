@@ -3,6 +3,7 @@ id: UC-V01
 category: environmental
 title: "Fire spread"
 status: reviewed
+expected_outcome: blocked
 setup:
   graph_builder: |
     # A lit torch sits on a wooden table. The torch is on fire and hot; the

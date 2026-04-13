@@ -3,6 +3,7 @@ id: UC-V06
 category: environmental
 title: "Light and dark"
 status: reviewed
+expected_outcome: blocked
 setup:
   graph_builder: |
     # Alice and Bob are in a pitch-black cellar. An unlit torch hangs on

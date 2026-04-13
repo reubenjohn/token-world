@@ -3,6 +3,7 @@ id: UC-O01
 category: social
 title: "Trade negotiation"
 status: reviewed
+expected_outcome: blocked
 setup:
   graph_builder: |
     # Alice has a sword; bob has 10 coin. They meet in a tavern.

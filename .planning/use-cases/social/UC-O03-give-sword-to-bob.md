@@ -3,6 +3,7 @@ id: UC-O03
 category: social
 title: "Give sword to bob"
 status: reviewed
+expected_outcome: blocked
 setup:
   graph_builder: |
     # Alice is holding a sword; bob stands next to her in a clearing.

@@ -3,6 +3,7 @@ id: UC-V07
 category: environmental
 title: "Contagion"
 status: reviewed
+expected_outcome: yield
 setup:
   graph_builder: |
     # Alice has a cold. Bob shares her small, poorly ventilated office.

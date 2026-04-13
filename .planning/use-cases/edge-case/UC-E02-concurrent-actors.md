@@ -3,6 +3,7 @@ id: UC-E02
 category: edge-case
 title: "Concurrent actors contesting a resource"
 status: reviewed
+expected_outcome: blocked
 setup:
   graph_builder: |
     # Alice and bob both see the last apple on the table. Each intends to

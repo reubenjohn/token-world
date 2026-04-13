@@ -3,6 +3,7 @@ id: UC-O07
 category: social
 title: "Observation of another agent"
 status: reviewed
+expected_outcome: blocked
 setup:
   graph_builder: |
     # Alice sees bob across the tavern; bob is wounded and wearing a red cloak.

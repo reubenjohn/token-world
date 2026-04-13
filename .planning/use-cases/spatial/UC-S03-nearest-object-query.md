@@ -3,6 +3,7 @@ id: UC-S03
 category: spatial
 title: "Nearest object query"
 status: reviewed
+expected_outcome: yield
 setup:
   graph_builder: |
     # Alice at origin. Three weapons at varying distances.

@@ -3,6 +3,7 @@ id: UC-E03
 category: edge-case
 title: "Partial knowledge — acting on what the actor does not know"
 status: reviewed
+expected_outcome: blocked
 setup:
   graph_builder: |
     # Alice is in a study with a locked chest. The chest is locked in the

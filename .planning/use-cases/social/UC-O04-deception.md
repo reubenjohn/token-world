@@ -3,6 +3,7 @@ id: UC-O04
 category: social
 title: "Deception"
 status: reviewed
+expected_outcome: yield
 setup:
   graph_builder: |
     # A chest full of coin sits in the vault; alice lies to bob about it.

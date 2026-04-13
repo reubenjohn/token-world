@@ -3,6 +3,7 @@ id: UC-V04
 category: environmental
 title: "Seasons"
 status: reviewed
+expected_outcome: blocked
 setup:
   graph_builder: |
     # Summer ends; autumn arrives. Deciduous trees should lose their

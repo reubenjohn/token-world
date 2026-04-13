@@ -3,6 +3,7 @@ id: UC-V05
 category: environmental
 title: "Terrain effect"
 status: reviewed
+expected_outcome: yield
 setup:
   graph_builder: |
     # Alice is knee-deep in swamp when she tries to walk onto the dry path.

@@ -3,6 +3,7 @@ id: UC-R05
 category: resource
 title: "Degradation over time"
 status: reviewed
+expected_outcome: yield
 setup:
   graph_builder: |
     # Alice holds a worn sword near a straw training dummy.
