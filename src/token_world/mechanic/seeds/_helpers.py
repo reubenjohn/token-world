@@ -88,3 +88,28 @@ def _current_location(ctx: MechanicContext, actor: str) -> str | None:
     for n in ctx.neighbors(actor, relation="located_in"):
         return n
     return None
+
+
+def _find_matching_key(
+    ctx: MechanicContext,
+    actor: str,
+    required_key_id: str,
+) -> str | None:
+    """Return id of a held entity whose ``key_id`` matches, or ``None``.
+
+    Walks *actor*'s outgoing ``holds`` edges and picks the first entity
+    whose ``key_id`` property equals *required_key_id*. Used by
+    ``try_door`` to gate the "unlock" branch — the door's
+    ``required_key_id`` is compared against every held key until a match
+    is found. When no held entity matches (no key or wrong key), returns
+    ``None`` and the caller refuses with a narrative.
+
+    Shared with the refusal-narrative pattern so a future ``pick_lock``
+    or ``try_chest`` mechanic (04-08+) can reuse the same helper without
+    reinventing the holds-walk.
+    """
+    for held in ctx.neighbors(actor, relation="holds"):
+        props = ctx.query_node(held)
+        if props.get("key_id") == required_key_id:
+            return held
+    return None
