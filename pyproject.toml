@@ -52,8 +52,9 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
     "integration: Real-LLM integration test (requires Anthropic API key, costs money; excluded from default run)",
+    "regression: use-case regression suite (DVAL-03); run with 'uv run pytest -m regression'",
 ]
-addopts = "-m 'not integration'"
+addopts = "-m 'not integration and not regression'"
 
 [tool.coverage.run]
 source = ["token_world"]
