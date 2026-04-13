@@ -193,10 +193,10 @@ Plans:
   1. Long-running actions skip boring intermediate turns and only interrupt the agent when significance exceeds the current attention threshold
   2. Sleep, daydreaming, and autopilot travel all use the same interruption threshold infrastructure, demonstrating the pattern's composability
   3. An agent traveling a long distance experiences compressed time with interruptions only for significant events (demonstrating both SIM-09 and SIM-10 working together)
-**Plans:** 7 plans
+**Plans:** 1/7 plans executed
 
 Plans:
-- [ ] 07-01-PLAN.md — LongRunningAction + ThresholdSpec + ThresholdEvaluator (pure dataclasses + evaluator)
+- [x] 07-01-PLAN.md — LongRunningAction + ThresholdSpec + ThresholdEvaluator (pure dataclasses + evaluator)
 - [ ] 07-02-PLAN.md — VisibilityProjector attention_state extension (Stage 5 suppress/boost)
 - [ ] 07-03-PLAN.md — MechanicContext.begin_long_action() helper (mechanic-facing API)
 - [ ] 07-04-PLAN.md — Engine tick hook + synthetic action routing + tick summary + runner integration
@@ -218,4 +218,4 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. Mechanic Authoring & Validation Infrastructure | 12/12 | Complete | 2026-04-13 |
 | 5. Simulation Engine | 9/9 | Complete   | 2026-04-13 |
 | 6. Resident Agent & End-to-End Loop | 7/7 | Complete   | 2026-04-13 |
-| 7. Attention & Consciousness | 0/7 | Planning complete | - |
+| 7. Attention & Consciousness | 1/7 | In Progress|  |
