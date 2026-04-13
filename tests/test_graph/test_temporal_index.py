@@ -81,6 +81,23 @@ def test_find_state_at_tick_readd_with_initial_props_seeds_state(kg) -> None:
     assert "owner" not in state_at_2, f"stale owner leaked: {state_at_2}"
 
 
+def test_find_state_at_tick_handles_remove_then_readd(kg) -> None:
+    """H-01 regression (Pitfall 7): after add_node, subsequent set_property
+    events must refine the state seeded from add_node's payload — they must
+    NOT be masked by the ``state = {}`` reset that predated the H-01 fix.
+    """
+    kg.add_node("apple", node_type="entity", color="red", weight=1)  # tick 0
+    kg.set_tick(1)
+    kg.remove_node("apple")  # tick 1
+    kg.set_tick(2)
+    kg.add_node("apple", node_type="entity", color="green", weight=2)  # tick 2
+    kg.set("apple", "weight", 3)  # tick 2 (refines the re-add)
+    idx = TemporalIndex(kg)
+    state = idx.find_state_at_tick("apple", 2)
+    assert state.get("color") == "green", state
+    assert state.get("weight") == 3, state  # refined after add_node, not reset
+
+
 def test_out_of_range_raises(kg) -> None:
     kg.add_node("a", node_type="entity")
     idx = TemporalIndex(kg)

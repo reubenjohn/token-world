@@ -51,3 +51,57 @@ def test_every_authored_assertion_uses_a_valid_kind(use_case_files: list[Path]) 
                 if kind not in VALID_ASSERTION_KINDS:
                     bad.append(f"{path.name}: {kind!r}")
     assert not bad, "Assertions with invalid kinds in authored UCs:\n" + "\n".join(bad)
+
+
+def test_load_use_case_accepts_crlf_frontmatter(tmp_path: Path) -> None:
+    """M-04 regression: files saved with CRLF line endings must load cleanly.
+
+    Windows/VSCode authors typically produce CRLF-delimited markdown. The
+    loader's framing check (``text.startswith('---\\n')``) is strict, so
+    the loader pre-normalises line endings before inspecting them. Without
+    that normalisation, a CRLF-encoded use-case would raise 'missing YAML
+    frontmatter' even though the YAML itself is valid.
+    """
+    content_lf = (
+        "---\n"
+        "id: UC-S01\n"
+        "category: spatial\n"
+        "title: test\n"
+        "status: draft\n"
+        "setup:\n"
+        "  graph_builder: \"\"\n"
+        "actions: []\n"
+        "expected_observations: []\n"
+        "gaps: []\n"
+        "---\n"
+        "body\n"
+    )
+    path = tmp_path / "UC-S01-crlf.md"
+    path.write_bytes(content_lf.replace("\n", "\r\n").encode("utf-8"))
+    fm, body = load_use_case(path)
+    assert fm["id"] == "UC-S01"
+    assert "body" in body
+
+
+def test_load_use_case_accepts_legacy_mac_cr_frontmatter(tmp_path: Path) -> None:
+    """M-04 regression (bonus): bare ``\\r`` line endings (legacy Mac) are also
+    normalised before the framing check."""
+    content_lf = (
+        "---\n"
+        "id: UC-S02\n"
+        "category: spatial\n"
+        "title: test\n"
+        "status: draft\n"
+        "setup:\n"
+        "  graph_builder: \"\"\n"
+        "actions: []\n"
+        "expected_observations: []\n"
+        "gaps: []\n"
+        "---\n"
+        "body\n"
+    )
+    path = tmp_path / "UC-S02-cr.md"
+    path.write_bytes(content_lf.replace("\n", "\r").encode("utf-8"))
+    fm, body = load_use_case(path)
+    assert fm["id"] == "UC-S02"
+    assert "body" in body
