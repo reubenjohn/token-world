@@ -126,6 +126,10 @@ class TickResult:
         yield_signal: Phase 4.1 locked YieldSignal contract (yielded path only).
         trace: Combined execution trace (ok path only).
         refusal_reason: Machine-readable reason code for refused path.
+        projected_state: VisibilityProjector.project_for(actor) dict used during Observer
+            synthesis (ok path only). None on yield/refuse paths (no observer call made).
+            Exposed for Phase 6 Plan 05 TurnScorer groundedness metric (D-12 metric #2)
+            without requiring private-attribute access to engine._projector.
     """
 
     kind: str  # "ok" | "yielded" | "refused"
@@ -134,11 +138,25 @@ class TickResult:
     yield_signal: YieldSignal | None = None
     trace: ExecutionTrace | None = None
     refusal_reason: str | None = None
+    projected_state: dict | None = None  # Phase 6 D-12: groundedness scoring surface
 
     @classmethod
-    def ok(cls, *, tick_id: str, observation: str, trace: ExecutionTrace) -> TickResult:
+    def ok(
+        cls,
+        *,
+        tick_id: str,
+        observation: str,
+        trace: ExecutionTrace | None,
+        projected_state: dict | None = None,
+    ) -> TickResult:
         """Successful execute path result."""
-        return cls(kind="ok", tick_id=tick_id, observation=observation, trace=trace)
+        return cls(
+            kind="ok",
+            tick_id=tick_id,
+            observation=observation,
+            trace=trace,
+            projected_state=projected_state,
+        )
 
     @classmethod
     def yielded(cls, *, tick_id: str, signal: YieldSignal) -> TickResult:
@@ -503,7 +521,12 @@ class SimulationEngine:
             refused=False,
         )
 
-        return TickResult.ok(tick_id=tick_id_str, observation=observation, trace=combined_trace)
+        return TickResult.ok(
+            tick_id=tick_id_str,
+            observation=observation,
+            trace=combined_trace,
+            projected_state=projection,
+        )
 
     def _handle_yield(
         self,
