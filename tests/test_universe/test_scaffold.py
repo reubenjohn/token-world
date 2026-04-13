@@ -75,6 +75,30 @@ class TestScaffoldDirectories:
         assert not (mechanics_dir / "__init__.py").exists()
 
 
+class TestScaffoldAuthoringGuide:
+    """Tests for the D-31 universe-local authoring-guide copy."""
+
+    def test_scaffold_copies_authoring_guide(self, tmp_data_dir: Path) -> None:
+        """D-31: scaffold copies docs/guides/authoring-mechanics.md into
+        <universe>/docs/authoring-mechanics.md (byte-identical)."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        dest = universe_dir / "docs" / "authoring-mechanics.md"
+        assert dest.is_file(), f"guide not copied to {dest}"
+        # Source-of-truth path: framework-repo docs/guides/authoring-mechanics.md
+        src = (
+            Path(__file__).resolve().parents[2]
+            / "docs"
+            / "guides"
+            / "authoring-mechanics.md"
+        )
+        assert src.is_file(), f"source guide missing: {src}"
+        assert dest.read_bytes() == src.read_bytes(), (
+            "copied guide must be byte-identical to docs/guides/authoring-mechanics.md"
+        )
+
+
 class TestScaffoldClaudeMd:
     """Tests for CLAUDE.md generation within scaffold_universe()."""
 
