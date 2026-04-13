@@ -754,8 +754,17 @@ async def _invoke_resume_tick_mcp(universe: Path, tick_id: str) -> None:
 
     Monkeypatchable for tests via the module-level symbol; tests replace this
     function to avoid a real SDK subprocess.
+
+    WR-02: the stream is NOT discarded blindly. Any ``ResultMessage`` carrying
+    ``is_error=True`` or an ``error_*`` subtype is surfaced as a
+    ``RuntimeError``. Without this check the documented exit-code contract at
+    line ~689 (``resume-tick: 0 success | 1 MCP failure``) cannot fire on
+    MCP-tool-level failures — an MCP server returning a structured error
+    (e.g. Phase 0 ``token-world-mcp``'s "not yet implemented") would otherwise
+    look identical to a successful resume.
     """
-    from claude_agent_sdk import ClaudeAgentOptions, query
+    import claude_agent_sdk
+    from claude_agent_sdk import ClaudeAgentOptions, ResultMessage
 
     from token_world.operator.mcp_client import load_universe_mcp_config
 
@@ -772,11 +781,21 @@ async def _invoke_resume_tick_mcp(universe: Path, tick_id: str) -> None:
         permission_mode="bypassPermissions",
         cwd=str(universe),
     )
-    async for _msg in query(prompt=prompt, options=options):
-        # Streaming discarded — one-shot invocation; the MCP tool either
-        # succeeds (no exception) or raises. D-05: same entry surface as the
-        # interactive path.
-        pass
+    is_error = False
+    error_subtype: str | None = None
+    # Resolve query from the module attribute so tests can monkeypatch
+    # ``claude_agent_sdk.query`` and exercise this function directly.
+    async for msg in claude_agent_sdk.query(prompt=prompt, options=options):
+        if isinstance(msg, ResultMessage):
+            if getattr(msg, "is_error", False):
+                is_error = True
+            subtype = getattr(msg, "subtype", None)
+            if isinstance(subtype, str) and subtype.startswith("error_"):
+                error_subtype = subtype
+    if is_error or error_subtype:
+        raise RuntimeError(
+            f"resume_tick MCP call failed (is_error={is_error}, subtype={error_subtype!r})"
+        )
 
 
 # --------------------------------------------------------------------------- #
