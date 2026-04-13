@@ -11,6 +11,10 @@ universe_seed: {seed}  # Determinism anchor; never regenerate for an existing un
 engine:
   max_chain_depth: 10         # GAP-ENG18 -- max chain depth before truncation
   classifier_min_confidence: 0.6  # D-07 -- classifier verdicts below this return low_confidence
+
+# compression:
+#   batch_size: 100   # tick files compressed into one batch (D-17)
+#   epoch_size: 100   # batch files compressed into one epoch (D-17)
 """
 
 

@@ -141,7 +141,9 @@ def test_load_engine_config_reads_compression_section(tmp_path: Path):
     assert cfg.compression_epoch_size == 10
 
 
-def test_load_engine_config_malformed_compression_uses_defaults(tmp_path: Path):
+def test_load_engine_config_malformed_compression_uses_defaults(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
     """Malformed compression.batch_size falls back to 100 with a warning."""
     import logging
 
@@ -151,19 +153,16 @@ def test_load_engine_config_malformed_compression_uses_defaults(tmp_path: Path):
         "universe_seed: 1\ncompression:\n  batch_size: not-an-int\n",
         encoding="utf-8",
     )
-    with pytest.warns(None):  # just suppress; warning goes to logger not warnings
-        pass
-    with pytest.MonkeyPatch().context() as mp:
-        # capture logger.warning calls
-        warnings_issued: list[str] = []
-        real_warning = logging.Logger.warning
+    # Capture logger.warning calls
+    warnings_issued: list[str] = []
+    real_warning = logging.Logger.warning
 
-        def _capture(self, msg, *args, **kw):  # type: ignore[override]
-            warnings_issued.append(msg % args if args else msg)
-            real_warning(self, msg, *args, **kw)
+    def _capture(self, msg, *args, **kw):  # type: ignore[override]
+        warnings_issued.append(msg % args if args else msg)
+        real_warning(self, msg, *args, **kw)
 
-        mp.setattr(logging.Logger, "warning", _capture)
-        cfg = load_engine_config(tmp_path)
+    monkeypatch.setattr(logging.Logger, "warning", _capture)
+    cfg = load_engine_config(tmp_path)
 
     assert cfg.compression_batch_size == 100  # default
     # At least one warning was issued about malformed compression config

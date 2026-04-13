@@ -24,6 +24,8 @@ class EngineConfig:
     max_chain_depth: int = 10
     classifier_min_confidence: float = 0.6
     universe_seed: int = 0  # 0 = unseeded; effectively-deterministic fallback
+    compression_batch_size: int = 100  # D-17: tick files per batch
+    compression_epoch_size: int = 100  # D-17: batch files per epoch
 
 
 def load_engine_config(universe_path: Path) -> EngineConfig:
@@ -63,10 +65,36 @@ def load_engine_config(universe_path: Path) -> EngineConfig:
         )
         classifier_min_confidence = 0.6
 
+    compression_section = (
+        raw.get("compression", {}) if isinstance(raw.get("compression"), dict) else {}
+    )
+
+    raw_batch_size = compression_section.get("batch_size", 100)
+    try:
+        compression_batch_size = int(raw_batch_size)
+    except (TypeError, ValueError):
+        logger.warning(
+            "compression.batch_size in %s is not int — using 100",
+            config_path,
+        )
+        compression_batch_size = 100
+
+    raw_epoch_size = compression_section.get("epoch_size", 100)
+    try:
+        compression_epoch_size = int(raw_epoch_size)
+    except (TypeError, ValueError):
+        logger.warning(
+            "compression.epoch_size in %s is not int — using 100",
+            config_path,
+        )
+        compression_epoch_size = 100
+
     return EngineConfig(
         max_chain_depth=max_chain_depth,
         classifier_min_confidence=classifier_min_confidence,
         universe_seed=universe_seed,
+        compression_batch_size=compression_batch_size,
+        compression_epoch_size=compression_epoch_size,
     )
 
 
