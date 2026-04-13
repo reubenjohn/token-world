@@ -605,3 +605,79 @@ def test_run_tick_unhandled_decision_type_writes_error_summary(tmp_universe, kg,
     assert data.get("status") == "error", (
         f"Expected status='error' in diagnostics summary, got: {data.get('status')!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Test 19: WR-03 regression — consecutive ticks after a conservation rollback
+#          get distinct tick IDs (no ID collision after restore)
+# ---------------------------------------------------------------------------
+
+_GIVE_COIN_FOR_WR03 = '''
+"""Mechanic that creates coin — conservation violation for WR-03 test."""
+from token_world.mechanic.protocol import Mechanic, CheckResult
+from token_world.mechanic.matchers import VerbMatcher
+
+class GiveCoinWR03(Mechanic):
+    id = "give_coin_wr03"
+    description = "Creates coin (conservation violation)"
+    voluntary = True
+    tags = []
+    def watches(self):
+        return [VerbMatcher(verb="give_coin")]
+    def check(self, ctx):
+        return CheckResult(passed=True)
+    def apply(self, ctx):
+        return [ctx.set(ctx.actor, "coin", 99)]
+'''
+
+
+def test_run_tick_consecutive_conservation_rollbacks_produce_distinct_tick_ids(tmp_universe, kg):
+    """WR-03: two consecutive ticks that both trigger conservation violations must each
+    get a distinct tick_id. restore() sets _current_tick = snapshot's tick_id = next_tick,
+    so the subsequent run_tick sees current_tick = next_tick and allocates next_tick + 1.
+    No collision.
+
+    This test guards the invariant documented in the conservation rollback path.
+    """
+    (tmp_universe / "mechanics" / "give_coin.py").write_text(_GIVE_COIN_FOR_WR03, encoding="utf-8")
+    (tmp_universe / "conservation.yaml").write_text(
+        "conserved_properties:\n  - coin\n", encoding="utf-8"
+    )
+    kg.add_node("alice", node_type="agent", coin=0)
+
+    _OK_GIVE_COIN = json.dumps(
+        {
+            "kind": "ok",
+            "classified": {
+                "verb": "give_coin",
+                "actor": "alice",
+                "target": "alice",
+                "params": {},
+            },
+            "confidence": 0.99,
+        }
+    )
+
+    client = MockAnthropicClient([_OK_GIVE_COIN, _OK_GIVE_COIN])
+    engine = SimulationEngine(
+        universe_path=tmp_universe,
+        graph=kg,
+        anthropic_client=client,
+    )
+
+    result1 = engine.run_tick("give coin", "alice")
+    result2 = engine.run_tick("give coin", "alice")
+
+    assert result1.kind == "refused"
+    assert result1.refusal_reason == "conservation_violation"
+    assert result2.kind == "refused"
+    assert result2.refusal_reason == "conservation_violation"
+
+    # The critical invariant: tick IDs must be distinct
+    assert result1.tick_id != result2.tick_id, (
+        f"Tick ID collision after conservation rollback: both got tick_id={result1.tick_id!r}"
+    )
+    # And monotonically increasing
+    assert int(result2.tick_id.lstrip("tick_")) > int(result1.tick_id.lstrip("tick_")), (
+        f"Expected tick_id monotonic increase, got {result1.tick_id!r} then {result2.tick_id!r}"
+    )

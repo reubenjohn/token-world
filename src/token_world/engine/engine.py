@@ -382,6 +382,9 @@ class SimulationEngine:
         primary_mutations = _flatten_mutations(primary_trace)
         cons_verdict = self._conservation.verify(primary_mutations)
         if cons_verdict.is_violation:
+            # restore() sets _current_tick = snapshot's tick_id = next_tick, so the
+            # next run_tick call allocates next_tick + 1 — no tick-ID collision.
+            # See: test_run_tick_consecutive_conservation_rollbacks_produce_distinct_tick_ids
             self._graph.restore(pre_tick_snapshot_id)
             violated = next(iter(cons_verdict.violations))
             narrative = RefusalTemplate.render(
@@ -428,6 +431,8 @@ class SimulationEngine:
         # Re-verify conservation across combined mutations (D-16 + D-17 chain)
         cons_verdict_with_sweep = self._conservation.verify(all_mutations)
         if cons_verdict_with_sweep.is_violation:
+            # Same tick-ID invariant as above: restore() leaves _current_tick = next_tick,
+            # so the subsequent run_tick call gets next_tick + 1 — no collision.
             self._graph.restore(pre_tick_snapshot_id)
             violated = next(iter(cons_verdict_with_sweep.violations))
             narrative = RefusalTemplate.render(
