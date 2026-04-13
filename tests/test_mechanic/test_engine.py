@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from tests.test_mechanic.conftest import DummyMechanic, FailingMechanic
 from token_world.graph import KnowledgeGraph, Mutation
 from token_world.mechanic import (
     ChainExecutionEngine,
@@ -10,8 +11,6 @@ from token_world.mechanic import (
     MechanicContext,
     PropertyChangeMatcher,
 )
-
-from tests.test_mechanic.conftest import DummyMechanic, FailingMechanic
 
 
 class WatchTestedMechanic(Mechanic):

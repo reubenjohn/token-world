@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from token_world.graph import KnowledgeGraph
 from token_world.mechanic import MechanicContext
 
 

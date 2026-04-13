@@ -12,7 +12,6 @@ import pytest
 
 from token_world.mechanic.protocol import Mechanic
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -29,11 +28,7 @@ def tmp_universe(tmp_path: Path) -> Path:
     mechanics_dir.mkdir()
 
     seeds_dir = (
-        Path(__file__).resolve().parent.parent.parent
-        / "src"
-        / "token_world"
-        / "mechanic"
-        / "seeds"
+        Path(__file__).resolve().parent.parent.parent / "src" / "token_world" / "mechanic" / "seeds"
     )
     for entry in sorted(seeds_dir.iterdir()):
         if entry.is_dir() and (entry / "mechanic.py").exists():
@@ -65,11 +60,7 @@ def non_git_universe(tmp_path: Path) -> Path:
     mechanics_dir.mkdir()
 
     seeds_dir = (
-        Path(__file__).resolve().parent.parent.parent
-        / "src"
-        / "token_world"
-        / "mechanic"
-        / "seeds"
+        Path(__file__).resolve().parent.parent.parent / "src" / "token_world" / "mechanic" / "seeds"
     )
     for entry in sorted(seeds_dir.iterdir()):
         if entry.is_dir() and (entry / "mechanic.py").exists():
@@ -166,9 +157,7 @@ class TestGitHistory:
     def test_get_history_not_git_repo(self, non_git_universe: Path) -> None:
         from token_world.mechanic.registry import MechanicRegistry
 
-        registry = MechanicRegistry(
-            non_git_universe / "mechanics", universe_dir=non_git_universe
-        )
+        registry = MechanicRegistry(non_git_universe / "mechanics", universe_dir=non_git_universe)
         history = registry.get_history("movement")
         assert history == []
 

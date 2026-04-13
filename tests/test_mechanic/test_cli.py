@@ -65,12 +65,10 @@ class TestListMechanics:
         assert "observation" in result.output
         assert "environmental_reaction" in result.output
 
-    def test_list_mechanics_invalid_universe(
-        self, runner_and_manager: CliRunner
-    ) -> None:
+    def test_list_mechanics_invalid_universe(self, runner_and_manager: CliRunner) -> None:
         result = runner_and_manager.invoke(cli, ["list-mechanics", "nonexistent"])
         assert result.exit_code == 1
-        assert "not found" in result.output.lower() or "not found" in (result.output + (result.output or "")).lower()
+        assert "not found" in result.output.lower()
 
 
 # ---------------------------------------------------------------------------
