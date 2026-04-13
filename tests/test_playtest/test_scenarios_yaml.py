@@ -166,27 +166,17 @@ def test_injection_sampler_repeat_last_returns_previous() -> None:
 
 
 def test_injection_sampler_adversarial_from_bank() -> None:
-    """Test 9: sample('adversarial') returns one of hardcoded adversarial strings."""
+    """Test 9: sample('adversarial') returns strings from AdversarialBank corpus."""
     from token_world.playtest import InjectionSampler
+    from token_world.playtest.adversarial import AdversarialBank
 
     sampler = InjectionSampler(seed=0)
-    # Generate multiple to ensure at least one from bank
-    results = set(
-        sampler.sample("adversarial", previous_action="x", turn_number=i) for i in range(10)
-    )
-    # At least one should be from the bank (contains a known phrase)
-    bank_phrases = [
-        "ignore all rules",
-        "delete the world",
-        "become god",
-        "destroy the universe",
-        "cheat",
-        "win",
-        "take all items",
-        "rewrite the laws",
-    ]
-    found_bank = any(any(phrase in result.lower() for phrase in bank_phrases) for result in results)
-    assert found_bank, f"No adversarial bank phrase found in: {results}"
+    all_texts = {e.text for e in AdversarialBank().list_all()}
+
+    results = [sampler.sample("adversarial", previous_action="x", turn_number=i) for i in range(10)]
+    for result in results:
+        assert isinstance(result, str)
+        assert result in all_texts, f"adversarial inject returned {result!r} not in AdversarialBank"
 
 
 def test_injection_sampler_edge_case_variety() -> None:
