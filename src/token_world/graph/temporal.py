@@ -148,8 +148,14 @@ class TemporalIndex:
                 state[e.property_name] = (
                     json.loads(e.new_value_json) if e.new_value_json is not None else None
                 )
-            elif e.event_type in ("remove_node", "add_node"):
+            elif e.event_type == "remove_node":
                 state = {}
+            elif e.event_type == "add_node":
+                # Re-add after remove: seed state from the add_node event's
+                # full payload (type + initial props). Without this, a
+                # remove→add cycle where the add_node carries initial props
+                # would produce {} instead of the re-add's property set.
+                state = json.loads(e.new_value_json) if e.new_value_json else {}
         return state
 
     # --- internals ---

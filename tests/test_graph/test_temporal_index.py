@@ -63,6 +63,24 @@ def test_find_state_at_tick_remove_then_readd_clears_stale_props(kg) -> None:
     assert "owner" not in state_at_2, f"expected fresh state after re-add, got {state_at_2}"
 
 
+def test_find_state_at_tick_readd_with_initial_props_seeds_state(kg) -> None:
+    # REVIEW H-01 regression: when a node is re-added with initial properties
+    # inside the add_node event itself, find_state_at_tick must seed state from
+    # that event's new_value_json — not silently drop the payload.
+    kg.add_node("item", node_type="entity", weight=5)
+    kg.set("item", "owner", "alice")  # tick 0
+    kg.set_tick(1)
+    kg.remove_node("item")
+    kg.set_tick(2)
+    # Re-add with a fresh set of initial props baked into add_node
+    kg.add_node("item", node_type="entity", weight=10, fresh=True)
+    idx = TemporalIndex(kg)
+    state_at_2 = idx.find_state_at_tick("item", 2)
+    assert state_at_2.get("weight") == 10, f"expected weight=10, got {state_at_2}"
+    assert state_at_2.get("fresh") is True, f"expected fresh=True, got {state_at_2}"
+    assert "owner" not in state_at_2, f"stale owner leaked: {state_at_2}"
+
+
 def test_out_of_range_raises(kg) -> None:
     kg.add_node("a", node_type="entity")
     idx = TemporalIndex(kg)
