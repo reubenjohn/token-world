@@ -25,7 +25,8 @@ from token_world.operator.diagnostics import OperatorDiagnosticsReader
 from token_world.operator.harness import OperatorHarness
 from token_world.operator.testing import EngineStub
 from token_world.operator.yield_signal import YieldSignal
-from token_world.playtest import PlaytestRunner, Scenario
+from token_world.playtest import PlaytestRunner, PromptHashRegistry, Scenario
+from token_world.playtest.judge import evaluate as judge_evaluate
 from token_world.resident import (
     AgentMemory,
     PersonalityBundle,
@@ -1329,6 +1330,23 @@ def playtest(
         session_id=session_id,
     )
 
+    # (i2) D-14/D-15: wire prompt-hash check + auto-regression trigger (06-05)
+    def _hash_check(engine_: object, agent_: object) -> dict:
+        reg = PromptHashRegistry()
+        current = reg.compute_hashes(engine_, agent_)
+        changed = reg.detect_changes(universe_dir, current)
+        if changed:
+            click.echo(
+                f"Prompt change detected in: {changed}. Triggering regression...",
+                err=True,
+            )
+            reg.trigger_regression(universe_dir, changed)
+        # Seed or update baseline every run (so next run has fresh reference)
+        reg.save(universe_dir, current)
+        return current
+
+    runner.hash_check_fn = _hash_check
+
     # (j) Load scenario if provided
     scenario_obj: Scenario | None = None
     if scenario_path is not None:
@@ -1359,9 +1377,16 @@ def playtest(
     click.echo(f"  composite:               {agg.get('composite', 0):.3f}")
     click.echo(f"\nReport: {report_path}")
 
-    # (m) Judge stub (D-13 — full judge deferred to 06-05+)
+    # (m) D-13: optional Sonnet judge pass over the completed transcript (06-05)
     if judge:
-        click.echo(
-            "(--judge flag set: Sonnet judge pass not implemented yet; "
-            "will be wired in a future plan)"
-        )
+        try:
+            from token_world.mechanic.diagnostics import _atomic_write_json
+            from token_world.playtest.report import PlaytestReport
+
+            report_obj = PlaytestReport.model_validate(data)
+            judge_result = judge_evaluate(report_obj, client)
+            data["judge"] = judge_result
+            _atomic_write_json(report_path, data)
+            click.echo(f"Judge scores: {judge_result.get('scores', {})}")
+        except Exception as exc:  # never block the run on judge failure
+            click.echo(f"Judge pass failed (report still written): {exc}", err=True)
