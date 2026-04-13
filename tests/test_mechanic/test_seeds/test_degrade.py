@@ -136,9 +136,7 @@ class TestDegradeApply:
         assert held_sword_graph.has_node("sword")
         assert held_sword_graph.has_edge("alice", "sword")
 
-    def test_decrements_by_usage_cost_when_provided(
-        self, mechanic: DegradeMechanic
-    ) -> None:
+    def test_decrements_by_usage_cost_when_provided(self, mechanic: DegradeMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")
         kg.add_node("sword", node_type="entity", durability=10, usage_cost=3)
@@ -147,9 +145,7 @@ class TestDegradeApply:
         mechanic.apply(ctx)
         assert kg.query("sword").get("durability") == 7
 
-    def test_removes_node_when_durability_reaches_zero(
-        self, mechanic: DegradeMechanic
-    ) -> None:
+    def test_removes_node_when_durability_reaches_zero(self, mechanic: DegradeMechanic) -> None:
         """Last swing reduces durability to 0; node + holds edge are gone."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")
@@ -160,9 +156,7 @@ class TestDegradeApply:
         assert not kg.has_node("sword")
         assert not kg.has_edge("alice", "sword")
 
-    def test_removes_node_when_durability_goes_negative(
-        self, mechanic: DegradeMechanic
-    ) -> None:
+    def test_removes_node_when_durability_goes_negative(self, mechanic: DegradeMechanic) -> None:
         """A high usage_cost beyond durability still removes the tool."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")

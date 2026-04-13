@@ -3,7 +3,38 @@ id: UC-R05
 category: resource
 title: "Degradation over time"
 status: reviewed
-expected_outcome: yield
+expected_outcome: blocked
+# Phase-4 status (recorded 04-10):
+#
+# A degrade seed mechanic SHIPS in 04-10 (MECH17). It is the use-on-tool
+# form: actor holds tool -> apply decrements durability by usage_cost
+# (default 1) -> at <= 0 the node is removed (holds edge drops with it).
+#
+# UC-R05 stays `blocked` for two compounding reasons, BOTH of which
+# would have to be addressed before the manifest can flip:
+#
+#   1. Routing (GAP-ENG02): the manifest's classified shape is
+#      `verb=strike, target=dummy, instrument=sword`. The Phase-4
+#      harness routes by `verb -> mechanic.id` and uses
+#      `target = classified.target or classified.indirect_object` --
+#      it has no `instrument` slot. Routing strike->degrade with the
+#      sword as target requires Phase 5's classifier and a third
+#      MechanicContext field for the instrument.
+#
+#   2. Threshold-flag semantics: the third expected_observation
+#      asserts `property_equals(sword, durability, 0)` AND
+#      `property_equals(sword, broken, true)` on a still-existing
+#      sword node. The 04-10 degrade contract removes the node at
+#      durability <= 0 (per PLAN.md), so neither assertion can hold
+#      after the third swing -- the sword would be gone. Honouring
+#      this UC's assertion semantics needs a `wear + threshold`
+#      mechanic that sets `broken=true` at zero and removes the node
+#      only on a separate `discard`/`break` action. That refinement
+#      is a Phase-5+ concern (see UC-R05 mechanic-gap proposed_fix).
+#
+# When Phase 5 lands (a) the classifier with `instrument` routing
+# AND (b) the wear+threshold refinement (or the manifest is rewritten
+# to assert remove-on-zero), this UC can flip to `pass`.
 setup:
   graph_builder: |
     # Alice holds a worn sword near a straw training dummy.

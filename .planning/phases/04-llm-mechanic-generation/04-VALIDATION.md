@@ -73,6 +73,8 @@ created: 2026-04-12
 | 04-09-T1 | 04-09 | 4 | MECH-03 | — | MECH10/11/25 tell+teach+belief_update validate + tests | unit | `uv run pytest tests/test_mechanic/test_seeds/test_tell.py tests/test_mechanic/test_seeds/test_teach.py tests/test_mechanic/test_seeds/test_belief_update.py -x -q` | ✓ | ✅ passing |
 | 04-09-T2 | 04-09 | 4 | MECH-03 | T-04-STUB-IMPORT-LEAK | MECH09/12 stubs validate; blocked_by convention wired in harness; UC-O02 routes via GAP-ENG03, UC-O06 via GAP-ENG05 | integration | `uv run pytest tests/test_mechanic/test_seeds/test_persuade.py tests/test_mechanic/test_seeds/test_cooperate.py tests/test_mechanic/test_harness_matcher.py tests/test_integration/test_use_cases.py -k "UC-O02 or UC-O06" -x -q` | ✓ | ✅ passing |
 | 04-09-T3 | 04-09 | 4 | MECH-03, TEST-02 | — | UC-O04/O05/E03 flip to pass; UC-O02/O06 correctly blocked via stub gap ids | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-O02 or UC-O04 or UC-O05 or UC-O06 or UC-E03" -q` | ✓ | ✅ passing |
+| 04-10-T1 | 04-10 | 4 | MECH-03 | T-04-AST-BYPASS | MECH17/18 degrade + fungible_pay validate + tests; _subset_sum helper graduated to _helpers.py | unit | `uv run pytest tests/test_mechanic/test_seeds/test_degrade.py tests/test_mechanic/test_seeds/test_fungible_pay.py -x -q` | ✓ | ✅ passing |
+| 04-10-T2 | 04-10 | 4 | MECH-03, TEST-02 | — | UC-R06 flips yield -> pass (verb pay -> fungible_pay; pending_payment staged); UC-R05 stays blocked per decision tree (GAP-ENG02 routing + threshold-flag semantics mismatch documented inline) | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-R05 or UC-R06" -q` | ✓ | ✅ passing |
 
 <!--
 Rows will be appended by each plan's final task:

@@ -63,9 +63,7 @@ if TYPE_CHECKING:
 
 # GAP-MECH29 (change-making) is deferred -- the narrative names the gap so
 # the deferred concern is greppable from the seed.
-_NARRATIVE_NO_EXACT_SUBSET: str = (
-    "cannot make exact change with held coins (GAP-MECH29 deferred)"
-)
+_NARRATIVE_NO_EXACT_SUBSET: str = "cannot make exact change with held coins (GAP-MECH29 deferred)"
 _NARRATIVE_RECIPIENT_MISSING: str = "recipient does not exist"
 
 
@@ -133,7 +131,10 @@ class FungiblePayMechanic(Mechanic):
             return CheckResult(passed=False, reasons=["pending_payment missing recipient"])
         amount = pending.get("amount")
         if not isinstance(amount, int) or isinstance(amount, bool) or amount <= 0:
-            return CheckResult(passed=False, reasons=["pending_payment missing positive int amount"])
+            return CheckResult(
+                passed=False,
+                reasons=["pending_payment missing positive int amount"],
+            )
         kind = pending.get("kind")
         if not isinstance(kind, str) or not kind:
             return CheckResult(passed=False, reasons=["pending_payment missing kind string"])

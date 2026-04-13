@@ -138,9 +138,7 @@ class TestFungiblePayCheck:
         assert result.passed is False
         assert any("actor" in r for r in result.reasons)
 
-    def test_fails_when_pending_payment_missing(
-        self, mechanic: FungiblePayMechanic
-    ) -> None:
+    def test_fails_when_pending_payment_missing(self, mechanic: FungiblePayMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")
         kg.add_node("shopkeeper", node_type="agent")
@@ -161,9 +159,7 @@ class TestFungiblePayCheck:
         assert result.passed is False
         assert any("recipient" in r for r in result.reasons)
 
-    def test_fails_when_pending_payment_missing_amount(
-        self, mechanic: FungiblePayMechanic
-    ) -> None:
+    def test_fails_when_pending_payment_missing_amount(self, mechanic: FungiblePayMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")
         kg.add_node("shopkeeper", node_type="agent")
@@ -221,9 +217,7 @@ class TestFungiblePayApply:
         assert not kg.has_edge("alice", "coin_7")
         assert kg.query("alice").get("pending_payment") is None
 
-    def test_no_subset_refuses_with_change_narrative(
-        self, mechanic: FungiblePayMechanic
-    ) -> None:
+    def test_no_subset_refuses_with_change_narrative(self, mechanic: FungiblePayMechanic) -> None:
         """Holding only 5s and 2s: cannot make exactly 4 -> refuse w/ GAP-MECH29."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")
@@ -261,9 +255,7 @@ class TestFungiblePayApply:
         result = mechanic.check(ctx)
         assert result.passed is False
 
-    def test_only_matching_kind_coins_are_eligible(
-        self, mechanic: FungiblePayMechanic
-    ) -> None:
+    def test_only_matching_kind_coins_are_eligible(self, mechanic: FungiblePayMechanic) -> None:
         """Held entities of a different fungible_kind / wrong subtype are skipped."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")

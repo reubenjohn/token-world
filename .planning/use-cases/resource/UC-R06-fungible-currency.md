@@ -3,7 +3,7 @@ id: UC-R06
 category: resource
 title: "Fungible currency"
 status: reviewed
-expected_outcome: yield
+expected_outcome: pass
 setup:
   graph_builder: |
     # Alice carries a mix of coins in three denominations; the shopkeeper is waiting.
@@ -20,11 +20,20 @@ setup:
     kg.add_node("coin_1b", node_type="entity", subtype="coin", denomination=1)
     for c in ("coin_5", "coin_2a", "coin_2b", "coin_1a", "coin_1b"):
         kg.add_edge("alice", c, relation="holds")
+    # GAP-ENG02 workaround: the harness has no third positional slot for
+    # recipient/amount/kind, so we pre-stage them on the actor as a
+    # pending_payment dict (mirror of the 04-08 pending_* convention).
+    # Phase 5's ctx.claim slot replaces this read in fungible_pay.py.
+    kg.set("alice", "pending_payment", {"recipient": "shopkeeper", "amount": 7, "kind": "coin"})
 actions:
   - actor: alice
     intent: "pay the shopkeeper 7 coin for the goods"
     classified:
-      verb: pay
+      # Verb rewritten pay -> fungible_pay so the Phase-4 harness routes
+      # via the seed mechanic id (precedent: 04-09 lift -> cooperate,
+      # open -> belief_update). When Phase 5 ships a real classifier,
+      # this swaps back to "pay" without further mechanic surgery.
+      verb: fungible_pay
       target: shopkeeper
       indirect_object: coin
       amount: 7
