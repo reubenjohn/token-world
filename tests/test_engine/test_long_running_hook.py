@@ -46,12 +46,15 @@ def _actor_with_lra(
     turns_elapsed: int = 0,
     thresholds: list[dict] | None = None,
     attention_state: dict | None = None,
+    clear_on_end: dict | None = None,
 ) -> None:
     if not kg.has_node(actor):
         kg.add_node(actor, node_type="agent")
     payload: dict = {}
     if attention_state is not None:
         payload["attention_state"] = attention_state
+    if clear_on_end is not None:
+        payload["clear_on_end"] = clear_on_end
     kg.set(
         actor,
         "current_long_action",
@@ -516,3 +519,161 @@ def test_hook_threshold_fired_takes_precedence_over_completion() -> None:
     assert result.interrupted is True
     assert result.completed is False
     assert result.fired_threshold is not None
+
+
+# ---------------------------------------------------------------------------
+# Test: clear_on_end — WR-01 companion flag cleanup on LRA termination
+# ---------------------------------------------------------------------------
+
+
+def test_hook_interrupt_applies_clear_on_end_flags() -> None:
+    """When threshold fires, clear_on_end flags in payload are applied (WR-01)."""
+    kg = _make_kg()
+    kg.add_node("alice", node_type="agent", is_sleeping=True)
+    _actor_with_lra(
+        kg,
+        turns_elapsed=0,
+        turns_total=8,
+        thresholds=[{"property": "bedroom.noise_level", "op": ">", "value": 0.7}],
+        clear_on_end={"is_sleeping": False},
+    )
+    projection = _make_projection(noise_level=0.9)  # threshold fires
+    hook = _make_hook()
+    result = hook.process(
+        actor="alice",
+        projection=projection,
+        graph=kg,
+        tick_id_str="1",
+        observer=FakeObserver(),
+        tick_diag_ctx=None,
+    )
+    assert result.interrupted is True
+    # Companion flag must be cleared
+    assert kg.query("alice", "is_sleeping") is False
+
+
+def test_hook_completion_applies_clear_on_end_flags() -> None:
+    """When LRA completes normally, clear_on_end flags in payload are applied (WR-01)."""
+    kg = _make_kg()
+    kg.add_node("alice", node_type="agent", is_sleeping=True)
+    _actor_with_lra(
+        kg,
+        turns_elapsed=1,
+        turns_total=2,
+        clear_on_end={"is_sleeping": False},
+    )
+    projection = _make_projection()
+    hook = _make_hook()
+    result = hook.process(
+        actor="alice",
+        projection=projection,
+        graph=kg,
+        tick_id_str="1",
+        observer=FakeObserver(),
+        tick_diag_ctx=None,
+    )
+    assert result.completed is True
+    assert kg.query("alice", "is_sleeping") is False
+
+
+def test_hook_continuing_does_not_apply_clear_on_end_flags() -> None:
+    """clear_on_end must NOT fire on a continuing tick — only on termination (WR-01)."""
+    kg = _make_kg()
+    kg.add_node("alice", node_type="agent", is_sleeping=True)
+    _actor_with_lra(
+        kg,
+        turns_elapsed=0,
+        turns_total=8,
+        clear_on_end={"is_sleeping": False},
+    )
+    hook = _make_hook()
+    hook.process(
+        actor="alice",
+        projection=_make_projection(),
+        graph=kg,
+        tick_id_str="1",
+        observer=FakeObserver(),
+        tick_diag_ctx=None,
+    )
+    # Still continuing — flag must remain True
+    assert kg.query("alice", "is_sleeping") is True
+
+
+def test_hook_clear_on_end_absent_in_payload_is_a_noop() -> None:
+    """LRA without clear_on_end in payload: hook applies no extra mutations (WR-01)."""
+    kg = _make_kg()
+    kg.add_node("alice", node_type="agent", is_sleeping=True)
+    _actor_with_lra(kg, turns_elapsed=1, turns_total=2)
+    hook = _make_hook()
+    result = hook.process(
+        actor="alice",
+        projection=_make_projection(),
+        graph=kg,
+        tick_id_str="1",
+        observer=FakeObserver(),
+        tick_diag_ctx=None,
+    )
+    assert result.completed is True
+    # No clear_on_end — is_sleeping unchanged
+    assert kg.query("alice", "is_sleeping") is True
+
+
+def test_hook_interrupt_clears_is_drunk_flag_via_clear_on_end() -> None:
+    """Drunk LRA interrupt clears is_drunk=True — concrete WR-01 / IN-02 scenario."""
+    kg = _make_kg()
+    kg.add_node("alice", node_type="agent", is_drunk=True, sobriety_level=0.9)
+    _actor_with_lra(
+        kg,
+        action_text="drunk",
+        turns_total=None,  # indefinite
+        thresholds=[{"property": "alice.sobriety_level", "op": ">", "value": 0.8}],
+        clear_on_end={"is_drunk": False},
+    )
+    # Project the sobriety so the threshold evaluator sees it
+    projection = {
+        "alice": {
+            "type": "agent",
+            "properties": {"sobriety_level": 0.9},
+            "edges": [],
+        }
+    }
+    hook = _make_hook()
+    result = hook.process(
+        actor="alice",
+        projection=projection,
+        graph=kg,
+        tick_id_str="1",
+        observer=FakeObserver(),
+        tick_diag_ctx=None,
+    )
+    assert result.interrupted is True
+    assert kg.query("alice", "is_drunk") is False
+
+
+def test_hook_interrupt_clears_is_traveling_flag_via_clear_on_end() -> None:
+    """Traveling LRA interrupt clears is_traveling=True — concrete WR-01 scenario."""
+    kg = _make_kg()
+    kg.add_node("alice", node_type="agent", is_traveling=True)
+    kg.add_node("room_a", node_type="entity", hazard_level=0.8)
+    _actor_with_lra(
+        kg,
+        action_text="traveling to room_d",
+        turns_total=3,
+        thresholds=[{"property": "room_a.hazard_level", "op": ">", "value": 0.5}],
+        clear_on_end={"is_traveling": False},
+    )
+    projection = {
+        "alice": {"type": "agent", "properties": {}, "edges": []},
+        "room_a": {"type": "entity", "properties": {"hazard_level": 0.8}, "edges": []},
+    }
+    hook = _make_hook()
+    result = hook.process(
+        actor="alice",
+        projection=projection,
+        graph=kg,
+        tick_id_str="1",
+        observer=FakeObserver(),
+        tick_diag_ctx=None,
+    )
+    assert result.interrupted is True
+    assert kg.query("alice", "is_traveling") is False

@@ -113,7 +113,7 @@ class LongRunningHook:
 
         try:
             lra = graph.query(actor, _LRA_PROPERTY)
-        except (KeyError, Exception):
+        except Exception:
             return HookResult.inactive()
 
         if lra is None or not isinstance(lra, dict):
@@ -140,8 +140,9 @@ class LongRunningHook:
             thresholds = []
         fired = ThresholdEvaluator.evaluate(thresholds, projection)
         if fired is not None:
-            # Interruption path (D-10): clear LRA, synthesise grounded narrative
+            # Interruption path (D-10): clear LRA, apply clear_on_end flags, synthesise narrative
             graph.set(actor, _LRA_PROPERTY, None)
+            self._apply_clear_on_end(actor=actor, payload=payload, graph=graph)
             observation = self._synthesise_interruption(
                 observer=observer,
                 projection=projection,
@@ -165,6 +166,7 @@ class LongRunningHook:
         turns_total = lra.get("turns_total")
         if turns_total is not None and new_elapsed >= int(turns_total):
             graph.set(actor, _LRA_PROPERTY, None)
+            self._apply_clear_on_end(actor=actor, payload=payload, graph=graph)
             observation = self._synthesise_completion(
                 observer=observer,
                 projection=projection,
@@ -194,6 +196,40 @@ class LongRunningHook:
             attention_state=attention_state,
             action_text=action_text,
         )
+
+    def _apply_clear_on_end(
+        self,
+        *,
+        actor: str,
+        payload: dict,
+        graph: Any,
+    ) -> None:
+        """Apply clear_on_end property mutations from the LRA payload (WR-01).
+
+        When an LRA ends (interrupt or completion), any companion flags that were
+        set at LRA-start (e.g. is_sleeping, is_traveling, is_drunk) should be
+        cleared. Mechanics declare these via the ``clear_on_end`` key in the LRA
+        payload, mapping property name to the value to set on termination.
+
+        Example payload entry::
+
+            "clear_on_end": {"is_sleeping": False}
+
+        This method is a no-op when ``clear_on_end`` is absent or empty.
+        """
+        clear_on_end = payload.get("clear_on_end")
+        if not isinstance(clear_on_end, dict) or not clear_on_end:
+            return
+        for prop, val in clear_on_end.items():
+            try:
+                graph.set(actor, prop, val)
+            except Exception:
+                logger.warning(
+                    "clear_on_end: failed to set %s.%s = %r on LRA termination",
+                    actor,
+                    prop,
+                    val,
+                )
 
     def _synthesise_interruption(
         self,
