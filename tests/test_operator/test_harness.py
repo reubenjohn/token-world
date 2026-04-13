@@ -423,6 +423,123 @@ async def test_handle_yield_handles_nested_json_in_final(
 
 
 # ---------------------------------------------------------------------------
+# _track_validation — observability (WR-03)
+# ---------------------------------------------------------------------------
+
+
+class _FakeCtx:
+    """Minimal stand-in for OperatorDiagnosticsContext used by _track_validation."""
+
+    def __init__(self) -> None:
+        self.writes: list[tuple[int, dict[str, Any]]] = []
+
+    def write_validation_report(self, attempt_n: int, report: dict[str, Any]) -> None:
+        self.writes.append((attempt_n, report))
+
+
+def _make_tool_result_block(tool_use_id: str, content: Any = "irrelevant") -> Any:
+    """Duck-typed ToolResultBlock with class name ``ToolResultBlock``."""
+
+    class ToolResultBlock:  # class-name detection is what harness uses
+        def __init__(self) -> None:
+            self.tool_use_id = tool_use_id
+            self.content = content
+
+    return ToolResultBlock()
+
+
+def _make_msg_with_blocks(blocks: list[Any]) -> Any:
+    """Minimal SDK-like message with a ``content`` list of blocks."""
+    m = MagicMock()
+    m.content = blocks
+    return m
+
+
+def test_track_validation_logs_uncorrelated_tool_result_blocks(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """WR-03: an uncorrelated ToolResultBlock must be logged at DEBUG level.
+
+    Silent drops leave replay-tick consumers with incomplete diagnostic records
+    and no signal; a debug log lets forensic operators spot correlation misses
+    without changing runtime behaviour.
+
+    Uses the loguru->stdlib-logging propagation pattern from
+    test_graph/test_spatial_index.py so pytest's caplog sees loguru records.
+    """
+    import logging
+
+    from loguru import logger as loguru_logger
+
+    class PropagateHandler(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:  # pragma: no cover - glue
+            logging.getLogger(record.name).handle(record)
+
+    handler_id = loguru_logger.add(PropagateHandler(), format="{message}", level="DEBUG")
+    try:
+        ctx = _FakeCtx()
+        pending: dict[str, int] = {}
+        orphan_block = _make_tool_result_block("nonexistent-id-42", content="some content")
+        msg = _make_msg_with_blocks([orphan_block])
+        with caplog.at_level("DEBUG"):
+            counter = OperatorHarness._track_validation(
+                msg=msg, ctx=ctx, pending=pending, counter=0
+            )
+        assert counter == 0, "counter should not advance for uncorrelated results"
+        assert not ctx.writes, "uncorrelated block must NOT produce a validation report write"
+        # Debug log must mention the orphan id so operators can grep for it.
+        assert any("nonexistent-id-42" in rec.message for rec in caplog.records), (
+            f"No debug log mentioning orphan tool_use_id in records: "
+            f"{[r.message for r in caplog.records]}"
+        )
+    finally:
+        loguru_logger.remove(handler_id)
+
+
+def test_track_validation_correlated_blocks_still_write_reports(tmp_path: Path) -> None:
+    """Regression guard: the WR-03 fix must NOT break the happy path.
+
+    A matching ToolUseBlock + ToolResultBlock pair should still record a
+    validation report on disk — the debug log is additive, not a behaviour
+    change.
+    """
+
+    class ToolUseBlock:
+        def __init__(self, name: str, tool_use_id: str) -> None:
+            self.name = name
+            self.id = tool_use_id
+
+    use_block = ToolUseBlock("mcp__validation__validate_mechanic", "id-1")
+    result_block = _make_tool_result_block("id-1", content='{"passed": true, "attempt": 1}')
+
+    ctx = _FakeCtx()
+    pending: dict[str, int] = {}
+
+    # First message: ToolUseBlock -> counter advances, pending populated.
+    counter = OperatorHarness._track_validation(
+        msg=_make_msg_with_blocks([use_block]),
+        ctx=ctx,
+        pending=pending,
+        counter=0,
+    )
+    assert counter == 1
+    assert pending == {"id-1": 1}
+
+    # Second message: matching ToolResultBlock -> report written, pending emptied.
+    counter = OperatorHarness._track_validation(
+        msg=_make_msg_with_blocks([result_block]),
+        ctx=ctx,
+        pending=pending,
+        counter=counter,
+    )
+    assert pending == {}
+    assert len(ctx.writes) == 1
+    attempt_n, report = ctx.writes[0]
+    assert attempt_n == 1
+    assert report.get("passed") is True
+
+
+# ---------------------------------------------------------------------------
 # OperatorResult shape
 # ---------------------------------------------------------------------------
 
