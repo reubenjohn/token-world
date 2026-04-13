@@ -3,7 +3,7 @@ id: UC-E06
 category: edge-case
 title: "Move into a locked room"
 status: reviewed
-expected_outcome: yield
+expected_outcome: pass
 setup:
   graph_builder: |
     # Alice stands in room_a. A door entity sits between room_a and
@@ -22,9 +22,9 @@ actions:
   - actor: alice
     intent: "walk east into the next room"
     classified:
-      verb: move
+      verb: try_door
       direction: east
-      target: room_b
+      target: door_1
 expected_observations:
   - actor: alice
     narrative_contains: ["door", "locked"]

@@ -76,9 +76,7 @@ class TestFindNearestCheck:
         ctx = MechanicContext(uc_s03_graph, actor="alice", target="dagger_bronze")
         assert mechanic.check(ctx).passed is True
 
-    def test_fails_when_actor_has_no_position(
-        self, mechanic: FindNearestMechanic
-    ) -> None:
+    def test_fails_when_actor_has_no_position(self, mechanic: FindNearestMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")
         kg.add_node("sword", node_type="entity", subtype="weapon", position=[1, 1])
@@ -87,9 +85,7 @@ class TestFindNearestCheck:
         assert result.passed is False
         assert any("position" in r for r in result.reasons)
 
-    def test_fails_when_target_has_no_subtype(
-        self, mechanic: FindNearestMechanic
-    ) -> None:
+    def test_fails_when_target_has_no_subtype(self, mechanic: FindNearestMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent", position=[0, 0])
         kg.add_node("thing", node_type="entity")  # no subtype
@@ -114,25 +110,19 @@ class TestFindNearestApply:
         result = uc_s03_graph.query("alice").get("nearest_result")
         assert result == "dagger_bronze"
 
-    def test_actor_is_never_returned_as_own_nearest(
-        self, mechanic: FindNearestMechanic
-    ) -> None:
+    def test_actor_is_never_returned_as_own_nearest(self, mechanic: FindNearestMechanic) -> None:
         """Even if the actor has a matching subtype, the mechanic picks a non-self."""
         kg = KnowledgeGraph()
         # Contrived: actor carries subtype='weapon' (nonsensical but the
         # filter would include them). The mechanic must still skip self.
         kg.add_node("alice", node_type="agent", subtype="weapon", position=[0, 0])
-        kg.add_node(
-            "sword", node_type="entity", subtype="weapon", position=[10, 10]
-        )
+        kg.add_node("sword", node_type="entity", subtype="weapon", position=[10, 10])
         ctx = MechanicContext(kg, actor="alice", target="sword")
         mechanic.apply(ctx)
         result = kg.query("alice").get("nearest_result")
         assert result == "sword"
 
-    def test_no_matching_subtype_yields_no_mutation(
-        self, mechanic: FindNearestMechanic
-    ) -> None:
+    def test_no_matching_subtype_yields_no_mutation(self, mechanic: FindNearestMechanic) -> None:
         """When nothing matches, nearest_result is not written."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent", position=[0, 0])

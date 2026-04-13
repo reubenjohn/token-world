@@ -15,12 +15,8 @@ def uc_e06_graph() -> KnowledgeGraph:
     """UC-E06 shape: alice, door_1 locked, no key."""
     kg = KnowledgeGraph()
     kg.add_node("alice", node_type="agent", position=[0, 0], stamina=10)
-    kg.add_node(
-        "room_a", node_type="entity", subtype="room", bbox=[-5, -5, 5, 5]
-    )
-    kg.add_node(
-        "room_b", node_type="entity", subtype="room", bbox=[5, -5, 15, 5]
-    )
+    kg.add_node("room_a", node_type="entity", subtype="room", bbox=[-5, -5, 5, 5])
+    kg.add_node("room_b", node_type="entity", subtype="room", bbox=[5, -5, 15, 5])
     kg.add_node(
         "door_1",
         node_type="entity",
@@ -113,9 +109,7 @@ class TestTryDoorCheck:
 
 
 class TestTryDoorApply:
-    def test_unlocked_door_yields_no_mutation(
-        self, mechanic: TryDoorMechanic
-    ) -> None:
+    def test_unlocked_door_yields_no_mutation(self, mechanic: TryDoorMechanic) -> None:
         """Door already unlocked — nothing to do."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")
@@ -123,9 +117,7 @@ class TestTryDoorApply:
         ctx = MechanicContext(kg, actor="alice", target="door_open")
         assert mechanic.apply(ctx) == []
 
-    def test_locked_door_with_matching_key_unlocks(
-        self, mechanic: TryDoorMechanic
-    ) -> None:
+    def test_locked_door_with_matching_key_unlocks(self, mechanic: TryDoorMechanic) -> None:
         """Locked door + held key with matching key_id → door.locked = False."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")
@@ -159,9 +151,7 @@ class TestTryDoorApply:
         assert uc_e06_graph.has_edge("alice", "room_a")
         assert not uc_e06_graph.has_edge("alice", "room_b")
 
-    def test_locked_door_without_required_key_id_refuses(
-        self, mechanic: TryDoorMechanic
-    ) -> None:
+    def test_locked_door_without_required_key_id_refuses(self, mechanic: TryDoorMechanic) -> None:
         """Locked door that declares no required_key_id → always refuses."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")
@@ -173,7 +163,4 @@ class TestTryDoorApply:
         ctx = MechanicContext(kg, actor="alice", target="door_sealed")
         mechanic.apply(ctx)
         assert kg.query("door_sealed").get("locked") is True
-        assert (
-            kg.query("alice").get("last_refusal_narrative")
-            == "the door is locked"
-        )
+        assert kg.query("alice").get("last_refusal_narrative") == "the door is locked"

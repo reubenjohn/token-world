@@ -16,15 +16,9 @@ def uc_o08_graph() -> KnowledgeGraph:
     kg.add_node("alice", node_type="agent", position=[0, 0], last_utterance="help!")
     kg.add_node("bob", node_type="agent", position=[5, 0])
     kg.add_node("charlie", node_type="agent", position=[30, 0])
-    kg.add_node(
-        "room_a", node_type="entity", subtype="room", bbox=[-10, -10, 10, 10]
-    )
-    kg.add_node(
-        "room_b", node_type="entity", subtype="room", bbox=[20, -10, 40, 10]
-    )
-    kg.add_node(
-        "wall", node_type="entity", subtype="wall", blocks_sound=True
-    )
+    kg.add_node("room_a", node_type="entity", subtype="room", bbox=[-10, -10, 10, 10])
+    kg.add_node("room_b", node_type="entity", subtype="room", bbox=[20, -10, 40, 10])
+    kg.add_node("wall", node_type="entity", subtype="wall", blocks_sound=True)
     kg.add_edge("alice", "room_a", relation="located_in")
     kg.add_edge("bob", "room_a", relation="located_in")
     kg.add_edge("charlie", "room_b", relation="located_in")
@@ -98,9 +92,7 @@ class TestSpeakApply:
         mechanic.apply(ctx)
         assert "last_heard" not in uc_o08_graph.query("charlie")
 
-    def test_no_listeners_yields_no_mutations(
-        self, mechanic: SpeakMechanic
-    ) -> None:
+    def test_no_listeners_yields_no_mutations(self, mechanic: SpeakMechanic) -> None:
         """Alone in the room → empty mutation list."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent", last_utterance="hello")
@@ -129,9 +121,7 @@ class TestSpeakApply:
         mechanic.apply(ctx)
         assert "last_heard" not in kg.query("eve")
 
-    def test_last_heard_appends_to_existing_list(
-        self, mechanic: SpeakMechanic
-    ) -> None:
+    def test_last_heard_appends_to_existing_list(self, mechanic: SpeakMechanic) -> None:
         """Second utterance appends; prior words are preserved."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent", last_utterance="two")

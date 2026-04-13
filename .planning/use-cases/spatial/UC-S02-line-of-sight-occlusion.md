@@ -3,7 +3,7 @@ id: UC-S02
 category: spatial
 title: "Line-of-sight occlusion"
 status: reviewed
-expected_outcome: yield
+expected_outcome: pass
 setup:
   graph_builder: |
     # Alice in room_a, bob in room_b, wall between. Rooms share a boundary at x=5.

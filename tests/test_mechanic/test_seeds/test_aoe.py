@@ -25,19 +25,11 @@ def uc_s04_graph() -> KnowledgeGraph:
         blast_radius=3.0,
         hp=10,
     )
-    kg.add_node(
-        "barrel_2", node_type="entity", subtype="barrel", position=[6, 7], hp=10
-    )
-    kg.add_node(
-        "goblin_1", node_type="entity", subtype="goblin", position=[4, 4], hp=8
-    )
+    kg.add_node("barrel_2", node_type="entity", subtype="barrel", position=[6, 7], hp=10)
+    kg.add_node("goblin_1", node_type="entity", subtype="goblin", position=[4, 4], hp=8)
     # Outside radius 3:
-    kg.add_node(
-        "barrel_3", node_type="entity", subtype="barrel", position=[1, 1], hp=10
-    )
-    kg.add_node(
-        "goblin_2", node_type="entity", subtype="goblin", position=[9, 9], hp=8
-    )
+    kg.add_node("barrel_3", node_type="entity", subtype="barrel", position=[1, 1], hp=10)
+    kg.add_node("goblin_2", node_type="entity", subtype="goblin", position=[9, 9], hp=8)
     for e in ("barrel_1", "barrel_2", "goblin_1", "barrel_3", "goblin_2"):
         kg.add_edge(e, "field", relation="located_in")
     return kg
@@ -77,9 +69,7 @@ class TestAoeCheck:
         ctx = MechanicContext(uc_s04_graph, actor="mage", target="barrel_1")
         assert mechanic.check(ctx).passed is True
 
-    def test_fails_when_target_has_no_position(
-        self, mechanic: AreaOfEffectMechanic
-    ) -> None:
+    def test_fails_when_target_has_no_position(self, mechanic: AreaOfEffectMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("mage", node_type="agent")
         kg.add_node("bomb", node_type="entity")  # no position
@@ -102,9 +92,7 @@ class TestAoeApply:
         ctx = MechanicContext(uc_s04_graph, actor="mage", target="barrel_1")
         mechanic.apply(ctx)
         for victim in ("barrel_1", "barrel_2", "goblin_1"):
-            assert uc_s04_graph.query(victim).get("damaged") is True, (
-                f"{victim} should be damaged"
-            )
+            assert uc_s04_graph.query(victim).get("damaged") is True, f"{victim} should be damaged"
 
     def test_uc_s04_outside_entities_are_spared(
         self, uc_s04_graph: KnowledgeGraph, mechanic: AreaOfEffectMechanic
@@ -114,9 +102,7 @@ class TestAoeApply:
         mechanic.apply(ctx)
         for survivor in ("barrel_3", "goblin_2"):
             props = uc_s04_graph.query(survivor)
-            assert "damaged" not in props, (
-                f"{survivor} should NOT be damaged (outside blast)"
-            )
+            assert "damaged" not in props, f"{survivor} should NOT be damaged (outside blast)"
 
     def test_actor_is_never_damaged_by_own_blast(
         self, uc_s04_graph: KnowledgeGraph, mechanic: AreaOfEffectMechanic

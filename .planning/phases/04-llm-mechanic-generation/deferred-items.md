@@ -70,3 +70,30 @@ all of which are clean.
 noted here for continuity.
 
 **Next action:** As above — 04-12 cleanup plan.
+
+## 04-07 discoveries
+
+### ruff I001/F401/E501 drift in 04-06 test files
+
+**Found during:** 04-07 Task 3 phase-gate (`ruff check
+src/token_world/mechanic/seeds/ tests/test_mechanic/test_seeds/`).
+
+**Files:**
+- `tests/test_mechanic/test_seeds/test_passage_move.py` (I001 import order)
+- `tests/test_mechanic/test_seeds/test_position_sync.py` (I001, F401 `pytest`
+  imported but unused, E501 line 112)
+- `tests/test_mechanic/test_seeds/test_terrain_move.py` (I001)
+
+**Issue:** 5 ruff findings across three tests committed during 04-06. 04-06's
+SUMMARY claims clean `ruff check src/token_world/mechanic/seeds/` but not the
+test tree; `ruff check` over the full test tree now flags these. 04-07 does
+not touch these files.
+
+**Why deferred:** Out of scope per CLAUDE.md §4 scope boundary. 04-07's new
+files (`test_look.py`, `test_find_nearest.py`, `test_aoe.py`, `test_speak.py`,
+`test_try_door.py` + the 5 mechanic modules and `_helpers.py` addition) all
+pass `ruff check` and `ruff format --check` cleanly after the plan's run.
+
+**Next action:** A future plan (04-12 cleanup) runs `ruff check --fix
+tests/test_mechanic/test_seeds/` and either reflows the E501 docstring or
+adds a `# noqa: E501` ack. All four findings are `--fix`-automatable.

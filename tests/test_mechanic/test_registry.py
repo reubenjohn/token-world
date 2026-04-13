@@ -235,12 +235,17 @@ class TestSeedUniverse:
         registry = MechanicRegistry(tmp_universe / "mechanics", universe_dir=tmp_universe)
         ids = sorted(m.id for m in registry.list_mechanics())
         assert ids == [
+            "aoe",
             "environmental_reaction",
+            "find_nearest",
+            "look",
             "movement",
             "observation",
             "passage_move",
             "position_sync",
+            "speak",
             "terrain_move",
+            "try_door",
         ]
 
     def test_list_mechanics_sorted(self, tmp_universe: Path) -> None:

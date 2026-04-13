@@ -64,6 +64,9 @@ created: 2026-04-12
 | 04-06-T1 | 04-06 | 4 | MECH-03 | — | MECH01 passage_move validates; doorway + direct-connects + bridge paths honored; closed doorway refused | unit | `uv run pytest tests/test_mechanic/test_seeds/test_passage_move.py -x -q` | ✓ | ⬜ pending |
 | 04-06-T2 | 04-06 | 4 | MECH-03 | — | MECH05 terrain_move + MECH06 position_sync validate; UC-V05 stamina 20→18; position_sync fires reactively via ChainExecutionEngine | unit | `uv run pytest tests/test_mechanic/test_seeds/test_terrain_move.py tests/test_mechanic/test_seeds/test_position_sync.py -x -q` | ✓ | ⬜ pending |
 | 04-06-T3 | 04-06 | 4 | MECH-03, TEST-02 | — | UC-S01 / UC-S06 / UC-S07 / UC-V05 flipped to expected_outcome=pass; harness green on all four | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-S01 or UC-S06 or UC-S07 or UC-V05" -q` | ✓ | ⬜ pending |
+| 04-07-T1 | 04-07 | 4 | MECH-03 | — | MECH02/03/04 spatial-query mechanics validate + pass tests | unit | `uv run pytest tests/test_mechanic/test_seeds/test_look.py tests/test_mechanic/test_seeds/test_find_nearest.py tests/test_mechanic/test_seeds/test_aoe.py -x -q` | ✓ | ⬜ pending |
+| 04-07-T2 | 04-07 | 4 | MECH-03 | — | MECH13/27 speak + try_door validate + refusal-narrative pattern | unit | `uv run pytest tests/test_mechanic/test_seeds/test_speak.py tests/test_mechanic/test_seeds/test_try_door.py -x -q` | ✓ | ⬜ pending |
+| 04-07-T3 | 04-07 | 4 | MECH-03, TEST-02 | — | UC-S02/S03/S04/O08/E06 flip to pass | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-S02 or UC-S03 or UC-S04 or UC-O08 or UC-E06" -x -q` | ✓ | ⬜ pending |
 
 <!--
 Rows will be appended by each plan's final task:

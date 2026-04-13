@@ -3,11 +3,11 @@ id: UC-O08
 category: social
 title: "Speech broadcast"
 status: reviewed
-expected_outcome: yield
+expected_outcome: pass
 setup:
   graph_builder: |
     # Alice shouts in room_a. Bob is with her; charlie is in the next room behind a wall.
-    kg.add_node("alice", node_type="agent", position=[0, 0])
+    kg.add_node("alice", node_type="agent", position=[0, 0], last_utterance="help!")
     kg.add_node("bob", node_type="agent", position=[5, 0])
     kg.add_node("charlie", node_type="agent", position=[30, 0])
     kg.add_node("room_a", node_type="entity", subtype="room", bbox=[-10, -10, 10, 10])
@@ -22,7 +22,8 @@ actions:
   - actor: alice
     intent: "shout 'help!'"
     classified:
-      verb: shout
+      verb: speak
+      target: bob
       utterance: "help!"
       volume: loud
 expected_observations:

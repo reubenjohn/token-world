@@ -120,9 +120,7 @@ class TestLookApply:
         observed = kg.query("alice").get("last_observed", [])
         assert "lamp" in observed
 
-    def test_occluders_are_filtered_from_last_observed(
-        self, mechanic: LookMechanic
-    ) -> None:
+    def test_occluders_are_filtered_from_last_observed(self, mechanic: LookMechanic) -> None:
         """Walls with occludes=True in the same room are NOT observed."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")
