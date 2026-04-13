@@ -34,6 +34,7 @@ from token_world.engine.compressor import TickCompressor
 from token_world.engine.config import EngineConfig, load_engine_config
 from token_world.engine.conservation import ConservationChecker
 from token_world.engine.decider import decide
+from token_world.engine.long_running_hook import LongRunningHook
 from token_world.engine.matcher import DeterministicMatcher
 from token_world.engine.models import (
     ClassifiedAction,
@@ -220,13 +221,38 @@ class SimulationEngine:
             batch_size=self._config.compression_batch_size,
             epoch_size=self._config.compression_epoch_size,
         )
+        self._long_running_hook = LongRunningHook()
 
-    def run_tick(self, action_text: str, actor: str) -> TickResult:
+    def has_active_long_action(self, actor: str) -> bool:
+        """Return True iff the actor node has an active current_long_action dict (D-07, D-11).
+
+        Used by PlaytestRunner to decide whether to skip agent.run_turn() for this tick.
+
+        Args:
+            actor: Node ID of the actor to check.
+
+        Returns:
+            True if actor exists and has a dict-typed current_long_action property.
+        """
+        if not self._graph.has_node(actor):
+            return False
+        try:
+            lra = self._graph.query(actor, "current_long_action")
+        except (KeyError, Exception):
+            return False
+        return isinstance(lra, dict)
+
+    def run_tick(self, action_text: str | None, actor: str) -> TickResult:
         """Execute one tick through the complete D-01 staged pipeline.
 
         D-02: registry is re-scanned at the top of every call so that mechanics
         written by the operator after a YieldSignal are picked up automatically
         without restarting the engine.
+
+        Phase 7 (D-07, D-11): action_text may be None to signal a long-running
+        action continuation tick. When the actor has an active current_long_action:
+        - action_text is None or empty → synthetic continuation (_handle_long_running_tick)
+        - action_text is a real string → implicit LRA cancellation (D-11), then normal pipeline
 
         Returns a TickResult with kind "ok" | "yielded" | "refused".
         """
@@ -245,7 +271,41 @@ class SimulationEngine:
             pre_tick_snapshot_id = self._graph.snapshot(next_tick, summary=f"pre-tick {next_tick}")
 
             # Persist raw action for diagnostics
-            tick_ctx.write_action(action_text)
+            tick_ctx.write_action(action_text or "")
+
+            # ------------------------------------------------------------------
+            # Phase 7: Long-running action detection (D-07, D-11)
+            # Runs BEFORE Stage 1 Classify to short-circuit when LRA is active.
+            # ------------------------------------------------------------------
+            if self.has_active_long_action(actor):
+                if action_text is None or (
+                    isinstance(action_text, str) and not action_text.strip()
+                ):
+                    # D-07: continuation — skip classify/match/decide entirely
+                    return self._handle_long_running_tick(
+                        actor=actor,
+                        tick_id_str=tick_id_str,
+                        tick_ctx=tick_ctx,
+                        start_time=start_time,
+                    )
+                # D-11: implicit cancellation — clear LRA and proceed normally
+                logger.debug(
+                    "Implicit LRA cancellation for actor=%s by action_text=%r",
+                    actor,
+                    action_text,
+                )
+                self._graph.set(actor, "current_long_action", None)
+
+            # action_text is guaranteed non-None here (continuation returned early)
+            if action_text is None:
+                # This branch is only reachable if actor has NO active LRA and
+                # action_text is None — raise clearly rather than passing None
+                # to the classifier.
+                raise ValueError(
+                    f"run_tick called with action_text=None but actor {actor!r} has no "
+                    "active long-running action. Pass a string action or ensure the actor "
+                    "has an active LRA."
+                )
 
             # Classifier uses write_prompt/write_response/write_parsed API;
             # TickDiagnostics exposes write_classification. Adapt via a thin wrapper
@@ -632,6 +692,144 @@ class SimulationEngine:
             refusal_reason=decision.reason_code,
         )
 
+    def _handle_long_running_tick(
+        self,
+        *,
+        actor: str,
+        tick_id_str: str,
+        tick_ctx: Any,
+        start_time: float,
+    ) -> TickResult:
+        """D-07: synthetic continuation tick for an active long-running action.
+
+        Skips classifier/matcher/decider entirely. Calls LongRunningHook to advance
+        turns_elapsed and evaluate thresholds, runs passive sweep so the world keeps
+        changing (D-06), builds tick summary with the long_running_action D-17 field,
+        and returns TickResult.ok.
+
+        Pitfall 1: this method is ONLY called when the actor already has an active LRA
+        on the graph. The tick that STARTED the LRA (via begin_long_action) goes through
+        _handle_execute, not here — so the hook never fires on LRA-start tick.
+
+        Pitfall 6: passive sweep runs AFTER the hook, so passive mechanics (decay,
+        weather) still fire while the agent is sleeping/drunk/traveling.
+        """
+        # 1. Read attention_state from current LRA payload before projection
+        lra = self._graph.query(actor, "current_long_action") or {}
+        payload = lra.get("payload") if isinstance(lra.get("payload"), dict) else {}
+        attention_state_pre = (
+            payload.get("attention_state")
+            if isinstance(payload.get("attention_state"), dict)
+            else None
+        )
+
+        # 2. Single projection call — reused for hook threshold evaluation (D-09)
+        projection = self._projector.project_for(actor, attention_state=attention_state_pre)
+
+        # 3. Run hook (advances turns_elapsed, evaluates thresholds, synthesises narrative)
+        hook_result = self._long_running_hook.process(
+            actor=actor,
+            projection=projection,
+            graph=self._graph,
+            tick_id_str=tick_id_str,
+            observer=self._observer,
+            tick_diag_ctx=tick_ctx,
+        )
+
+        # 4. Run passive sweep — world still changes while agent is in LRA (D-06, Pitfall 6)
+        sweep_nodes = self._run_passive_sweep(
+            actor=actor,
+            tick_id_str=tick_id_str,
+            primary_mutations=[],
+        )
+        sweep_mutations = [m for node in sweep_nodes for m in node.mutations]
+        if sweep_mutations:
+            cons_verdict = self._conservation.verify(sweep_mutations)
+            if cons_verdict.is_violation:
+                # Conservation violations in sweep during LRA ticks: log warning and
+                # continue — restoring the snapshot here would also undo the LRA's
+                # turns_elapsed increment, causing incorrect bookkeeping.
+                violated = next(iter(cons_verdict.violations))
+                logger.warning(
+                    "Conservation violation in passive sweep during LRA tick %s "
+                    "(violated_property=%s); not restoring (LRA tick semantics)",
+                    tick_id_str,
+                    violated,
+                )
+
+        # 5. Build long_running_action summary field (D-17)
+        # Use post-hook state from graph if hook is still continuing; otherwise
+        # compute from pre-hook lra dict (hook cleared it on interrupt/complete).
+        post_lra = (
+            self._graph.query(actor, "current_long_action") if self._graph.has_node(actor) else None
+        )
+        if hook_result.interrupted or hook_result.completed:
+            # LRA was cleared: report the state at the moment it ended
+            turns_elapsed_for_summary = int(lra.get("turns_elapsed", 0) or 0) + 1
+            turns_total_for_summary = lra.get("turns_total")
+        elif isinstance(post_lra, dict):
+            turns_elapsed_for_summary = int(post_lra.get("turns_elapsed", 0) or 0)
+            turns_total_for_summary = post_lra.get("turns_total")
+        else:
+            turns_elapsed_for_summary = 0
+            turns_total_for_summary = None
+
+        long_running_action_field: dict = {
+            "active": True,
+            "turns_elapsed": turns_elapsed_for_summary,
+            "turns_total": turns_total_for_summary,
+            "threshold_fired": (
+                {
+                    "property": hook_result.fired_threshold.property,
+                    "op": hook_result.fired_threshold.op,
+                    "value": hook_result.fired_threshold.value,
+                }
+                if hook_result.fired_threshold is not None
+                else None
+            ),
+            "interrupted": hook_result.interrupted,
+        }
+
+        # Synthetic ExecuteDecision for build_tick_summary's decision dispatch
+        synthetic_decision = ExecuteDecision(mechanic_id="continue_long_action")
+
+        observer_in = getattr(self._observer, "last_input_tokens", 0) or 0
+        observer_out = getattr(self._observer, "last_output_tokens", 0) or 0
+
+        self._write_summary(
+            tick_id_str=tick_id_str,
+            action_text="[long_running_continuation]",
+            decision=synthetic_decision,
+            classified=None,
+            trace=None,
+            observation_text=hook_result.observation,
+            start_time=start_time,
+            classifier_in=0,
+            classifier_out=0,
+            observer_in=observer_in,
+            observer_out=observer_out,
+            long_running_action=long_running_action_field,
+        )
+
+        tick_ctx.set_summary(
+            status="ok",
+            action_text="[long_running_continuation]",
+            decision_kind="execute",
+            mechanic_id="continue_long_action",
+            mutation_count=0,
+            observation_text=hook_result.observation,
+            yielded=False,
+            refused=False,
+            long_running_action=long_running_action_field,
+        )
+
+        return TickResult.ok(
+            tick_id=tick_id_str,
+            observation=hook_result.observation or "",
+            trace=None,
+            projected_state=projection,
+        )
+
     # =========================================================================
     # Helpers
     # =========================================================================
@@ -761,6 +959,7 @@ class SimulationEngine:
         classifier_out: int,
         observer_in: int = 0,
         observer_out: int = 0,
+        long_running_action: dict | None = None,
     ) -> None:
         """Build and persist the per-tick tick_summary JSON (D-20)."""
         duration_ms = int((time.perf_counter() - start_time) * 1000)
@@ -776,6 +975,7 @@ class SimulationEngine:
             classifier_output_tokens=classifier_out,
             observer_input_tokens=observer_in,
             observer_output_tokens=observer_out,
+            long_running_action=long_running_action,
         )
         self._summary_writer.write(summary, self._universe_path)
         # D-19: opportunistic compression after every tick write.

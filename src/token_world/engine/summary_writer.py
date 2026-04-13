@@ -106,6 +106,7 @@ def build_tick_summary(
     classifier_output_tokens: int = 0,
     observer_input_tokens: int = 0,
     observer_output_tokens: int = 0,
+    long_running_action: dict[str, Any] | None = None,
 ) -> TickSummary:
     """Construct a TickSummary from orchestrator-raw stage outputs.
 
@@ -163,6 +164,7 @@ def build_tick_summary(
         refusal_reason=refusal_reason,
         mutations=mutations_field,
         observation_text=observation_text,
+        long_running_action=long_running_action,
         duration_ms=duration_ms,
         llm_tokens_by_stage=tokens_by_stage,
         llm_cost_usd_by_stage=cost_by_stage,

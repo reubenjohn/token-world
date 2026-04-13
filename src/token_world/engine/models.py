@@ -131,6 +131,9 @@ class TickSummary(BaseModel):
     refusal_reason: str | None
     mutations: dict[str, Any]
     observation_text: str | None
+    # D-17 (Phase 7): additive optional field; schema_version stays 1 (backward-compat).
+    # Populated only for LRA continuation ticks; None for all normal ticks.
+    long_running_action: dict[str, Any] | None = None
     duration_ms: int
     llm_tokens_by_stage: dict[str, dict[str, int]]
     llm_cost_usd_by_stage: dict[str, float]
