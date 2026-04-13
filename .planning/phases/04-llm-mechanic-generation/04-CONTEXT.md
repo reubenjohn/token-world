@@ -140,6 +140,8 @@ Explicitly OUT of scope for this phase:
   - **M-04 (MEDIUM)** — `src/token_world/use_cases/loader.py` rejects CRLF-encoded frontmatter. Fix to accept both `---\n` and `---\r\n` delimiters. Required before plan 04-04 parametrization works cross-platform.
   These fixes land in plan 04-01 (alongside the flatten) so the rest of the phase operates on a clean base.
 
+  **Addendum (2026-04-12):** H-01 was fixed upstream via commit `9a5027c` and M-04 via commit `6d03df2` through a parallel `/gsd-code-review-fix 03` session, not via Phase 4 execution. D-33 is retained as historical record of the decision to absorb these fixes into Phase 4. 04-01 now retains these as verification steps (rather than fix steps) to guard against regression before Phase 4 executes.
+
 ### Interpretation of GAP-HANDOFF.md Entries Under Inversion of Control
 - **D-34:** `GAP-ENG16` (nonsense-verb mechanic-generation pollution) — under inversion of control, the registry only accepts mechanics the operator writes as files. Garbage isn't auto-generated. This gap splits:
   - **Phase 5 responsibility** — the classifier must return `no_viable_action` for obvious nonsense rather than signaling "no matching mechanic" and yielding to the operator. Belongs with GAP-ENG15.
