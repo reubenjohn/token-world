@@ -113,29 +113,38 @@ class PlaytestRunner:
 
         # Main simulation loop (D-24 synchronous)
         for turn_num in range(turns):
-            # Determine action for this turn
-            action = self._determine_action(
-                turn_num=turn_num,
-                scenario=scenario,
-                sampler=sampler,
-                action_history=action_history,
-            )
+            # Phase 7 (D-07): when an LRA is active, skip agent.run_turn() to save
+            # LLM tokens and let the engine emit a synthetic continuation tick.
+            # Marker text keeps memory's alternating user/assistant rolling window
+            # consistent (Pitfall 2 mitigation).
+            _lra_check = getattr(self.engine, "has_active_long_action", None)
+            if _lra_check is not None and _lra_check(self.agent_id) is True:  # type: ignore[misc]
+                action: str | None = None
+                action_for_memory = "[long_running_continuation]"
+            else:
+                action = self._determine_action(
+                    turn_num=turn_num,
+                    scenario=scenario,
+                    sampler=sampler,
+                    action_history=action_history,
+                )
+                action_for_memory = action
 
-            # Run the engine tick
+            # Run the engine tick (action may be None for LRA continuation)
             result = self.engine.run_tick(action, actor=self.agent_id)  # type: ignore[attr-defined]
 
-            # Handle yield: invoke OperatorHarness then re-run
+            # Handle yield: invoke OperatorHarness then re-run (only on non-None action path)
             if result.kind == "yielded" and not no_operator:
                 harness = self.harness_factory(universe_dir)
                 asyncio.run(harness.handle_yield(result.yield_signal))
                 result = self.engine.run_tick(action, actor=self.agent_id)  # type: ignore[attr-defined]
 
-            # Persist turn to memory
+            # Persist turn to memory using action_for_memory (marker on LRA turns)
             self.memory.store_turn(  # type: ignore[attr-defined]
                 self.agent_id,
                 self.session_id,
                 turn_num,
-                action,
+                action_for_memory,
                 result.observation or "",
                 result.tick_id,
             )
@@ -148,7 +157,7 @@ class PlaytestRunner:
             # Score the turn
             score = self.scorer.score(
                 result=result,
-                action_text=action,
+                action_text=action_for_memory,
                 action_history=action_history[-3:],
                 previous_non_refusal_count=non_refusal_count,
                 total_turns_so_far=turn_num,
@@ -157,12 +166,12 @@ class PlaytestRunner:
             # Track state for next turn
             if result.kind != "refused":
                 non_refusal_count += 1
-            action_history.append(action)
+            action_history.append(action_for_memory)
 
-            # Build turn record
+            # Build turn record (uses action_for_memory for auditability)
             record = TurnRecord(
                 turn_number=turn_num,
-                action_text=action,
+                action_text=action_for_memory,
                 observation_text=result.observation,
                 tick_id=result.tick_id,
                 kind=result.kind,
@@ -172,7 +181,9 @@ class PlaytestRunner:
             turn_scores.append(score)
 
             # Progress output (D-28 plain stdout)
-            self.progress_fn(f"Turn {turn_num}: action={action[:50]!r} score={score.composite:.2f}")
+            self.progress_fn(
+                f"Turn {turn_num}: action={action_for_memory[:50]!r} score={score.composite:.2f}"
+            )
 
         # Build report
         duration_ms = int((time.perf_counter_ns() - start_ns) / 1_000_000)
