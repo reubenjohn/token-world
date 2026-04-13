@@ -340,6 +340,69 @@ def test_runner_invokes_hash_check_fn_hook_at_start(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# WR-01 regression: --output path must be honoured exactly
+# ---------------------------------------------------------------------------
+
+
+def test_runner_honours_exact_output_path(tmp_path: Path) -> None:
+    """WR-01: runner.run(output_path=...) writes to the exact path given, not parent dir."""
+    engine = _make_fake_engine([_fake_ok_result("tick_1")])
+    agent = _make_fake_agent()
+    memory = _make_fake_memory()
+
+    runner = _build_runner(engine=engine, agent=agent, memory=memory)
+
+    output_path = tmp_path / "my_run.json"
+    returned = runner.run(tmp_path, turns=1, output_path=output_path)
+
+    # The returned path must equal the exact requested path
+    assert returned == output_path, f"Expected {output_path}, got {returned}"
+    # The file must exist at the exact path
+    assert output_path.exists(), f"File not found at requested path: {output_path}"
+    # The UUID-based directory must NOT have been created
+    assert not (tmp_path / "playtest-reports").exists(), (
+        "playtest-reports dir created instead of using specified output path"
+    )
+
+
+def test_runner_creates_parent_dirs_for_output_path(tmp_path: Path) -> None:
+    """WR-01: runner creates parent directories for nested output_path."""
+    engine = _make_fake_engine([_fake_ok_result("tick_1")])
+    agent = _make_fake_agent()
+    memory = _make_fake_memory()
+
+    runner = _build_runner(engine=engine, agent=agent, memory=memory)
+
+    output_path = tmp_path / "subdir" / "deep" / "report.json"
+    returned = runner.run(tmp_path, turns=1, output_path=output_path)
+
+    assert returned == output_path
+    assert output_path.exists()
+
+
+# ---------------------------------------------------------------------------
+# WR-02 regression: maybe_compact_summary called each turn
+# ---------------------------------------------------------------------------
+
+
+def test_runner_calls_maybe_compact_summary_each_turn(tmp_path: Path) -> None:
+    """WR-02: PlaytestRunner calls memory.maybe_compact_summary once per turn."""
+    n_turns = 12
+    engine = _make_fake_engine([_fake_ok_result(f"tick_{i + 1}") for i in range(n_turns)])
+    agent = _make_fake_agent()
+    memory = _make_fake_memory()
+
+    runner = _build_runner(engine=engine, agent=agent, memory=memory)
+    runner.run(tmp_path, turns=n_turns)
+
+    # maybe_compact_summary must have been called once per turn
+    assert memory.maybe_compact_summary.call_count == n_turns, (
+        f"Expected {n_turns} calls to maybe_compact_summary, "
+        f"got {memory.maybe_compact_summary.call_count}"
+    )
+
+
+# ---------------------------------------------------------------------------
 # Test 40: CLI playtest command exists with expected options
 # ---------------------------------------------------------------------------
 

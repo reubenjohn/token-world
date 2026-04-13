@@ -139,6 +139,11 @@ class PlaytestRunner:
                 result.observation or "",
                 result.tick_id,
             )
+            # Regenerate rolling summary at 10-turn boundaries (D-07, D-27)
+            self.memory.maybe_compact_summary(  # type: ignore[attr-defined]
+                self.session_id,
+                self.agent._client,  # type: ignore[attr-defined]
+            )
 
             # Score the turn
             score = self.scorer.score(
@@ -185,7 +190,12 @@ class PlaytestRunner:
         if output_path is None:
             return report.write(universe_dir)
         else:
-            return report.write(output_path.parent)
+            # Honour the exact path the caller specified
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            from token_world.mechanic.diagnostics import _atomic_write_json
+
+            _atomic_write_json(output_path, report.model_dump())
+            return output_path
 
     def _determine_action(
         self,
