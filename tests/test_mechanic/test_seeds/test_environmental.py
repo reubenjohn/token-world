@@ -9,7 +9,7 @@ from token_world.mechanic.context import MechanicContext
 from token_world.mechanic.engine import ChainExecutionEngine
 from token_world.mechanic.matchers import PropertyChangeMatcher
 from token_world.mechanic.protocol import CheckResult, Mechanic
-from token_world.mechanic.seeds.environmental_reaction.mechanic import (
+from token_world.mechanic.seeds.environmental_reaction import (
     EnvironmentalReactionMechanic,
 )
 
