@@ -29,7 +29,6 @@ Threats / design constraints addressed here:
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -458,30 +457,56 @@ class OperatorHarness:
     def _parse_final(text: str) -> tuple[bool, str | None, int]:
         """Parse the outer model's terminating message.
 
-        Strategy:
-            1. Try plain ``json.loads`` (the prompt instructs JSON output).
-            2. If that fails, scan for the last ``{...}`` JSON object in the
-               text (LLMs sometimes wrap JSON in prose).
-            3. If everything fails, log a warning and return
+        Strategy (WR-01: the previous ``\\{[^{}]*\\}`` regex matched only the
+        innermost brace-free substring, so payloads containing a nested
+        ``params`` or other sub-object silently failed):
+
+            1. Try plain ``json.loads`` on the whole stripped text (the prompt
+               instructs the model to emit a JSON object).
+            2. If (1) fails, walk the text with :class:`json.JSONDecoder.raw_decode`
+               starting at each ``{`` — ``raw_decode`` respects brace nesting
+               and gracefully returns the end index, so we collect every
+               top-level object even when the model wraps JSON in prose.
+            3. Prefer the LAST successfully decoded dict (LLMs tend to put the
+               summary at the end of their reply).
+            4. If everything fails, log a warning and return
                ``(False, None, 0)``.
 
         Returns:
             ``(success, mechanic_id, attempts)``.
         """
-        candidates: list[str] = []
+        decoder = json.JSONDecoder()
+        candidates: list[dict[str, Any]] = []
+        # 1. Plain parse on the full strip (the happy path when the model
+        #    complies with the prompt's JSON-only instruction).
         stripped = text.strip()
         if stripped:
-            candidates.append(stripped)
-        # Look for the LAST {...} block in the text — code-fence-friendly.
-        for match in re.finditer(r"\{[^{}]*\}", text):
-            candidates.append(match.group(0))
-        for raw in reversed(candidates):
             try:
-                parsed = json.loads(raw)
+                obj = json.loads(stripped)
+                if isinstance(obj, dict):
+                    candidates.append(obj)
             except (json.JSONDecodeError, ValueError):
+                pass
+        # 2. Scan for embedded JSON objects using raw_decode, which honours
+        #    brace nesting (fixes the WR-01 nested-object miss).
+        i = 0
+        n = len(text)
+        while i < n:
+            idx = text.find("{", i)
+            if idx == -1:
+                break
+            try:
+                obj, end = decoder.raw_decode(text, idx)
+            except json.JSONDecodeError:
+                i = idx + 1
                 continue
-            if not isinstance(parsed, dict):
-                continue
+            if isinstance(obj, dict):
+                candidates.append(obj)
+            # raw_decode returns an absolute end index into *text*; advance
+            # past it so we can pick up subsequent objects in prose.
+            i = end if end > idx else idx + 1
+        # 3. Prefer the LAST candidate — LLMs put the summary last.
+        for parsed in reversed(candidates):
             success = bool(parsed.get("success", False))
             mechanic_id = parsed.get("mechanic_id")
             if mechanic_id is not None and not isinstance(mechanic_id, str):
