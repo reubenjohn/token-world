@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import random
 from typing import TYPE_CHECKING, Any
 
 from token_world.graph import KnowledgeGraph, Mutation
@@ -24,14 +26,57 @@ class MechanicContext:
         target: The entity or location the action is directed at.
     """
 
-    def __init__(self, graph: KnowledgeGraph, *, actor: str, target: str) -> None:
+    def __init__(
+        self,
+        graph: KnowledgeGraph,
+        *,
+        actor: str,
+        target: str,
+        tick_id: str | None = None,
+        universe_seed: int | None = None,
+    ) -> None:
         self._graph = graph
         self.actor = actor
         self.target = target
+        self._tick_id = tick_id
+        self._universe_seed = universe_seed
+        # Lazy: built on first access via the `rng` property.
+        self._rng: random.Random | None = None
         # Lazy: built on first access via the `spatial` property.
         self._spatial: SpatialIndex | None = None
         # Lazy: built on first access via the `temporal` property.
         self._temporal: TemporalIndex | None = None
+
+    # --- Seeded RNG (D-19; lazy; derived from universe_seed + tick_id) ---
+
+    @property
+    def rng(self) -> random.Random:
+        """Lazy seeded :class:`random.Random` for deterministic mechanic randomness.
+
+        Derived from ``(universe_seed, tick_id)`` via BLAKE2b so two mechanics
+        running in the same tick get identical sequences, while different ticks
+        (or different universes) get distinct sequences.
+
+        Raises:
+            RuntimeError: if ``universe_seed`` or ``tick_id`` were not provided
+                at construction time.
+        """
+        if self._rng is None:
+            if self._universe_seed is None:
+                raise RuntimeError(
+                    "ctx.rng requires universe_seed to be set at MechanicContext construction"
+                )
+            if self._tick_id is None:
+                raise RuntimeError(
+                    "ctx.rng requires tick_id to be set at MechanicContext construction"
+                )
+            digest = hashlib.blake2b(
+                f"{self._universe_seed}:{self._tick_id}".encode(),
+                digest_size=8,
+            ).digest()
+            seed_int = int.from_bytes(digest, "big")
+            self._rng = random.Random(seed_int)
+        return self._rng
 
     # --- Spatial (lazy R-tree index; GRAPH-06) ---
 

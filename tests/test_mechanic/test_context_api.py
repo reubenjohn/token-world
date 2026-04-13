@@ -85,6 +85,8 @@ EXPECTED_ATTRS: dict[str, type | None] = {
     "target": str,
     # spatial and temporal are properties — existence + duck-typing asserted
     # separately below.
+    # rng is a lazy property — existence asserted; type is random.Random.
+    # Added in Phase 5 Plan 01 (D-19, GAP-GRAPH05 closure).
 }
 
 # Known gaps — methods/attributes that plans 04-06..04-11 reference but
@@ -250,7 +252,7 @@ class TestMechanicContextFrozenSurface:
         """
         public_members = {name for name in dir(MechanicContext) if not name.startswith("_")}
         # Known non-method public attrs / properties.
-        known_attrs = set(EXPECTED_ATTRS) | {"spatial", "temporal"}
+        known_attrs = set(EXPECTED_ATTRS) | {"spatial", "temporal", "rng"}
         expected = set(EXPECTED_CALLABLES) | known_attrs
         unexpected = public_members - expected
         assert not unexpected, (
