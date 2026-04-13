@@ -27,7 +27,7 @@
 ### Simulation Engine
 
 - [ ] **SIM-01**: Engine interprets resident agent text output into structured actions
-- [ ] **SIM-02**: Engine matches structured actions to existing mechanics
+- [x] **SIM-02**: Engine matches structured actions to existing mechanics
 - [ ] **SIM-03**: Engine triggers mechanic generation when no existing mechanic matches
 - [ ] **SIM-04**: Engine executes matched/generated mechanic and applies side effects to graph
 - [ ] **SIM-05**: Observations returned to agents are grounded in graph state (no hallucinated state)
@@ -140,7 +140,7 @@
 | MECH-05 | Phase 4 | Complete (revised from Phase 2; see 04-CONTEXT D-03..D-08 — flat layout) |
 | MECH-06 | Phase 4 | Complete (revised from Phase 2; see 04-CONTEXT D-07 — module-based registry discovery) |
 | SIM-01 | Phase 5 | Pending |
-| SIM-02 | Phase 5 | Pending |
+| SIM-02 | Phase 5 | Complete |
 | SIM-03 | Phase 5 | Pending |
 | SIM-04 | Phase 5 | Pending |
 | SIM-05 | Phase 5 | Pending |
