@@ -18,15 +18,15 @@ from token_world.mechanic.validation import (
     validate,
 )
 
-
 # ---------------------------------------------------------------------------
 # Module-level smoke assertions (Task 1 acceptance: constants match D-14)
 # ---------------------------------------------------------------------------
 
 
 def test_forbidden_call_names_match_d14() -> None:
-    assert FORBIDDEN_CALL_NAMES == frozenset(
-        {"eval", "exec", "__import__", "compile", "globals", "open"}
+    assert (
+        frozenset({"eval", "exec", "__import__", "compile", "globals", "open"})
+        == FORBIDDEN_CALL_NAMES
     )
 
 
@@ -239,10 +239,7 @@ def test_forbidden_call_exec_and_open_accumulate(tmp_path: Path) -> None:
     assert report.passed is False
     hits = _findings_by_rule(report, "forbidden_call")
     names_flagged = {
-        msg_word
-        for f in hits
-        for msg_word in ("exec", "open")
-        if msg_word in f.message
+        msg_word for f in hits for msg_word in ("exec", "open") if msg_word in f.message
     }
     assert "exec" in names_flagged
     assert "open" in names_flagged
@@ -297,18 +294,14 @@ def test_ast_warning_no_mechanic_subclass_does_not_fail_stage_ast(tmp_path: Path
     assert report.passed is False
 
     ast_warnings = [
-        f
-        for f in report.findings
-        if f.stage == "ast" and f.rule == "no_mechanic_subclass"
+        f for f in report.findings if f.stage == "ast" and f.rule == "no_mechanic_subclass"
     ]
     assert len(ast_warnings) == 1
     assert ast_warnings[0].severity == "warning"
 
     # Contract stage should also flag the module (now as an error).
     contract_errors = [
-        f
-        for f in report.findings
-        if f.stage == "contract" and f.rule == "no_mechanic_subclass"
+        f for f in report.findings if f.stage == "contract" and f.rule == "no_mechanic_subclass"
     ]
     assert len(contract_errors) == 1
     assert contract_errors[0].severity == "error"
@@ -466,11 +459,7 @@ def test_tests_stage_skipped_with_warning_when_no_test_file(tmp_path: Path) -> N
     # will resolve on disk.
     path = _write_mechanic(tmp_path, "t", _OK_MECHANIC_SOURCE)
     report = validate(path)
-    warnings = [
-        f
-        for f in report.findings
-        if f.stage == "tests" and f.rule == "no_tests_found"
-    ]
+    warnings = [f for f in report.findings if f.stage == "tests" and f.rule == "no_tests_found"]
     assert len(warnings) == 1
     assert warnings[0].severity == "warning"
     # Pipeline still passes (only warnings in tests stage)
@@ -516,9 +505,7 @@ def test_tests_stage_passes_with_passing_sibling_test(tmp_path: Path) -> None:
 
     report = validate(mech_path)
     assert report.passed is True
-    tests_errors = [
-        f for f in report.findings if f.stage == "tests" and f.severity == "error"
-    ]
+    tests_errors = [f for f in report.findings if f.stage == "tests" and f.severity == "error"]
     assert tests_errors == []
 
 

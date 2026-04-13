@@ -215,9 +215,11 @@ class TestRegistryScan:
         info = registry.get_info("m")
         assert info.description == "Test mechanic m"
         assert info.tags == ["x", "y"]
-        assert registry.get_info("ignored") if "ignored" in [
-            i.id for i in registry.list_mechanics()
-        ] else True  # noqa: E501 -- defensive; "ignored" must not be present
+        assert (
+            registry.get_info("ignored")
+            if "ignored" in [i.id for i in registry.list_mechanics()]
+            else True
+        )  # noqa: E501 -- defensive; "ignored" must not be present
         assert "ignored" not in [i.id for i in registry.list_mechanics()]
 
 
@@ -330,3 +332,91 @@ class TestGitHistory:
         registry = MechanicRegistry(non_git_universe / "mechanics", universe_dir=non_git_universe)
         history = registry.get_history("movement")
         assert history == []
+
+
+# ---------------------------------------------------------------------------
+# Validation wiring (04-02 Task 3)
+# ---------------------------------------------------------------------------
+
+
+class TestValidationWiring:
+    def test_scan_returns_validation_reports(self, tmp_path: Path) -> None:
+        """scan() returns a ValidationReport per discovered module."""
+        from token_world.mechanic.registry import MechanicRegistry
+
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+        _write_mechanic_module(
+            mechanics / "only.py",
+            cls_name="OnlyMechanic",
+            id_="only",
+            tags=["core"],
+        )
+
+        registry = MechanicRegistry(mechanics, universe_dir=tmp_path)
+        reports = registry.last_scan_reports
+        assert len(reports) == 1
+        assert reports[0].passed is True
+        # Explicit scan() call returns an equivalent list.
+        fresh = registry.scan()
+        assert len(fresh) == 1
+        assert fresh[0].passed is True
+
+    def test_invalid_mechanic_excluded_from_index(self, tmp_path: Path) -> None:
+        """Modules failing validation never enter the live index."""
+        from token_world.mechanic.registry import MechanicRegistry
+
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+
+        # Valid mechanic
+        _write_mechanic_module(
+            mechanics / "good.py",
+            cls_name="GoodMechanic",
+            id_="good",
+            tags=["core"],
+        )
+
+        # Invalid mechanic: imports networkx (forbidden by D-14)
+        (mechanics / "bad.py").write_text(
+            textwrap.dedent(
+                """\
+                import networkx
+                from token_world.mechanic.protocol import CheckResult, Mechanic
+
+
+                class BadMechanic(Mechanic):
+                    id = "bad"
+                    description = "imports networkx"
+                    voluntary = True
+                    tags: list[str] = []
+
+                    def check(self, ctx):
+                        return CheckResult(passed=False)
+
+                    def apply(self, ctx):
+                        return []
+                """
+            ),
+            encoding="utf-8",
+        )
+
+        registry = MechanicRegistry(mechanics, universe_dir=tmp_path)
+
+        reports = registry.last_scan_reports
+        assert len(reports) == 2
+        passed = [r for r in reports if r.passed]
+        failed = [r for r in reports if not r.passed]
+        assert len(passed) == 1
+        assert len(failed) == 1
+
+        ids = [m.id for m in registry.list_mechanics()]
+        assert ids == ["good"]
+        assert "bad" not in ids
+
+        # The valid mechanic is retrievable
+        mech = registry.get_mechanic("good")
+        assert mech.id == "good"
+
+        with pytest.raises(KeyError):
+            registry.get_mechanic("bad")

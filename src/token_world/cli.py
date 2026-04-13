@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json as _json
+from pathlib import Path
+
 import click
 
 from token_world.universe.manager import UniverseManager
@@ -385,3 +388,63 @@ def viz_graph(
         click.echo(f"Wrote {len(mermaid)} bytes to {output}")
     else:
         click.echo(mermaid)
+
+
+@cli.command("validate-mechanic")
+@click.argument("universe_or_path")
+@click.argument("mechanic_id", required=False, default=None)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["human", "json"]),
+    default="human",
+    show_default=True,
+    help="Output format.",
+)
+def validate_mechanic(universe_or_path: str, mechanic_id: str | None, fmt: str) -> None:
+    """Validate a mechanic module and print a structured report.
+
+    Usage:
+
+      token-world validate-mechanic <universe-slug> <mechanic-id>
+      token-world validate-mechanic <path-to-module.py>
+
+    Exit code 0 on pass, 1 on fail, 2 on resolver errors.
+    """
+    # Deferred import so importing ``token_world.cli`` stays cheap for the
+    # other commands.
+    from token_world.mechanic.validation import validate
+
+    p = Path(universe_or_path)
+    if p.is_file() and p.suffix == ".py":
+        module_path = p
+    else:
+        if mechanic_id is None:
+            click.echo(
+                "Error: mechanic-id is required when universe-or-path is a slug",
+                err=True,
+            )
+            raise SystemExit(2)
+        manager = UniverseManager()
+        try:
+            universe_dir = manager.load(universe_or_path)
+        except (FileNotFoundError, ValueError) as e:
+            click.echo(f"Error: {e}", err=True)
+            raise SystemExit(2) from e
+        module_path = universe_dir / "mechanics" / f"{mechanic_id}.py"
+        if not module_path.is_file():
+            click.echo(f"Error: mechanic file not found: {module_path}", err=True)
+            raise SystemExit(2)
+
+    report = validate(module_path)
+
+    if fmt == "json":
+        click.echo(_json.dumps(report.to_dict(), indent=2, sort_keys=True))
+    else:
+        status = "PASS" if report.passed else "FAIL"
+        click.echo(f"{status} {module_path}")
+        for f in report.findings:
+            loc = f":{f.line}:{f.col}" if f.line is not None else ""
+            click.echo(f"  [{f.severity}] [{f.stage}:{f.rule}] {f.path}{loc} -- {f.message}")
+
+    raise SystemExit(0 if report.passed else 1)

@@ -24,6 +24,7 @@ from token_world.mechanic.loader import (
     load_mechanic_classes,
 )
 from token_world.mechanic.protocol import Mechanic
+from token_world.mechanic.validation import ValidationReport, validate
 
 
 @dataclass
@@ -80,26 +81,52 @@ class MechanicRegistry:
         self._universe_dir = universe_dir or mechanics_dir.parent
         self._index: dict[str, MechanicInfo] = {}
         self._classes: dict[str, type[Mechanic]] = {}
+        self._last_scan_reports: list[ValidationReport] = []
         self.scan()
 
-    def scan(self) -> None:
+    @property
+    def last_scan_reports(self) -> list[ValidationReport]:
+        """Return the ValidationReports from the most recent :meth:`scan`.
+
+        Consumed by 04-03's diagnostics sink to write per-module validation
+        reports under ``<universe>/diagnostics/validation/...`` after every
+        ``resume_tick`` (D-15).
+        """
+        return list(self._last_scan_reports)
+
+    def scan(self) -> list[ValidationReport]:
         """Scan mechanics directory and rebuild the index.
 
-        Clears existing index, walks ``discover_mechanic_modules`` output,
-        and registers every Mechanic subclass found in each module. Metadata
-        comes exclusively from class attributes.
+        Runs :func:`token_world.mechanic.validation.validate` on every
+        discovered module. Modules whose report has ``passed=False`` are
+        EXCLUDED from the live index (D-15) -- callers can still inspect
+        the full report list via the return value or
+        :attr:`last_scan_reports`. Valid modules pass through the usual
+        class-attribute indexing.
+
+        Returns:
+            One :class:`ValidationReport` per module scanned (passing and
+            failing alike). Order matches ``discover_mechanic_modules``.
 
         Raises:
-            ValueError: If two modules declare the same ``id``
-                (T-04-REGISTRY-SHADOWING mitigation).
+            ValueError: If two *valid* modules declare the same ``id``
+                (T-04-REGISTRY-SHADOWING mitigation). Invalid modules are
+                skipped before duplicate detection.
         """
         self._index.clear()
         self._classes.clear()
+        reports: list[ValidationReport] = []
 
         if not self._mechanics_dir.is_dir():
-            return
+            self._last_scan_reports = reports
+            return reports
 
         for module_path in discover_mechanic_modules(self._mechanics_dir):
+            report = validate(module_path)
+            reports.append(report)
+            if not report.passed:
+                continue
+
             classes = load_mechanic_classes(module_path)
             for cls in classes:
                 mechanic_id = cls.id
@@ -118,6 +145,9 @@ class MechanicRegistry:
                 )
                 self._index[mechanic_id] = info
                 self._classes[mechanic_id] = cls
+
+        self._last_scan_reports = reports
+        return reports
 
     def list_mechanics(self) -> list[MechanicInfo]:
         """Return a sorted list of all discovered mechanic info."""
