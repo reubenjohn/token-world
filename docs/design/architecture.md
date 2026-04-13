@@ -104,6 +104,25 @@ classDiagram
         +restore(snapshot) void
     }
 
+    class MechanicContext {
+        +KnowledgeGraph kg
+        +SpatialIndex spatial
+        +TemporalIndex temporal
+    }
+
+    class SpatialIndex {
+        +nearest(point, k, ...) list
+        +within(bbox, ...) list
+        +intersects(node_id, ...) list
+    }
+
+    class TemporalIndex {
+        +query_history(node_id, tick_range) list
+        +query_changes(property, ...) list
+        +find_state_at_tick(node_id, tick) dict
+        +last_change(node_id, property) Event?
+    }
+
     class Mutation {
         +str type
         +str target
@@ -115,4 +134,25 @@ classDiagram
     Mechanic ..> KnowledgeGraph : queries/mutates
     Mechanic ..> Mutation : produces
     KnowledgeGraph ..> Mutation : applies
+    Mechanic ..> MechanicContext : reads
+    MechanicContext --> KnowledgeGraph
+    MechanicContext --> SpatialIndex : lazy
+    MechanicContext --> TemporalIndex : lazy
+    SpatialIndex ..> KnowledgeGraph : rebuilds from
+    TemporalIndex ..> KnowledgeGraph : replays events of
 ```
+
+## Spatial & Temporal Primitives
+
+Mechanics reach the graph through `MechanicContext`. Two lazy accessors extend the DSL without adding cost to mechanics that don't use them:
+
+- **`ctx.spatial`** -- R-tree-backed queries (`nearest`, `within`, `intersects`) over nodes with `position=[x, y]` or `bbox=[x1, y1, x2, y2]` properties. Malformed coords are logged and skipped, not raised.
+- **`ctx.temporal`** -- Event-log queries (`query_history`, `query_changes`, `find_state_at_tick`, `last_change`) over the mem+disk-merged event stream. Reconstructs node state at any reachable tick via snapshot baseline + event replay.
+
+Both are pay-for-what-you-use: `ctx._spatial` / `ctx._temporal` stay `None` until first access.
+
+## Operator Tooling
+
+- **`token-world create <slug>`** -- scaffold a new universe folder.
+- **`token-world list`** -- enumerate known universes.
+- **`token-world viz-graph <slug>`** -- render the knowledge graph as a Mermaid `flowchart LR` with category styling, label/ID sanitisation, and filters (`--node`, `--depth`, `--type`, `--has-property`, `--exclude-property`, `--max-nodes`). See the [viz-graph guide](../guides/viz-graph.md).
