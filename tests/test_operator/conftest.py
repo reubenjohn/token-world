@@ -6,10 +6,15 @@ Plan 04.1-01 ships:
       used by Plan-02's ``test_yield_signal.py`` round-trip tests.
     - ``stub_yield``: factory callable returning a validated :class:`YieldSignal`
       wired to the per-test :func:`universe` fixture (Task 3).
+
+Plan 04.1-03 (Task 3) adds:
+    - ``requires_anthropic``: pytest mark that skips the integration test when
+      ``ANTHROPIC_API_KEY`` is not set, so default CI runs don't fail noisily.
 """
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -19,6 +24,16 @@ import pytest
 from token_world.operator import YieldSignal
 from token_world.operator.testing import EngineStub
 from token_world.universe.manager import UniverseManager
+
+
+def _has_api_key() -> bool:
+    return bool(os.environ.get("ANTHROPIC_API_KEY"))
+
+
+requires_anthropic = pytest.mark.skipif(
+    not _has_api_key(),
+    reason="No ANTHROPIC_API_KEY environment variable; integration test skipped.",
+)
 
 
 @pytest.fixture

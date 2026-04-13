@@ -218,32 +218,79 @@ class OperatorHarness:
             final_text = ""
             cost: float | None = None
             turns = 0
+            result_received = False
+            sdk_subtype: str | None = None
+            sdk_error_str: str | None = None
+            # Map tool_use_id -> "validate_mechanic" for matching subsequent
+            # ToolResultBlocks; per-attempt counter for validation/attempt_NN.json.
+            pending_validations: dict[str, int] = {}
+            validation_attempt_counter = 0
 
             try:
                 async for msg in query(prompt=outer_prompt, options=options):
                     ctx.append_attempt(self._serialise_message(msg))
+                    # Side-effect: when a validate_mechanic ToolResultBlock
+                    # arrives, write the report to validation/attempt_NN.json
+                    # (D-15 substrate).
+                    validation_attempt_counter = self._track_validation(
+                        msg=msg,
+                        ctx=ctx,
+                        pending=pending_validations,
+                        counter=validation_attempt_counter,
+                    )
                     if isinstance(msg, ResultMessage):
                         final_text = getattr(msg, "result", "") or ""
                         cost = getattr(msg, "total_cost_usd", None)
                         turns = getattr(msg, "num_turns", 0) or 0
+                        sdk_subtype = getattr(msg, "subtype", None)
+                        result_received = True
             except Exception as exc:
-                # Land an explicit failure outcome and re-raise. The
-                # context-manager's __exit__ would also write a fallback,
-                # but we want a precise error string on disk and we want
-                # to set tick_continued=False.
-                ctx.close(
-                    {
-                        "success": False,
-                        "mechanic_id": None,
-                        "cost_usd": cost,
-                        "turns": turns,
-                        "tick_continued": False,
-                        "error": repr(exc),
-                    }
+                # Two distinct cases:
+                # (a) Exception BEFORE any ResultMessage — genuine failure;
+                #     close diagnostics with the error and re-raise so the
+                #     caller can react.
+                # (b) Exception AFTER a ResultMessage — the SDK sometimes
+                #     raises during stream cleanup (observed: "Command failed
+                #     with exit code 1" after error_max_turns ResultMessage).
+                #     Log + capture the exception in the outcome but do NOT
+                #     re-raise; we already have the structured result the
+                #     caller needs. Re-raising here would lose the partial
+                #     result and break the integration test path.
+                if not result_received:
+                    ctx.close(
+                        {
+                            "success": False,
+                            "mechanic_id": None,
+                            "cost_usd": cost,
+                            "turns": turns,
+                            "tick_continued": False,
+                            "error": repr(exc),
+                        }
+                    )
+                    raise
+                sdk_error_str = repr(exc)
+                logger.warning(
+                    "SDK query raised after ResultMessage (subtype={}); "
+                    "treating as soft failure: {}",
+                    sdk_subtype,
+                    sdk_error_str,
                 )
-                raise
 
             success, mechanic_id, attempts = self._parse_final(final_text)
+            # If the SDK reported error_max_turns or a stream-cleanup
+            # exception fired post-ResultMessage, override success to False
+            # even if _parse_final salvaged a JSON-shaped payload.
+            if sdk_subtype and sdk_subtype.startswith("error_"):
+                success = False
+            error_str: str | None
+            if success:
+                error_str = None
+            elif sdk_error_str:
+                error_str = sdk_error_str
+            elif sdk_subtype:
+                error_str = f"sdk_{sdk_subtype}"
+            else:
+                error_str = "authoring_unsuccessful"
             ctx.close(
                 {
                     "success": success,
@@ -251,7 +298,7 @@ class OperatorHarness:
                     "cost_usd": cost,
                     "turns": turns,
                     "tick_continued": success,
-                    "error": None if success else "authoring_unsuccessful",
+                    "error": error_str,
                 }
             )
             return OperatorResult(
@@ -262,7 +309,7 @@ class OperatorHarness:
                 final_message=final_text,
                 cost_usd=cost,
                 turns=turns,
-                error=None if success else "authoring_unsuccessful",
+                error=error_str,
             )
 
     # ------------------------------------------------------------------
@@ -307,6 +354,105 @@ class OperatorHarness:
             if isinstance(result_val, str):
                 out["result"] = result_val
         return out
+
+    @staticmethod
+    def _track_validation(
+        *,
+        msg: Any,
+        ctx: Any,
+        pending: dict[str, int],
+        counter: int,
+    ) -> int:
+        """Persist validate_mechanic tool reports to ``validation/attempt_NN.json``.
+
+        Two-pass scan over ``msg.content``:
+
+        1. ToolUseBlock with ``name == "validate_mechanic"`` (or
+           ``"mcp__validation__validate_mechanic"``): record the
+           ``tool_use_id`` and assign it the next attempt number.
+        2. ToolResultBlock pointing back at a tracked id: parse the JSON
+           report from the content string and atomically write it.
+
+        SDK message contents are lists of typed blocks; we duck-type via
+        attribute presence so unexpected shapes don't crash the harness
+        (consistency with :meth:`_serialise_message`).
+
+        Args:
+            msg: One SDK message yielded by ``query()``.
+            ctx: Active :class:`OperatorDiagnosticsContext`.
+            pending: Mutating map of tool_use_id -> attempt number.
+            counter: Current attempt counter (last-assigned attempt number).
+
+        Returns:
+            Updated counter (incremented for each new validate_mechanic use).
+        """
+        content = getattr(msg, "content", None)
+        if not isinstance(content, list):
+            return counter
+        for block in content:
+            block_cls = type(block).__name__
+            # ToolUseBlock — assign attempt number on the way in.
+            if block_cls == "ToolUseBlock":
+                name = getattr(block, "name", "")
+                if name == "validate_mechanic" or name.endswith("__validate_mechanic"):
+                    tool_use_id = getattr(block, "id", None) or getattr(block, "tool_use_id", None)
+                    if isinstance(tool_use_id, str):
+                        counter += 1
+                        pending[tool_use_id] = counter
+            # ToolResultBlock — match against pending, write report.
+            elif block_cls == "ToolResultBlock":
+                tool_use_id = getattr(block, "tool_use_id", None) or getattr(block, "id", None)
+                if not isinstance(tool_use_id, str) or tool_use_id not in pending:
+                    continue
+                attempt_n = pending.pop(tool_use_id)
+                report = OperatorHarness._extract_validation_report(block, attempt_n=attempt_n)
+                try:
+                    ctx.write_validation_report(attempt_n, report)
+                except Exception as exc:  # pragma: no cover — best-effort
+                    logger.warning(
+                        "Failed to write validation/attempt_{:02d}.json: {}",
+                        attempt_n,
+                        exc,
+                    )
+        return counter
+
+    @staticmethod
+    def _extract_validation_report(block: Any, *, attempt_n: int) -> dict[str, Any]:
+        """Pull the JSON validation report out of a ToolResultBlock.
+
+        The validation @tool returns ``{"content": [{"type": "text", "text": "<json>"}],
+        "is_error": ...}``. The block's ``content`` is either a string (single
+        text result) or a list of those content blocks. We walk both shapes
+        and try ``json.loads`` on every text payload until one parses as a
+        dict (the report). On failure we record the raw text + an error flag
+        so post-hoc inspection still has the signal.
+        """
+        raw = getattr(block, "content", None)
+        candidates: list[str] = []
+        if isinstance(raw, str):
+            candidates.append(raw)
+        elif isinstance(raw, list):
+            for item in raw:
+                if isinstance(item, dict):
+                    text = item.get("text")
+                    if isinstance(text, str):
+                        candidates.append(text)
+                elif isinstance(item, str):
+                    candidates.append(item)
+        for text in candidates:
+            try:
+                parsed = json.loads(text)
+            except (json.JSONDecodeError, ValueError):
+                continue
+            if isinstance(parsed, dict):
+                return parsed
+        # Couldn't parse — preserve the raw payload for forensic readability.
+        return {
+            "attempt": attempt_n,
+            "passed": False,
+            "raw_content_repr": repr(raw),
+            "_extraction_error": "no JSON-dict report found in tool result",
+        }
 
     @staticmethod
     def _parse_final(text: str) -> tuple[bool, str | None, int]:

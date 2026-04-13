@@ -15,30 +15,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from token_world.operator.validation_tool import build_validation_server
+from token_world.operator.validation_tool import (
+    build_validate_mechanic_tool,
+    build_validation_server,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _extract_validate_tool(server: Any) -> Any:
-    """Pull the ``validate_mechanic`` SdkMcpTool object out of a server config."""
-    # ``create_sdk_mcp_server`` returns a McpSdkServerConfig dict shape with an
-    # ``instance`` attribute carrying the MCP Server, but the tools are also
-    # registered on the original list passed in. We probe whichever is present.
-    if hasattr(server, "tools"):
-        tools = server.tools
-    elif isinstance(server, dict) and "tools" in server:
-        tools = server["tools"]
-    else:
-        # Fall back: the SDK keeps a private reference; introspect via dataclass
-        instance = getattr(server, "instance", None)
-        tools = getattr(instance, "tools", None) if instance else None
-    assert tools, f"No tools registered on server: {server!r}"
-    by_name = {getattr(t, "name", None): t for t in tools}
-    assert "validate_mechanic" in by_name, f"validate_mechanic not in {sorted(by_name)}"
-    return by_name["validate_mechanic"]
 
 
 async def _invoke(tool: Any, args: dict[str, Any]) -> dict[str, Any]:
@@ -58,17 +42,34 @@ async def _invoke(tool: Any, args: dict[str, Any]) -> dict[str, Any]:
 
 
 def test_validation_server_has_validate_mechanic_tool(universe: Path) -> None:
-    server = build_validation_server(universe)
-    tool = _extract_validate_tool(server)
+    tool = build_validate_mechanic_tool(universe)
     assert getattr(tool, "name", None) == "validate_mechanic"
+
+
+def test_validation_server_returns_well_formed_sdk_server_config(universe: Path) -> None:
+    """build_validation_server returns the SDK's McpSdkServerConfig dict shape.
+
+    The dict deliberately does NOT include the tools list — adding it breaks
+    the SDK's CLI subprocess transport which JSON-serialises mcp_servers
+    (SdkMcpTool is not JSON-serialisable). Use build_validate_mechanic_tool
+    for in-process tool introspection.
+    """
+    server = build_validation_server(universe)
+    assert isinstance(server, dict)
+    assert server.get("type") == "sdk"
+    assert server.get("name") == "validation"
+    assert "instance" in server
+    # Critical invariant — tools must NOT be in the dict (would break the SDK).
+    assert "tools" not in server, (
+        "tools key in SDK server config breaks JSON serialisation of mcp_servers"
+    )
 
 
 @pytest.mark.asyncio
 async def test_validate_mechanic_returns_is_error_false_on_pass(
     universe: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    server = build_validation_server(universe)
-    tool = _extract_validate_tool(server)
+    tool = build_validate_mechanic_tool(universe)
 
     fake_completed = MagicMock(spec=subprocess.CompletedProcess)
     fake_completed.returncode = 0
@@ -91,8 +92,7 @@ async def test_validate_mechanic_returns_is_error_false_on_pass(
 async def test_validate_mechanic_returns_is_error_true_on_fail(
     universe: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    server = build_validation_server(universe)
-    tool = _extract_validate_tool(server)
+    tool = build_validate_mechanic_tool(universe)
 
     fake_completed = MagicMock(spec=subprocess.CompletedProcess)
     fake_completed.returncode = 1
@@ -126,8 +126,7 @@ async def test_validate_mechanic_returns_is_error_true_on_fail(
 async def test_validate_mechanic_crash_returns_is_error_true_text_stderr(
     universe: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    server = build_validation_server(universe)
-    tool = _extract_validate_tool(server)
+    tool = build_validate_mechanic_tool(universe)
 
     fake_completed = MagicMock(spec=subprocess.CompletedProcess)
     fake_completed.returncode = 2
@@ -149,8 +148,7 @@ async def test_validate_mechanic_subprocess_is_shell_false(
     universe: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """T-04.1-11: never shell-interpolate."""
-    server = build_validation_server(universe)
-    tool = _extract_validate_tool(server)
+    tool = build_validate_mechanic_tool(universe)
 
     captured: dict[str, Any] = {}
 
@@ -175,8 +173,7 @@ async def test_validate_mechanic_module_path_arg_is_passed_literal(
     universe: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The module_path string must appear verbatim as a separate argv element."""
-    server = build_validation_server(universe)
-    tool = _extract_validate_tool(server)
+    tool = build_validate_mechanic_tool(universe)
 
     captured: dict[str, Any] = {}
 

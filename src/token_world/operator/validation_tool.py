@@ -11,6 +11,15 @@ Security posture (T-04.1-11):
       ``module_path`` argument is passed verbatim as a separate argv element,
       never interpolated into a shell string. Test
       ``test_validate_mechanic_subprocess_is_shell_false`` enforces this.
+
+Test introspection note:
+    The Agent SDK's ``create_sdk_mcp_server`` returns a ``McpSdkServerConfig``
+    TypedDict shape that does NOT echo the tools list back. We DO NOT add the
+    tools list to the returned dict — doing so breaks the SDK's CLI subprocess
+    transport which JSON-serialises the entire mcp_servers value (and
+    ``SdkMcpTool`` objects are not JSON-serialisable). Tests should call
+    :func:`build_validate_mechanic_tool` directly to get a reference to the
+    underlying tool object for introspection.
 """
 
 from __future__ import annotations
@@ -20,22 +29,17 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from claude_agent_sdk import create_sdk_mcp_server, tool
+from claude_agent_sdk import SdkMcpTool, create_sdk_mcp_server, tool
 
-__all__ = ["build_validation_server"]
+__all__ = ["build_validate_mechanic_tool", "build_validation_server"]
 
 
-def build_validation_server(universe: Path) -> Any:
-    """Return an in-process SDK MCP server exposing ``validate_mechanic``.
+def build_validate_mechanic_tool(universe: Path) -> SdkMcpTool[Any]:
+    """Return the ``validate_mechanic`` :class:`SdkMcpTool` bound to ``universe``.
 
-    Args:
-        universe: Path to the universe folder. The validator subprocess runs
-            with ``cwd=str(universe)`` so relative module paths the subagent
-            passes (e.g., ``"mechanics/pickup.py"``) resolve naturally.
-
-    Returns:
-        ``McpSdkServerConfig`` (opaque to callers — pass it into
-        ``ClaudeAgentOptions(mcp_servers={"validation": ...})``).
+    Exposed for in-process introspection (tests, diagnostics). The production
+    path uses :func:`build_validation_server`, which calls this helper and
+    wraps the result in an SDK MCP server.
     """
 
     @tool(
@@ -91,16 +95,23 @@ def build_validation_server(universe: Path) -> Any:
             "is_error": not bool(report.get("passed", False)),
         }
 
-    server = create_sdk_mcp_server(
+    return validate_mechanic
+
+
+def build_validation_server(universe: Path) -> Any:
+    """Return an in-process SDK MCP server exposing ``validate_mechanic``.
+
+    Args:
+        universe: Path to the universe folder. The validator subprocess runs
+            with ``cwd=str(universe)`` so relative module paths the subagent
+            passes (e.g., ``"mechanics/pickup.py"``) resolve naturally.
+
+    Returns:
+        ``McpSdkServerConfig`` (opaque to callers — pass it into
+        ``ClaudeAgentOptions(mcp_servers={"validation": ...})``).
+    """
+    return create_sdk_mcp_server(
         name="validation",
         version="1.0.0",
-        tools=[validate_mechanic],
+        tools=[build_validate_mechanic_tool(universe)],
     )
-    # The SDK's McpSdkServerConfig dict does NOT echo the tools list back; we
-    # attach it under a ``tools`` key for in-process introspection (testing,
-    # diagnostics). The Agent SDK ignores extra keys when wiring mcp_servers.
-    # ``McpSdkServerConfig`` is a TypedDict; cast through ``dict`` for the
-    # extra-key write while preserving the documented runtime shape.
-    out: dict[str, Any] = dict(server)
-    out["tools"] = [validate_mechanic]
-    return out
