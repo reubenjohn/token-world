@@ -22,7 +22,6 @@ from token_world.operator import (
     YieldSignal,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -129,17 +128,13 @@ def test_options_include_validate_mechanic_tool(
     assert "mcp__validation__validate_mechanic" in options.allowed_tools
 
 
-def test_options_model_is_opus(
-    universe: Path, stub_yield: Callable[..., YieldSignal]
-) -> None:
+def test_options_model_is_opus(universe: Path, stub_yield: Callable[..., YieldSignal]) -> None:
     h = OperatorHarness(universe)
     options = h._build_options(stub_yield(verb="meditate", actor="alice"))
     assert options.model == "opus"
 
 
-def test_options_cwd_is_universe(
-    universe: Path, stub_yield: Callable[..., YieldSignal]
-) -> None:
+def test_options_cwd_is_universe(universe: Path, stub_yield: Callable[..., YieldSignal]) -> None:
     h = OperatorHarness(universe)
     options = h._build_options(stub_yield(verb="meditate", actor="alice"))
     assert options.cwd == str(universe)
@@ -187,9 +182,7 @@ def test_options_max_budget_usd_wired(
 ) -> None:
     """BLOCKER-4 resolution: ``max_budget_usd`` IS a ClaudeAgentOptions field
     (probed on claude-agent-sdk 0.1.58); the harness wires it as a hard cap."""
-    has_field = "max_budget_usd" in {
-        f.name for f in dataclasses.fields(ClaudeAgentOptions)
-    }
+    has_field = "max_budget_usd" in {f.name for f in dataclasses.fields(ClaudeAgentOptions)}
     assert has_field, (
         "BLOCKER-4 expected max_budget_usd to be a ClaudeAgentOptions field; "
         "if this fails the SDK version may have changed — reprobe with "
@@ -219,9 +212,7 @@ async def test_handle_yield_returns_operator_result(
             turns=5,
         ),
     ]
-    monkeypatch.setattr(
-        "token_world.operator.harness.query", _fake_query_factory(fake_msgs)
-    )
+    monkeypatch.setattr("token_world.operator.harness.query", _fake_query_factory(fake_msgs))
 
     h = OperatorHarness(universe)
     signal = stub_yield(verb="meditate", actor="alice")
@@ -246,13 +237,9 @@ async def test_handle_yield_writes_diagnostics(
     fake_msgs = [
         _make_assistant_msg("Step 1"),
         _make_assistant_msg("Step 2"),
-        _make_result_msg(
-            result='{"success": true, "mechanic_id": "meditate", "attempts": 2}'
-        ),
+        _make_result_msg(result='{"success": true, "mechanic_id": "meditate", "attempts": 2}'),
     ]
-    monkeypatch.setattr(
-        "token_world.operator.harness.query", _fake_query_factory(fake_msgs)
-    )
+    monkeypatch.setattr("token_world.operator.harness.query", _fake_query_factory(fake_msgs))
 
     h = OperatorHarness(universe)
     signal = stub_yield(verb="meditate", actor="alice")
@@ -311,9 +298,7 @@ async def test_handle_yield_unparseable_result_returns_failure(
     fake_msgs = [
         _make_result_msg(result="I tried but it didn't work because reasons.", cost=0.05),
     ]
-    monkeypatch.setattr(
-        "token_world.operator.harness.query", _fake_query_factory(fake_msgs)
-    )
+    monkeypatch.setattr("token_world.operator.harness.query", _fake_query_factory(fake_msgs))
 
     h = OperatorHarness(universe)
     signal = stub_yield(verb="meditate", actor="alice")
@@ -337,13 +322,9 @@ async def test_handle_yield_message_serialisation_does_not_crash_on_unexpected_s
 
     fake_msgs = [
         WeirdMessage(),
-        _make_result_msg(
-            result='{"success": true, "mechanic_id": "x", "attempts": 1}'
-        ),
+        _make_result_msg(result='{"success": true, "mechanic_id": "x", "attempts": 1}'),
     ]
-    monkeypatch.setattr(
-        "token_world.operator.harness.query", _fake_query_factory(fake_msgs)
-    )
+    monkeypatch.setattr("token_world.operator.harness.query", _fake_query_factory(fake_msgs))
 
     h = OperatorHarness(universe)
     signal = stub_yield(verb="meditate", actor="alice")
