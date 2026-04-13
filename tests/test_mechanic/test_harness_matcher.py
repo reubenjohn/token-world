@@ -267,25 +267,19 @@ class TestResolveBlockedBy:
     ``expected_outcome`` field.
     """
 
-    def test_returns_none_for_non_stub_mechanic(
-        self, stub_registry: MechanicRegistry
-    ) -> None:
+    def test_returns_none_for_non_stub_mechanic(self, stub_registry: MechanicRegistry) -> None:
         """A real mechanic with no blocked_by attribute resolves to None."""
         info = match_mechanic_for_verb(stub_registry, "move")
         assert info is not None
         assert _resolve_blocked_by(stub_registry, info) is None
 
-    def test_returns_gap_id_for_stub_mechanic(
-        self, stub_registry: MechanicRegistry
-    ) -> None:
+    def test_returns_gap_id_for_stub_mechanic(self, stub_registry: MechanicRegistry) -> None:
         """A stub with blocked_by="GAP-ENGXX" resolves to that gap id."""
         info = match_mechanic_for_verb(stub_registry, "stubmech")
         assert info is not None
         assert _resolve_blocked_by(stub_registry, info) == "GAP-ENGXX"
 
-    def test_returns_none_when_matched_info_is_none(
-        self, stub_registry: MechanicRegistry
-    ) -> None:
+    def test_returns_none_when_matched_info_is_none(self, stub_registry: MechanicRegistry) -> None:
         """A None match (no mechanic for the verb) safely resolves to None."""
         assert _resolve_blocked_by(stub_registry, None) is None
 

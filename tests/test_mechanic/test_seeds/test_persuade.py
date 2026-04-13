@@ -59,15 +59,11 @@ class TestPersuadeMetadata:
 
 
 class TestPersuadeStubRegistration:
-    def test_persuade_stub_is_discoverable_by_registry(
-        self, registry: MechanicRegistry
-    ) -> None:
+    def test_persuade_stub_is_discoverable_by_registry(self, registry: MechanicRegistry) -> None:
         info = registry.get_info("persuade")
         assert info.id == "persuade"
 
-    def test_persuade_class_blocked_by_via_get_class(
-        self, registry: MechanicRegistry
-    ) -> None:
+    def test_persuade_class_blocked_by_via_get_class(self, registry: MechanicRegistry) -> None:
         """The harness reads blocked_by via the public get_class accessor."""
         cls = registry.get_class("persuade")
         assert getattr(cls, "blocked_by", None) == "GAP-ENG03"
@@ -79,9 +75,7 @@ class TestPersuadeStubRegistration:
 
 
 class TestPersuadeCheckApply:
-    def test_check_refuses_with_blocked_by_reason(
-        self, mechanic: PersuadeMechanic
-    ) -> None:
+    def test_check_refuses_with_blocked_by_reason(self, mechanic: PersuadeMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")
         kg.add_node("bob", node_type="agent")

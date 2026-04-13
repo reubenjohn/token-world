@@ -31,9 +31,7 @@ class CooperateMechanic(Mechanic):
     """
 
     id = "cooperate"
-    description = (
-        "Multi-actor cooperative action (framework-gap stub until GAP-ENG05)"
-    )
+    description = "Multi-actor cooperative action (framework-gap stub until GAP-ENG05)"
     voluntary = True
     tags: list[str] = ["social", "multi_actor"]
     blocked_by: str = "GAP-ENG05"

@@ -79,7 +79,7 @@ class TellMechanic(Mechanic):
                 passed=False,
                 reasons=["actor has no utterance dict (GAP-ENG02 workaround)"],
             )
-        if not _REQUIRED_UTTERANCE_KEYS <= set(utterance.keys()):
+        if not set(utterance.keys()) >= _REQUIRED_UTTERANCE_KEYS:
             missing = sorted(_REQUIRED_UTTERANCE_KEYS - set(utterance.keys()))
             return CheckResult(
                 passed=False,

@@ -38,9 +38,7 @@ class PersuadeMechanic(Mechanic):
     """
 
     id = "persuade"
-    description = (
-        "Agent attempts to persuade another (framework-gap stub until GAP-ENG03)"
-    )
+    description = "Agent attempts to persuade another (framework-gap stub until GAP-ENG03)"
     voluntary = True
     tags: list[str] = ["social", "llm_adjudicated"]
     blocked_by: str = "GAP-ENG03"

@@ -96,9 +96,7 @@ class TestTellCheck:
         assert result.passed is False
         assert any("utterance" in r for r in result.reasons)
 
-    def test_fails_when_utterance_missing_required_keys(
-        self, mechanic: TellMechanic
-    ) -> None:
+    def test_fails_when_utterance_missing_required_keys(self, mechanic: TellMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent", utterance={"about": "chest"})
         kg.add_node("bob", node_type="agent")

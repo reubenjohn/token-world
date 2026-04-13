@@ -42,23 +42,17 @@ class TestCooperateMetadata:
 
 
 class TestCooperateStubRegistration:
-    def test_cooperate_stub_is_discoverable_by_registry(
-        self, registry: MechanicRegistry
-    ) -> None:
+    def test_cooperate_stub_is_discoverable_by_registry(self, registry: MechanicRegistry) -> None:
         info = registry.get_info("cooperate")
         assert info.id == "cooperate"
 
-    def test_cooperate_class_blocked_by_via_get_class(
-        self, registry: MechanicRegistry
-    ) -> None:
+    def test_cooperate_class_blocked_by_via_get_class(self, registry: MechanicRegistry) -> None:
         cls = registry.get_class("cooperate")
         assert getattr(cls, "blocked_by", None) == "GAP-ENG05"
 
 
 class TestCooperateCheckApply:
-    def test_check_refuses_with_blocked_by_reason(
-        self, mechanic: CooperateMechanic
-    ) -> None:
+    def test_check_refuses_with_blocked_by_reason(self, mechanic: CooperateMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")
         kg.add_node("boulder", node_type="entity")

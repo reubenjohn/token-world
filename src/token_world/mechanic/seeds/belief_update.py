@@ -91,11 +91,7 @@ class BeliefUpdateMechanic(Mechanic):
 
     def apply(self, ctx: MechanicContext) -> list[Mutation]:
         target_props = ctx.query_node(ctx.target)
-        observed = {
-            prop: target_props[prop]
-            for prop in _OBSERVABLE_PROPS
-            if prop in target_props
-        }
+        observed = {prop: target_props[prop] for prop in _OBSERVABLE_PROPS if prop in target_props}
 
         beliefs_raw = ctx.query_node(ctx.actor).get("beliefs")
         beliefs = dict(beliefs_raw) if isinstance(beliefs_raw, dict) else {}

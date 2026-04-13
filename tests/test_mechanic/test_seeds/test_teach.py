@@ -63,15 +63,11 @@ class TestTeachMetadata:
 
 
 class TestTeachCheck:
-    def test_passes_for_uc_o05(
-        self, uc_o05_graph: KnowledgeGraph, mechanic: TeachMechanic
-    ) -> None:
+    def test_passes_for_uc_o05(self, uc_o05_graph: KnowledgeGraph, mechanic: TeachMechanic) -> None:
         ctx = MechanicContext(uc_o05_graph, actor="alice", target="lockpicking")
         assert mechanic.check(ctx).passed is True
 
-    def test_fails_when_actor_does_not_know_skill(
-        self, mechanic: TeachMechanic
-    ) -> None:
+    def test_fails_when_actor_does_not_know_skill(self, mechanic: TeachMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent", knows_skill=[])
         kg.add_node("bob", node_type="agent", knows_skill=[])
@@ -113,9 +109,7 @@ class TestTeachApply:
         mechanic.apply(ctx)
         assert "lockpicking" in uc_o05_graph.query("alice").get("knows_skill", [])
 
-    def test_recipient_already_knows_skill_is_noop(
-        self, mechanic: TeachMechanic
-    ) -> None:
+    def test_recipient_already_knows_skill_is_noop(self, mechanic: TeachMechanic) -> None:
         """Re-teaching a known skill leaves bob.knows_skill unchanged."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent", knows_skill=["lockpicking"])

@@ -138,9 +138,7 @@ class TestBeliefUpdateApply:
         assert beliefs.get("door") == {"locked": False}
         assert beliefs.get("chest", {}).get("locked") is True
 
-    def test_no_observable_props_yields_empty_belief(
-        self, mechanic: BeliefUpdateMechanic
-    ) -> None:
+    def test_no_observable_props_yields_empty_belief(self, mechanic: BeliefUpdateMechanic) -> None:
         """Target with no observable props writes an empty dict (still a learning event)."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent", beliefs={})
