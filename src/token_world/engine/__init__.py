@@ -9,6 +9,8 @@ Components available in this package:
   Wired into the tick pipeline by Plan 05-08; standalone and testable here.
 - ConservationChecker / ConservationVerdict — post-execute conservation enforcement
   (D-16, GAP-ENG06, Plan 05-06). Orchestrator wired in Plan 05-08.
+- TickSummaryWriter / build_tick_summary — per-tick JSON summary writer (D-20, SIM-11,
+  Plan 05-07). Orchestrator wired in Plan 05-08.
 """
 
 from __future__ import annotations
@@ -31,6 +33,7 @@ from token_world.engine.models import (
     YieldDecision,
 )
 from token_world.engine.observer import Observer
+from token_world.engine.summary_writer import TickSummaryWriter, build_tick_summary
 
 __all__ = [
     "ClassifiedAction",
@@ -45,9 +48,11 @@ __all__ = [
     "Observer",
     "RefuseDecision",
     "TickSummary",
+    "TickSummaryWriter",
     "VerdictLowConfidence",
     "VerdictNoSuchTarget",
     "VerdictNoViableAction",
     "VerdictOk",
     "YieldDecision",
+    "build_tick_summary",
 ]
