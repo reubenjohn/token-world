@@ -273,6 +273,99 @@ class TestSeedUniverse:
 
 
 # ---------------------------------------------------------------------------
+# get_class accessor (04-REVIEWS HIGH #2 / Suggestion #12)
+# ---------------------------------------------------------------------------
+
+
+class TestGetClass:
+    """Public accessor returning the Mechanic subclass itself (not an instance).
+
+    Motivates 04-09's ``blocked_by`` routing, which needs to read a
+    class-level attribute without instantiating the mechanic and without
+    reaching into ``registry._classes``.
+    """
+
+    def test_get_class_returns_registered_class(self, tmp_path: Path) -> None:
+        """get_class returns the exact subclass object registered under id.
+
+        Identity is asserted via two calls on the same registry: the accessor
+        must hand back the *same* class object every time (i.e. it reads the
+        stored value, it does not re-load the module). Name and Mechanic-
+        subclass provenance round out the identity check.
+        """
+        from token_world.mechanic.registry import MechanicRegistry
+
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+        _write_mechanic_module(
+            mechanics / "movement.py",
+            cls_name="MovementMechanic",
+            id_="movement",
+            tags=["spatial"],
+        )
+
+        registry = MechanicRegistry(mechanics, universe_dir=tmp_path)
+
+        cls = registry.get_class("movement")
+        # Same class object on repeated lookup -- the accessor reads from
+        # the registry's stored index, it does not re-import the module.
+        assert registry.get_class("movement") is cls
+
+        # It is the MovementMechanic subclass with the expected id.
+        assert issubclass(cls, Mechanic)
+        assert cls.__name__ == "MovementMechanic"
+        assert cls.id == "movement"
+
+    def test_get_class_raises_keyerror_for_unknown_id(self, tmp_path: Path) -> None:
+        """Unknown id -> KeyError with the same repr-quoted convention as get_mechanic."""
+        from token_world.mechanic.registry import MechanicRegistry
+
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+        _write_mechanic_module(
+            mechanics / "only.py",
+            cls_name="OnlyMechanic",
+            id_="only",
+            tags=[],
+        )
+
+        registry = MechanicRegistry(mechanics, universe_dir=tmp_path)
+        with pytest.raises(KeyError, match="Unknown mechanic: 'nonexistent'"):
+            registry.get_class("nonexistent")
+
+    def test_get_class_exposes_class_not_instance(self, tmp_path: Path) -> None:
+        """get_class returns a type; get_mechanic returns an instance of that type."""
+        from token_world.mechanic.registry import MechanicRegistry
+
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+        _write_mechanic_module(
+            mechanics / "movement.py",
+            cls_name="MovementMechanic",
+            id_="movement",
+            tags=["spatial"],
+        )
+
+        registry = MechanicRegistry(mechanics, universe_dir=tmp_path)
+        cls = registry.get_class("movement")
+        instance = registry.get_mechanic("movement")
+
+        # The accessor returns a class object (type), not an instance.
+        assert isinstance(cls, type)
+        assert issubclass(cls, Mechanic)
+        assert not isinstance(cls, Mechanic)
+
+        # The companion accessor produces an instance of that same class.
+        assert isinstance(instance, cls)
+        assert type(instance) is cls
+
+        # Class-level attributes are readable without instantiation -- this
+        # is the property 04-09's blocked_by routing relies on.
+        assert cls.id == "movement"
+        assert "spatial" in cls.tags
+
+
+# ---------------------------------------------------------------------------
 # Query by Tag
 # ---------------------------------------------------------------------------
 

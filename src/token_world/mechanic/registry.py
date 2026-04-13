@@ -237,6 +237,38 @@ class MechanicRegistry:
             raise KeyError(f"Unknown mechanic: {mechanic_id}")
         return self._classes[mechanic_id]()
 
+    def get_class(self, mechanic_id: str) -> type[Mechanic]:
+        """Return the registered Mechanic subclass (not an instance) by id.
+
+        Companion to :meth:`get_mechanic`: where ``get_mechanic`` constructs
+        and returns a fresh instance, ``get_class`` returns the class object
+        itself so callers can read class-level attributes (e.g. ``id``,
+        ``description``, ``tags``, and -- motivating the accessor --
+        framework-gap markers like ``blocked_by`` declared on the class)
+        without paying the cost of instantiation and without reaching into
+        the registry's private ``_classes`` dict.
+
+        Motivating caller: plan 04-09's ``blocked_by`` routing logic in the
+        integration harness (04-04) inspects a mechanic's declared
+        framework-gap class attribute to decide how to route a stubbed
+        scenario. That code needs a stable public API, not the documented
+        private-access fallback flagged by 04-REVIEWS.md HIGH #2.
+
+        Args:
+            mechanic_id: The mechanic identifier.
+
+        Returns:
+            The :class:`Mechanic` subclass registered under *mechanic_id*.
+
+        Raises:
+            KeyError: If *mechanic_id* is not in the registry. Matches the
+                :meth:`get_mechanic` convention with message
+                ``f"Unknown mechanic: {mechanic_id!r}"``.
+        """
+        if mechanic_id not in self._classes:
+            raise KeyError(f"Unknown mechanic: {mechanic_id!r}")
+        return self._classes[mechanic_id]
+
     def get_info(self, mechanic_id: str) -> MechanicInfo:
         """Return metadata for a mechanic by id.
 
