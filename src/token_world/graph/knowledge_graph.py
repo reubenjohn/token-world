@@ -38,7 +38,7 @@ def _validate_value(value: Any) -> None:
 
 def _safe_copy(value: Any) -> Any:
     """Deep copy mutable values to prevent reference mutation."""
-    if isinstance(value, (list, dict)):
+    if isinstance(value, list | dict):
         return copy.deepcopy(value)
     return value
 
@@ -110,6 +110,67 @@ class KnowledgeGraph:
     def neighbors(self, node_id: str) -> list[str]:
         """Get list of node IDs adjacent to the given node."""
         return list(self._graph.neighbors(node_id))
+
+    def ego_subgraph(
+        self,
+        anchor: str | list[str],
+        *,
+        depth: int = 1,
+        undirected: bool = True,
+    ) -> nx.DiGraph:
+        """Return a read-only ego-graph copy around ``anchor``.
+
+        Public API for subgraph extraction — preferred over reaching into the
+        private ``_graph`` attribute (see review finding M-02).
+
+        Args:
+            anchor: Single node ID, or a non-empty list/tuple of node IDs whose
+                ego-graphs will be unioned.
+            depth: Radius (number of hops from each anchor).
+            undirected: If True (default), edges in either direction contribute
+                to the neighbourhood; if False, only out-edges from the anchor.
+
+        Returns:
+            A fresh :class:`networkx.DiGraph` copy. Mutating it does not affect
+            the knowledge graph. ``graph["anchors"]`` is set to a tuple of the
+            anchor IDs for downstream consumers.
+
+        Raises:
+            ValueError: If ``anchor`` is an empty sequence.
+            networkx.NodeNotFound: If any anchor is not present in the graph.
+        """
+        if isinstance(anchor, str):
+            sub: nx.DiGraph = nx.ego_graph(
+                self._graph, anchor, radius=depth, undirected=undirected
+            ).copy()
+            sub.graph["anchors"] = (anchor,)
+            return sub
+        if not anchor:
+            raise ValueError("`anchor` sequence must be non-empty.")
+        ego_graphs = [
+            nx.ego_graph(self._graph, a, radius=depth, undirected=undirected) for a in anchor
+        ]
+        merged: nx.DiGraph = nx.compose_all(ego_graphs).copy()
+        merged.graph["anchors"] = tuple(anchor)
+        return merged
+
+    def get_session_events(self) -> list[GraphEvent]:
+        """Return the in-memory session events (not yet persisted or compacted).
+
+        Public accessor for derived views (e.g. :class:`TemporalIndex`) that
+        need to combine in-memory session events with persisted events. Returns
+        a snapshot list — mutations to the returned list do not affect the
+        graph.
+        """
+        return self._events.get_events()
+
+    def get_db_path(self) -> Path | None:
+        """Return the configured SQLite DB path, or ``None`` if in-memory only.
+
+        Public accessor for derived views that need to read persisted events
+        directly. In-memory-only graphs legitimately return ``None``.
+        """
+        return self._db_path
 
     def nodes(self, **filters: Any) -> list[str]:
         """Get node IDs, optionally filtered by property values.

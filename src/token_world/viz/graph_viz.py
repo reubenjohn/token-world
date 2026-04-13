@@ -69,26 +69,22 @@ def extract_subgraph(
     Exactly one of ``anchor`` / ``anchors`` must be provided. The resulting
     graph uses :func:`networkx.ego_graph` with ``undirected=True`` so edges
     in either direction contribute to the neighbourhood.
+
+    Delegates to :meth:`KnowledgeGraph.ego_subgraph` (public API) rather than
+    reaching into the private ``_graph`` attribute (review finding M-02).
     """
     if anchor is None and anchors is None:
         raise ValueError("extract_subgraph requires either `anchor` or `anchors`.")
     if anchor is not None and anchors is not None:
         raise ValueError("Provide only one of `anchor` or `anchors`, not both.")
 
-    base: nx.DiGraph = kg._graph  # intentional access to the underlying DiGraph
-
     if anchor is not None:
-        sub: nx.DiGraph = nx.ego_graph(base, anchor, radius=depth, undirected=True).copy()
-        sub.graph["anchors"] = (anchor,)
-        return sub
+        return kg.ego_subgraph(anchor, depth=depth, undirected=True)
 
     assert anchors is not None  # narrow for type-checker
     if not anchors:
         raise ValueError("`anchors` must be a non-empty list.")
-    ego_graphs = [nx.ego_graph(base, a, radius=depth, undirected=True) for a in anchors]
-    merged: nx.DiGraph = nx.compose_all(ego_graphs).copy()
-    merged.graph["anchors"] = tuple(anchors)
-    return merged
+    return kg.ego_subgraph(anchors, depth=depth, undirected=True)
 
 
 # ---------------------------------------------------------------------------

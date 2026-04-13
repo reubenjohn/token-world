@@ -40,9 +40,9 @@ class TemporalIndex:
     ``graph_events`` SQLite table (prior sessions). Owns no storage.
 
     Args:
-        graph: KnowledgeGraph to query. Internal attributes ``_events`` and
-            ``_db_path`` are accessed by design — Phase 1 has not yet
-            exposed public accessors for them. Migrate when it does.
+        graph: KnowledgeGraph to query. Uses public accessors
+            :meth:`KnowledgeGraph.get_session_events` and
+            :meth:`KnowledgeGraph.get_db_path` (review finding M-03).
     """
 
     def __init__(self, graph: KnowledgeGraph) -> None:
@@ -62,7 +62,7 @@ class TemporalIndex:
             node_id: Target to filter by (matches ``event.target_id``).
             tick_range: Optional inclusive ``(lo, hi)`` tick bounds.
         """
-        mem = [e for e in self._graph._events.get_events() if e.target_id == node_id]
+        mem = [e for e in self._graph.get_session_events() if e.target_id == node_id]
         disk = self._query_disk(
             "target_id = ?",
             (node_id,),
@@ -90,7 +90,7 @@ class TemporalIndex:
         """
         mem = [
             e
-            for e in self._graph._events.get_events()
+            for e in self._graph.get_session_events()
             if e.event_type == "set_property"
             and e.property_name == property_name
             and (node_id is None or e.target_id == node_id)
@@ -162,7 +162,7 @@ class TemporalIndex:
 
     def _load_baseline(self, node_id: str, tick_id: int) -> tuple[dict[str, Any], int]:
         """Return ``(state_dict, base_tick)`` for ``node_id`` as of some tick <= tick_id."""
-        db_path = getattr(self._graph, "_db_path", None)
+        db_path = self._graph.get_db_path()
         if db_path is None:
             add_event = self._first_add_event(node_id)
             if add_event is None or add_event.tick_id > tick_id:
@@ -225,7 +225,7 @@ class TemporalIndex:
         Every call goes through ``conn.execute(sql, params)`` with ``?``
         placeholders (T-03-03 mitigation).
         """
-        db_path = getattr(self._graph, "_db_path", None)
+        db_path = self._graph.get_db_path()
         if db_path is None:
             return []
         sql = (
