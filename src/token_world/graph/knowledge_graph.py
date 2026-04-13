@@ -5,13 +5,16 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 
 from token_world.graph.events import EventStore, GraphEvent
 from token_world.graph.identity import claim_id as _claim_id
 from token_world.graph.models import ALLOWED_PROPERTY_TYPES, Mutation, SnapshotInfo
+
+if TYPE_CHECKING:
+    from token_world.graph.persistence import GraphPersistence
 
 
 def _validate_value(value: Any) -> None:
@@ -58,7 +61,7 @@ class KnowledgeGraph:
         self._events: EventStore = EventStore()
         self._db_path = db_path
         self._current_tick: int = 0
-        self._persistence: Any = None  # Set lazily if db_path provided
+        self._persistence: GraphPersistence | None = None  # Set lazily if db_path provided
 
         if db_path is not None:
             # Import here to avoid circular imports; persistence is optional
@@ -438,7 +441,7 @@ class KnowledgeGraph:
         # Persist current state first
         self.save()
         # Save snapshot
-        snapshot_id = cast(int, self._persistence.save_snapshot(self._graph, tick_id, summary))
+        snapshot_id = self._persistence.save_snapshot(self._graph, tick_id, summary)
         # Prune if over retention limit
         self._persistence.prune_snapshots(max_count=50)
         # Event compaction: find oldest retained snapshot tick
@@ -476,4 +479,4 @@ class KnowledgeGraph:
         """
         if self._persistence is None:
             return []
-        return cast(list[SnapshotInfo], self._persistence.list_snapshots())
+        return self._persistence.list_snapshots()
