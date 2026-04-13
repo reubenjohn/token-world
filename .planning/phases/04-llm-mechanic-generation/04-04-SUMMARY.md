@@ -354,3 +354,23 @@ beyond what the plan anticipated.
   - `grep -c "DiagnosticsSink" tests/test_integration/conftest.py` → 5 matches (import + fixture + 3 docstring references) ✓
   - `grep -c "diagnostics_sink" tests/test_integration/test_use_cases.py` → 2 matches (fixture param + open_tick call) ✓
   - `grep -rc "expected_outcome: pass" .planning/use-cases/ | grep -v ':0$'` → 0 files with the line (no seeds authored yet) ✓
+
+## Harness Matcher — Extension Contract
+
+The verb→mechanic matcher lives at `tests/test_integration/test_use_cases.py::match_mechanic_for_verb`
+and is the sole router between a use-case action's classified verb and a voluntary
+mechanic. Its contract and test coverage live in `tests/test_mechanic/test_harness_matcher.py`.
+
+**Extension policy** (mandated by 04-REVIEWS.md HIGH #1):
+
+| Extension type | Owner plan | New test case in test_harness_matcher.py |
+|----------------|------------|------------------------------------------|
+| Alias lookup (e.g. "walk" -> move) | must re-plan 04-04 | YES, added before matcher change |
+| Tag fallback (e.g. tag="movement") | must re-plan 04-04 | YES |
+| blocked_by routing | must re-plan 04-04 | YES |
+| Refusal-narrative synthesis | must re-plan 04-04 | YES — harness concern not seed concern |
+| Classifier-driven routing | Phase 5 | YES, replaces stub contract |
+
+**No plan-local matcher changes in seed plans (04-06..04-11).** If a seed mechanic
+needs the harness to behave differently, that's a harness change — open a new plan
+or insert a decimal plan. See 04-REVIEWS.md HIGH #1 for the rationale.

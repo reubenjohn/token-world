@@ -72,9 +72,42 @@ def match_mechanic_for_verb(
     proper classifier-driven router.
 
     This helper is intentionally self-contained so the downstream
-    centralized matcher gate (to be authored after 04-04 lands) can
-    import it, document the contract, and test it in isolation without
-    surgery on the harness body.
+    centralized matcher gate (``tests/test_mechanic/test_harness_matcher.py``)
+    can import it, document the contract, and test it in isolation
+    without surgery on the harness body.
+
+    Contract:
+        - *verb* is NOT normalized (no case folding, no whitespace
+          strip, no alias resolution). Callers are responsible for
+          handing in a canonical verb string.
+        - Returns the FIRST voluntary :class:`MechanicInfo` whose
+          ``id`` equals *verb*, scanning ``registry.list_mechanics()``
+          in its native sort order (sorted by id today).
+        - Returns ``None`` when *verb* is empty/falsy.
+        - Returns ``None`` when no voluntary mechanic's ``id`` equals
+          *verb*.
+        - Involuntary mechanics (``voluntary=False``) are NEVER
+          returned, even if their ``id`` matches *verb*. Involuntary
+          mechanics are driven by the ``ChainExecutionEngine``, not by
+          classified-action routing.
+
+    Extension Policy:
+        Any future extension (alias lookup, tag fallback, ``blocked_by``
+        routing, refusal-narrative synthesis, classifier-driven
+        routing) MUST ship with a new test case in
+        ``tests/test_mechanic/test_harness_matcher.py`` -- plan-local
+        matcher changes in seed plans (04-06..04-11) are explicitly
+        disallowed. This stops the accumulation of fragile,
+        unreviewable matcher edits across clusters. See
+        ``.planning/phases/04-llm-mechanic-generation/04-REVIEWS.md``
+        HIGH #1 for the rationale and
+        ``.planning/phases/04-llm-mechanic-generation/04-04-SUMMARY.md``
+        "Harness Matcher -- Extension Contract" for the owner-plan
+        table.
+
+        When the v1 stub is replaced by Phase 5's classifier-driven
+        router, retire this helper in favor of that router; keep the
+        test file as the contract-regression guard.
 
     Args:
         registry: A populated :class:`MechanicRegistry`.
@@ -82,6 +115,11 @@ def match_mechanic_for_verb(
 
     Returns:
         The matching :class:`MechanicInfo`, or ``None``.
+
+    See also:
+        ``tests/test_mechanic/test_harness_matcher.py`` -- the
+        contract-regression guard. Every behavior described above is
+        covered there; every future extension adds a case there FIRST.
     """
     if not verb:
         return None
