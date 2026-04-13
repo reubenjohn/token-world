@@ -1,0 +1,13 @@
+name: "basic_exploration"
+description: "Agent explores a starting room, with a few adversarial injections."
+adversarial_rate: 0.0
+seed: 42
+turns:
+  - action: "look around"
+  - action: "examine the lantern"
+  - action: "pick up the lantern"
+  - inject: nonsense
+  - action: null
+  - inject: adversarial
+  - action: null
+  - action: "walk east"
