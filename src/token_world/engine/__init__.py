@@ -7,10 +7,13 @@ Components available in this package:
 - Models (ClassifiedAction, ClassifierVerdict, Decision, …) — Pydantic pipeline types.
 - Observer — Sonnet-backed observation synthesiser (D-15 hard-grounding, Plan 05-05).
   Wired into the tick pipeline by Plan 05-08; standalone and testable here.
+- ConservationChecker / ConservationVerdict — post-execute conservation enforcement
+  (D-16, GAP-ENG06, Plan 05-06). Orchestrator wired in Plan 05-08.
 """
 
 from __future__ import annotations
 
+from token_world.engine.conservation import ConservationChecker, ConservationVerdict
 from token_world.engine.models import (
     ClassifiedAction,
     ClassifierVerdict,
@@ -32,6 +35,8 @@ from token_world.engine.observer import Observer
 __all__ = [
     "ClassifiedAction",
     "ClassifierVerdict",
+    "ConservationChecker",
+    "ConservationVerdict",
     "Decision",
     "ExecuteDecision",
     "MatchedResult",
