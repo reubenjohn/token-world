@@ -9,6 +9,9 @@ Tests are grouped by stage:
 
 from __future__ import annotations
 
+import networkx as nx
+import pytest
+
 from token_world.engine.visibility import VisibilityProjector
 from token_world.graph import KnowledgeGraph
 
@@ -457,3 +460,48 @@ class TestBeliefOverlay:
         # Room and chair not in beliefs — ground truth
         assert result["room_1"]["properties"].get("name") == "Common Room"
         assert result["chair"]["properties"].get("hp") == 100
+
+
+# ---------------------------------------------------------------------------
+# WR-04 regression: _outgoing_edges error handling
+# ---------------------------------------------------------------------------
+
+
+class TestOutgoingEdgesErrorHandling:
+    """WR-04: bare except Exception in _outgoing_edges must be narrowed.
+
+    NetworkXError (corrupted graph) should propagate; only NodeNotFound
+    (TOCTOU race after has_node guard) should be swallowed silently.
+    """
+
+    def test_node_not_found_returns_empty_list(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """NodeNotFound from ego_subgraph is caught and returns [] (TOCTOU safety)."""
+        kg = KnowledgeGraph(db_path=None)
+        kg.add_node("alice", node_type="agent", name="Alice")
+        proj = VisibilityProjector(kg)
+
+        # Simulate TOCTOU: has_node passes but ego_subgraph raises NodeNotFound
+        def _raise_node_not_found(*args, **kwargs):
+            raise nx.NodeNotFound("alice")
+
+        monkeypatch.setattr(kg, "ego_subgraph", _raise_node_not_found)
+        result = proj._outgoing_edges("alice")
+        assert result == []
+
+    def test_networkx_error_propagates(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """NetworkXError (corrupted graph) must NOT be silently swallowed.
+
+        WR-04: the old bare 'except Exception' would hide corrupted-graph
+        errors. After the fix, only NodeNotFound is caught; NetworkXError
+        propagates to the caller as a genuine error signal.
+        """
+        kg = KnowledgeGraph(db_path=None)
+        kg.add_node("alice", node_type="agent", name="Alice")
+        proj = VisibilityProjector(kg)
+
+        def _raise_networkx_error(*args, **kwargs):
+            raise nx.NetworkXError("corrupted graph state")
+
+        monkeypatch.setattr(kg, "ego_subgraph", _raise_networkx_error)
+        with pytest.raises(nx.NetworkXError):
+            proj._outgoing_edges("alice")

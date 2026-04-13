@@ -16,6 +16,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import networkx as nx
+
 from token_world.graph import KnowledgeGraph
 
 ILLUMINATION_THRESHOLD = 0.2  # rooms below this need light source to see details
@@ -119,7 +121,8 @@ class VisibilityProjector:
             return []
         try:
             subgraph = self.graph.ego_subgraph(node_id, depth=1, undirected=False)
-        except Exception:  # noqa: BLE001
+        except nx.NodeNotFound:
+            # has_node guard above should prevent this; treat as empty edges (TOCTOU safety)
             return []
         result = []
         for src, dst, edge_data in subgraph.edges(data=True):
