@@ -438,12 +438,20 @@ def _has_valid_method(cls: type, name: str) -> bool:
     return params == ["self", "ctx"]
 
 
-def _stage_tests(report: ValidationReport, module_path: Path, mechanic_classes: list[type[Mechanic]]) -> None:
+def _stage_tests(
+    report: ValidationReport, module_path: Path, mechanic_classes: list[type[Mechanic]]
+) -> None:
     """Run pytest on the sibling test file if one exists (D-13 stage 5).
 
     Subprocess is invoked with an argv list (never ``shell=True``) so the
     mechanic path is not interpolated into a shell command string
     (T-04-TEST-EXEC mitigation).
+
+    Caller discipline: this stage forks ``python -m pytest`` per mechanic.
+    ``validate(run_tests=False)`` (the default, used by
+    ``MechanicRegistry.scan``) never reaches this function so scans cannot
+    fork-bomb under integration-harness load. Stage 5 is reserved for the
+    ``validate-mechanic`` CLI authoring gate.
     """
     if not mechanic_classes:
         return
@@ -541,7 +549,9 @@ def _candidate_test_paths(module_path: Path, mechanic_id: str) -> list[Path]:
     return candidates
 
 
-def _stage_smoke(report: ValidationReport, mechanic_classes: list[type[Mechanic]], module_path: Path) -> None:
+def _stage_smoke(
+    report: ValidationReport, mechanic_classes: list[type[Mechanic]], module_path: Path
+) -> None:
     """Instantiate each Mechanic subclass and call ``check`` on a minimal fixture.
 
     ``CheckResult(passed=False, ...)`` is NOT a failure -- the mechanic is
@@ -592,8 +602,8 @@ def _stage_smoke(report: ValidationReport, mechanic_classes: list[type[Mechanic]
 # ---------------------------------------------------------------------------
 
 
-def validate(module_path: Path) -> ValidationReport:
-    """Run the 6-stage validation pipeline against a mechanic module.
+def validate(module_path: Path, *, run_tests: bool = False) -> ValidationReport:
+    """Run the validation pipeline against a mechanic module.
 
     Semantics (D-13):
 
@@ -605,6 +615,12 @@ def validate(module_path: Path) -> ValidationReport:
 
     Args:
         module_path: Path to a ``.py`` mechanic module.
+        run_tests: When ``True`` (CLI authoring-gate), run stage 5 which
+            invokes ``python -m pytest`` on the sibling test file. When
+            ``False`` (default, registry scan-safe), stage 5 is skipped.
+            Forking nested pytest per mechanic on every scan is a
+            fork-bomb under integration-harness load -- make the risk
+            explicit and opt-in.
 
     Returns:
         :class:`ValidationReport` describing the result.
@@ -627,9 +643,10 @@ def validate(module_path: Path) -> ValidationReport:
     if not report.passed:
         return report
 
-    _stage_tests(report, module_path, mechanic_classes)
-    if not report.passed:
-        return report
+    if run_tests:
+        _stage_tests(report, module_path, mechanic_classes)
+        if not report.passed:
+            return report
 
     _stage_smoke(report, mechanic_classes, module_path)
     return report

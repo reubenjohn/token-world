@@ -458,7 +458,7 @@ def test_tests_stage_skipped_with_warning_when_no_test_file(tmp_path: Path) -> N
     # neither the universe-layout test path nor the project-seed test path
     # will resolve on disk.
     path = _write_mechanic(tmp_path, "t", _OK_MECHANIC_SOURCE)
-    report = validate(path)
+    report = validate(path, run_tests=True)
     warnings = [f for f in report.findings if f.stage == "tests" and f.rule == "no_tests_found"]
     assert len(warnings) == 1
     assert warnings[0].severity == "warning"
@@ -483,7 +483,7 @@ def test_tests_stage_fails_when_pytest_fails(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    report = validate(mech_path)
+    report = validate(mech_path, run_tests=True)
     assert report.passed is False
     tests_findings = _findings_by_stage(report, "tests")
     assert any(f.rule == "tests_failed" for f in tests_findings)
@@ -503,10 +503,46 @@ def test_tests_stage_passes_with_passing_sibling_test(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    report = validate(mech_path)
+    report = validate(mech_path, run_tests=True)
     assert report.passed is True
     tests_errors = [f for f in report.findings if f.stage == "tests" and f.severity == "error"]
     assert tests_errors == []
+
+
+def test_default_skips_stage_tests_to_prevent_fork_bomb(tmp_path: Path) -> None:
+    """``validate(path)`` (default ``run_tests=False``) must not subprocess pytest.
+
+    Regression guard: MechanicRegistry.scan() calls validate() on every
+    mechanic. Before this fix, each scan forked ``python -m pytest`` per
+    mechanic; the integration harness built a registry per test (35 UCs
+    x N seeds = 500+ nested pytest processes), crashing the machine.
+
+    Stage 5 is now opt-in via ``run_tests=True`` and reserved for the CLI.
+    """
+    from unittest.mock import patch
+
+    mechanics = tmp_path / "mechanics"
+    mechanics.mkdir()
+    mech_path = mechanics / "t.py"
+    mech_path.write_text(_OK_MECHANIC_SOURCE, encoding="utf-8")
+
+    tests_dir = tmp_path / "tests" / "test_mechanics"
+    tests_dir.mkdir(parents=True)
+    (tests_dir / "test_t.py").write_text(
+        "def test_trivial():\n    assert True\n",
+        encoding="utf-8",
+    )
+
+    with patch("token_world.mechanic.validation.subprocess.run") as mock_run:
+        report = validate(mech_path)  # no run_tests kwarg -> default False
+    assert mock_run.call_count == 0, (
+        "validate() default must not spawn subprocess pytest -- "
+        "fork-bomb regression (see hotfix commit)."
+    )
+    assert report.passed is True
+    # Stage 5 was skipped, so no tests-stage findings at all.
+    tests_findings = [f for f in report.findings if f.stage == "tests"]
+    assert tests_findings == []
 
 
 # ---------------------------------------------------------------------------

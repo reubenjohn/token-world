@@ -436,7 +436,7 @@ def validate_mechanic(universe_or_path: str, mechanic_id: str | None, fmt: str) 
             click.echo(f"Error: mechanic file not found: {module_path}", err=True)
             raise SystemExit(2)
 
-    report = validate(module_path)
+    report = validate(module_path, run_tests=True)
 
     if fmt == "json":
         click.echo(_json.dumps(report.to_dict(), indent=2, sort_keys=True))
