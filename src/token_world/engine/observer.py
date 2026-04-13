@@ -111,6 +111,7 @@ class Observer:
         actor_id: str,
         action_text: str = "",
         tick_diag_ctx: Any = None,
+        interruption_context: dict | None = None,
     ) -> str:
         """Produce grounded observation text.
 
@@ -138,6 +139,12 @@ class Observer:
             action_text: The free-form action text from the resident agent.
             tick_diag_ctx: Optional ``TickDiagnostics`` context. When provided,
                 ``write_observation(prompt, response, parsed)`` is called once.
+            interruption_context: Optional Phase 7 long-running action context dict
+                (D-10, D-21). When non-None, a context block is prepended to the
+                user prompt so Sonnet can ground the interruption/completion narrative.
+                Shape: ``{"interrupted_by": {...}, "long_action": str}`` for
+                interruptions, or ``{"completed": True, "long_action": str}`` for
+                completions.
 
         Returns:
             Observation text string. Always non-empty.
@@ -164,7 +171,9 @@ class Observer:
             return fallback
 
         # ---- Build prompt ---------------------------------------------------
-        user_prompt = self._build_user_prompt(projection, trace, actor_id, action_text)
+        user_prompt = self._build_user_prompt(
+            projection, trace, actor_id, action_text, interruption_context
+        )
         full_prompt = _SYSTEM_PROMPT + "\n\n---\n\n" + user_prompt
 
         # ---- Call Sonnet (exactly once per synthesize — no internal retry) --
@@ -219,9 +228,38 @@ class Observer:
         trace: ExecutionTrace | None,
         actor_id: str,
         action_text: str,
+        interruption_context: dict | None = None,
     ) -> str:
-        """Assemble the user-facing prompt with all data slots (D-26)."""
-        lines: list[str] = [
+        """Assemble the user-facing prompt with all data slots (D-26).
+
+        Phase 7 (D-10, D-21): when interruption_context is provided, prepend a
+        context block describing the long-running action outcome so Sonnet can
+        ground the narrative in the cause of interruption or completion.
+        """
+        lines: list[str] = []
+        # Phase 7 D-10, D-21: interruption/completion context block
+        if interruption_context is not None:
+            long_action = interruption_context.get("long_action", "")
+            if interruption_context.get("completed"):
+                lines.append(
+                    f"Context: the agent has finished a long-running action: {long_action!r}. "
+                    "Write a second-person narrative grounded in the projected state describing "
+                    "what they now perceive as the action concludes."
+                )
+            elif "interrupted_by" in interruption_context:
+                iby = interruption_context["interrupted_by"]
+                prop = iby.get("property", "?")
+                op = iby.get("op", "?")
+                val = iby.get("value", "?")
+                lines.append(
+                    f"Context: the agent was interrupted while: {long_action!r}. "
+                    f"The interruption was triggered by: {prop} {op} {val}. "
+                    "Write a second-person narrative grounded in the projected state describing "
+                    "what interrupted them and what they now perceive."
+                )
+            lines.append("")  # blank separator
+
+        lines += [
             f"Actor: {actor_id}",
             f"Action attempted: {action_text!r}",
             f"Projected state (JSON): {json.dumps(projection, sort_keys=True)}",

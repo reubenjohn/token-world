@@ -24,6 +24,7 @@ from token_world.engine.long_running import (
     ThresholdEvaluator,
     ThresholdSpec,
 )
+from token_world.engine.long_running_hook import HookResult, LongRunningHook
 from token_world.engine.models import (
     BatchSummary,
     ClassifiedAction,
@@ -49,7 +50,9 @@ from token_world.engine.summary_writer import TickSummaryWriter, build_tick_summ
 __all__ = [
     "BatchSummary",
     "ClassifiedAction",
+    "HookResult",
     "LongRunningAction",
+    "LongRunningHook",
     "ThresholdEvaluator",
     "ThresholdSpec",
     "TickCompressor",
