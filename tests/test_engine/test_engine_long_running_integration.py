@@ -384,3 +384,62 @@ class TickCounter(Mechanic):
 
     # Passive mechanic should have fired and incremented tick_count
     assert kg.query("_world", "tick_count") == 1
+
+
+# ---------------------------------------------------------------------------
+# WR-03: _handle_long_running_tick logs warning when LRA is empty / vanished
+# ---------------------------------------------------------------------------
+
+
+def test_handle_long_running_tick_logs_warning_when_lra_vanished(
+    tmp_universe: Path, kg: KnowledgeGraph, caplog: pytest.LogCaptureFixture
+) -> None:
+    """If current_long_action is None when _handle_long_running_tick reads it,
+    the engine must log a WARNING (not crash) and return a non-empty observation (WR-03).
+
+    We simulate 'LRA vanished' by planting None directly on the node after
+    engine construction, but before run_tick(None) — the engine's has_active_long_action
+    check is bypassed by calling _handle_long_running_tick directly via a public path
+    that plants a real LRA then immediately clears it mid-tick.
+
+    The simplest observable contract: calling run_tick(None) when the graph's
+    current_long_action is unexpectedly None must not crash and must produce a
+    non-empty observation (or at minimum not an unhandled exception).
+    """
+    import logging
+
+    kg.add_node("alice", node_type="agent")
+    _plant_lra(kg, "alice", turns_elapsed=0, turns_total=8)
+    engine = _make_engine(tmp_universe, kg)
+
+    # Simulate the race: clear the LRA right before the tick call.
+    # has_active_long_action() was True when we planted it, but we manually clear it
+    # to simulate a mechanic that fired between the check and the handler.
+    kg.set("alice", "current_long_action", None)
+
+    # Call the internal handler directly to test it in isolation.
+    # The public run_tick(None) would call has_active_long_action() first and route
+    # to _handle_execute, so we invoke the private method to bypass the routing guard.
+    import time
+
+    with caplog.at_level(logging.WARNING, logger="token_world.engine.engine"):
+        engine._handle_long_running_tick(  # type: ignore[attr-defined]
+            actor="alice",
+            tick_id_str="test_tick_1",
+            tick_ctx=_make_tick_ctx(),
+            start_time=time.time(),
+        )
+
+    # Must not crash; warning must be logged
+    assert any("LRA disappeared" in r.message for r in caplog.records)
+    # The key contract: no unhandled exception
+
+
+def _make_tick_ctx() -> object:
+    """Minimal tick diagnostics context stub that satisfies the engine's set_summary call."""
+
+    class _FakeTickCtx:
+        def set_summary(self, **kwargs: object) -> None:  # noqa: ANN002
+            pass
+
+    return _FakeTickCtx()

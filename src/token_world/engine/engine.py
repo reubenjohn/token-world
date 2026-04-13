@@ -716,6 +716,15 @@ class SimulationEngine:
         """
         # 1. Read attention_state from current LRA payload before projection
         lra = self._graph.query(actor, "current_long_action") or {}
+        if not lra:
+            # WR-03: LRA disappeared between has_active_long_action check and here.
+            # This can happen if a passive mechanic cleared it in the same tick.
+            # Log the event and fall through — hook will return HookResult.inactive().
+            logger.warning(
+                "LRA disappeared between has_active_long_action check and "
+                "_handle_long_running_tick for actor=%s",
+                actor,
+            )
         payload = lra.get("payload") if isinstance(lra.get("payload"), dict) else {}
         attention_state_pre = (
             payload.get("attention_state")
