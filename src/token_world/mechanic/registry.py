@@ -221,6 +221,24 @@ class MechanicRegistry:
         """Return a sorted list of all discovered mechanic info."""
         return sorted(self._index.values(), key=lambda m: m.id)
 
+    def voluntary_mechanics(self) -> list[Mechanic]:
+        """Return instances of all mechanics whose ``voluntary`` flag is True.
+
+        Used by :class:`~token_world.engine.matcher.DeterministicMatcher` to
+        iterate candidates for the scoring pass (D-09).
+        """
+        return [self.get_mechanic(info.id) for info in self._index.values() if info.voluntary]
+
+    def involuntary_mechanics(self) -> list[Mechanic]:
+        """Return instances of all mechanics whose ``voluntary`` flag is False.
+
+        Used by the Phase 5 passive sweep (D-17) to dispatch
+        :class:`~token_world.mechanic.matchers.WorldPropertyMatcher`,
+        :class:`~token_world.mechanic.matchers.DecayMatcher`, and
+        :class:`~token_world.mechanic.matchers.TickMatcher` mechanics.
+        """
+        return [self.get_mechanic(info.id) for info in self._index.values() if not info.voluntary]
+
     def get_mechanic(self, mechanic_id: str) -> Mechanic:
         """Instantiate and return a mechanic by id.
 
