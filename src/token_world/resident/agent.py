@@ -100,7 +100,10 @@ class ResidentAgent:
             messages=messages,
             max_tokens=256,
         )
-        return str(response.content[0].text).strip()
+        content = response.content
+        if not content:
+            raise ValueError("LLM returned empty response in run_turn()")
+        return str(content[0].text).strip()
 
     # ------------------------------------------------------------------
     # Private helpers

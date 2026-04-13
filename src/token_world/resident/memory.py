@@ -200,7 +200,10 @@ class AgentMemory:
             max_tokens=256,
             messages=[{"role": "user", "content": prompt}],
         )
-        new_summary = response.content[0].text.strip()
+        content = response.content
+        if not content:
+            raise ValueError("LLM returned empty response in maybe_compact_summary()")
+        new_summary = str(content[0].text).strip()
 
         with sqlite3.connect(str(self._db_path)) as conn:
             self._ensure_tables(conn)

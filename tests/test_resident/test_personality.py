@@ -97,3 +97,23 @@ def test_generator_extracts_json_from_wrapped_prose() -> None:
     generator = PersonalityGenerator()
     bundle = generator.generate("a world", client=client)
     assert bundle.name == "Elara"
+
+
+# ---------------------------------------------------------------------------
+# WR-03 regression: empty LLM response raises clear ValueError, not IndexError
+# ---------------------------------------------------------------------------
+
+
+def test_generator_raises_on_empty_content_list() -> None:
+    """WR-03: PersonalityGenerator raises ValueError (not IndexError) on empty content."""
+    from unittest.mock import MagicMock
+
+    fake_response = MagicMock()
+    fake_response.content = []
+
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = fake_response
+
+    generator = PersonalityGenerator()
+    with pytest.raises(ValueError, match="[Ee]mpty"):
+        generator.generate("a world", client=fake_client)

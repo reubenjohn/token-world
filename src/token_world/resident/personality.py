@@ -84,7 +84,10 @@ class PersonalityGenerator:
                 max_tokens=512,
                 messages=[{"role": "user", "content": prompt}],
             )
-            raw_text = response.content[0].text
+            content = response.content
+            if not content:
+                raise ValueError("LLM returned empty response in PersonalityGenerator.generate()")
+            raw_text = content[0].text
 
             try:
                 json_text = _extract_json(raw_text)

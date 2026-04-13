@@ -187,3 +187,32 @@ def test_indexes_exist_on_tables(memory: AgentMemory, db_path: Path) -> None:
     index_names = {r[0] for r in rows}
     assert "idx_memory_session" in index_names
     assert "idx_memory_agent" in index_names
+
+
+# ---------------------------------------------------------------------------
+# WR-03 regression: empty LLM response raises clear ValueError, not IndexError
+# ---------------------------------------------------------------------------
+
+
+def test_maybe_compact_summary_raises_on_empty_content(memory: AgentMemory, db_path: Path) -> None:
+    """WR-03: maybe_compact_summary raises ValueError (not IndexError) on empty content."""
+    from unittest.mock import MagicMock
+
+    with sqlite3.connect(str(db_path)) as conn:
+        memory._ensure_tables(conn)
+        conn.execute(
+            "INSERT INTO agent_sessions (session_id, agent_id, started_at) VALUES (?,?,?)",
+            ("s1", "alice", "2026-01-01T00:00:00"),
+        )
+    # Store exactly 10 turns to trigger compaction
+    for i in range(10):
+        memory.store_turn("alice", "s1", i, f"act_{i}", f"obs_{i}", str(i))
+
+    # Mock client that returns empty content
+    fake_response = MagicMock()
+    fake_response.content = []
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = fake_response
+
+    with pytest.raises(ValueError, match="[Ee]mpty"):
+        memory.maybe_compact_summary("s1", client=fake_client)

@@ -166,6 +166,28 @@ def test_run_turn_respects_configured_model(memory: AgentMemory) -> None:
     assert client.messages.calls[0]["model"] == "claude-sonnet-4-5"
 
 
+# ---------------------------------------------------------------------------
+# WR-03 regression: empty LLM response raises clear ValueError, not IndexError
+# ---------------------------------------------------------------------------
+
+
+def test_run_turn_raises_on_empty_content_list(memory: AgentMemory) -> None:
+    """WR-03: run_turn raises ValueError with clear message on empty response.content."""
+    from unittest.mock import MagicMock
+
+    # Build a fake response with an empty content list
+    fake_response = MagicMock()
+    fake_response.content = []
+
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = fake_response
+
+    agent = _make_agent(fake_client, memory)
+
+    with pytest.raises(ValueError, match="[Ee]mpty"):
+        agent.run_turn()
+
+
 def test_agent_personality_stored_as_dict_property_on_graph_node(tmp_path: Path) -> None:
     """create_agent_node stores personality as a dict property (JSON-serializable per CLAUDE.md)."""
     kg = KnowledgeGraph(db_path=tmp_path / "test.db")
