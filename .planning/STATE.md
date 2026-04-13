@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: 07-CONTEXT.md written; 23 decisions locked (SIM-09, SIM-10 addressed); ready for gsd-plan-phase
-stopped_at: Completed 07-attention-and-consciousness-01-PLAN.md
-last_updated: "2026-04-13T18:44:43.129Z"
+stopped_at: Completed 07-attention-and-consciousness-02-PLAN.md
+last_updated: "2026-04-13T18:59:00.000Z"
 last_activity: 2026-04-13 -- Phase 07 context gathered
 progress:
   total_phases: 9
@@ -76,6 +76,7 @@ Progress: [███████░░░] 78% (7 of 9 phases complete; Phase 07
 | Phase 06 P05 | 40 | 4 tasks | 9 files |
 | Phase 06 P06 | 22 | 2 tasks | 12 files |
 | Phase 07-attention-and-consciousness P01 | 18 | 3 tasks | 3 files |
+| Phase 07-attention-and-consciousness P02 | 15 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -129,6 +130,7 @@ Recent decisions affecting current work:
 - [Phase 07-attention-and-consciousness]: D-23: frozen dataclasses for ThresholdSpec/LongRunningAction (not Pydantic) — consistent with YieldSignal, Mutation pattern
 - [Phase 07-attention-and-consciousness]: D-16: turns_total=None = indefinite duration; JSON null roundtrips correctly through to_dict/from_dict
 - [Phase 07-attention-and-consciousness]: Serialization boundary: tuple[ThresholdSpec,...] in-memory; list[dict] in to_dict() to satisfy ALLOWED_PROPERTY_TYPES
+- [Phase 07-02]: attention_state suppress-then-boost order: boosting a suppressed key yields no attention_boosted entry; attention_boosted is a separate top-level key (not inside properties) so Observer can reference property AND prominence marker independently
 
 ### Roadmap Evolution
 
