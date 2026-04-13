@@ -1,4 +1,18 @@
-"""Declarative matcher primitives for involuntary mechanic triggering."""
+"""Declarative matcher primitives for involuntary mechanic triggering.
+
+Phase 2 matchers (PropertyChangeMatcher, EdgeMatcher, NodeMatcher) are
+struct-style frozen dataclasses evaluated by the standalone :func:`matches`
+helper.
+
+Phase 5 adds four more matchers that expose a ``match(mutation)`` instance
+method directly (consumed by the deterministic engine pipeline):
+
+- :class:`VerbMatcher` — matches by verb (voluntary mechanic dispatch, D-09).
+- :class:`WorldPropertyMatcher` — matches world-level property mutations (D-10,
+  GAP-ENG09).
+- :class:`DecayMatcher` — per-tick sweep for nodes with ``decay_period`` (D-17).
+- :class:`TickMatcher` — unconditional per-tick passive invocation (D-17).
+"""
 
 from __future__ import annotations
 
@@ -61,7 +75,101 @@ class NodeMatcher:
             )
 
 
-Matcher = PropertyChangeMatcher | EdgeMatcher | NodeMatcher
+# ---------------------------------------------------------------------------
+# Phase 5 matchers — expose match(mutation) instance method
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class VerbMatcher:
+    """Matches when a classified action's verb equals the declared verb.
+
+    Used by voluntary mechanics to declare what verb they handle (D-09).
+    The :class:`~token_world.engine.matcher.DeterministicMatcher` inspects
+    each voluntary mechanic's ``watches()`` list for ``VerbMatcher`` instances
+    to compute the verb-match component of the scoring formula.
+
+    ``match()`` is intentionally a no-op here — the deterministic matcher reads
+    the ``.verb`` attribute directly.  The method is provided for interface
+    consistency with the other Phase-5 matchers.
+
+    Attributes:
+        verb: The verb string this mechanic handles (e.g. ``"pickup"``).
+    """
+
+    verb: str
+
+    def match(self, mutation: Mutation) -> bool:
+        """Always False in event-matching context (verb comparison is done by caller)."""
+        return False
+
+
+@dataclass(frozen=True)
+class WorldPropertyMatcher:
+    """Involuntary-mechanic matcher: triggers on world-level property changes.
+
+    Closes GAP-ENG09.  The ``_world`` sentinel node holds universe-scoped
+    properties (season, weather, day_of_year).  Mechanics that react to such
+    changes declare this matcher in their ``watches()`` method.
+
+    Attributes:
+        property_name: The world property to watch (e.g. ``"season"``).
+    """
+
+    property_name: str
+
+    def match(self, mutation: Mutation) -> bool:
+        """Return True if *mutation* is a set_property event on _world for this property."""
+        if mutation.type != "set_property":
+            return False
+        if mutation.target != "_world":
+            return False
+        return mutation.property == self.property_name
+
+
+@dataclass(frozen=True)
+class DecayMatcher:
+    """Per-tick decay matcher: identifies nodes eligible for decay.
+
+    Consumed by the Phase 5 passive sweep (D-17).  Unlike event-based matchers,
+    this matcher is not driven by graph mutations — ``match()`` always returns
+    ``False``.  Instead, the passive sweep iterates the graph directly and uses
+    :meth:`matches_node` to decide whether a node should be decayed.
+    """
+
+    def match(self, mutation: Mutation) -> bool:
+        """Always False — DecayMatcher is not event-driven."""
+        return False
+
+    def matches_node(self, node_props: dict) -> bool:
+        """Return True if *node_props* contains a ``decay_period`` key."""
+        return "decay_period" in node_props
+
+
+@dataclass(frozen=True)
+class TickMatcher:
+    """Fires once per tick unconditionally.
+
+    Consumed by the Phase 5 passive sweep (D-17).  Used for world-state
+    reactions that must run every tick (e.g. weather sampling via GAP-ENG09
+    hooks).  ``match()`` returns False because the passive sweep dispatches
+    these mechanics directly rather than via event filtering.
+    """
+
+    def match(self, mutation: Mutation) -> bool:
+        """Always False — TickMatcher is dispatched unconditionally by passive sweep."""
+        return False
+
+
+Matcher = (
+    PropertyChangeMatcher
+    | EdgeMatcher
+    | NodeMatcher
+    | VerbMatcher
+    | WorldPropertyMatcher
+    | DecayMatcher
+    | TickMatcher
+)
 """Union type for all matcher primitives."""
 
 

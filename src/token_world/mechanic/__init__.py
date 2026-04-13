@@ -11,10 +11,14 @@ from token_world.mechanic.diagnostics import (
 from token_world.mechanic.engine import ChainExecutionEngine
 from token_world.mechanic.loader import discover_mechanic_modules, load_mechanic_classes
 from token_world.mechanic.matchers import (
+    DecayMatcher,
     EdgeMatcher,
     Matcher,
     NodeMatcher,
     PropertyChangeMatcher,
+    TickMatcher,
+    VerbMatcher,
+    WorldPropertyMatcher,
 )
 from token_world.mechanic.protocol import CheckResult, Mechanic
 from token_world.mechanic.registry import MechanicInfo, MechanicRegistry, MechanicVersion
@@ -24,6 +28,7 @@ __all__ = [
     "SCHEMA_VERSION",
     "ChainExecutionEngine",
     "CheckResult",
+    "DecayMatcher",
     "DiagnosticsSink",
     "EdgeMatcher",
     "ExecutionTrace",
@@ -36,7 +41,10 @@ __all__ = [
     "NodeMatcher",
     "PropertyChangeMatcher",
     "TickDiagnostics",
+    "TickMatcher",
     "TraceNode",
+    "VerbMatcher",
+    "WorldPropertyMatcher",
     "discover_mechanic_modules",
     "load_mechanic_classes",
 ]
