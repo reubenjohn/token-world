@@ -24,6 +24,16 @@ ID_PATTERN = re.compile(r"^UC-[SOVRE]\d{2}$")
 GAP_KEYS = {"layer", "severity", "summary", "proposed_fix"}
 VALID_LAYERS = {"graph", "mechanic", "engine"}
 VALID_SEVERITIES = {"address-now", "defer", "out-of-scope"}
+VALID_ASSERTION_KINDS = frozenset(
+    {
+        "has_node",
+        "has_edge",
+        "has_property",
+        "property_equals",
+        "not_has_edge",
+        "not_has_property",
+    }
+)
 
 
 def load_use_case(path: Path) -> tuple[dict[str, Any], str]:
@@ -78,4 +88,37 @@ def validate_frontmatter(fm: dict[str, Any], *, source: str = "<unknown>") -> li
             errors.append(f"{source}: gaps[{idx}].layer {gap.get('layer')!r} invalid")
         if gap.get("severity") not in VALID_SEVERITIES:
             errors.append(f"{source}: gaps[{idx}].severity {gap.get('severity')!r} invalid")
+
+    # Enforce the fixed 6-kind graph_assertion vocabulary (UAT #8).
+    # Assertions live primarily under expected_observations[*].graph_assertions,
+    # but defensively also check setup.graph_assertions and actions[*].graph_assertions
+    # in case a future UC places them there.
+    def _check_assertions(container: Any, ctx: str) -> None:
+        if not isinstance(container, list):
+            return
+        for a_idx, assertion in enumerate(container):
+            if not isinstance(assertion, dict):
+                errors.append(f"{source}: {ctx}[{a_idx}] must be a mapping")
+                continue
+            kind = assertion.get("kind")
+            if kind not in VALID_ASSERTION_KINDS:
+                errors.append(
+                    f"{source}: {ctx}[{a_idx}].kind {kind!r} not in {sorted(VALID_ASSERTION_KINDS)}"
+                )
+
+    for o_idx, obs in enumerate(fm.get("expected_observations", []) or []):
+        if isinstance(obs, dict):
+            _check_assertions(
+                obs.get("graph_assertions"),
+                f"expected_observations[{o_idx}].graph_assertions",
+            )
+
+    setup_block = fm.get("setup")
+    if isinstance(setup_block, dict):
+        _check_assertions(setup_block.get("graph_assertions"), "setup.graph_assertions")
+
+    for a_idx, action in enumerate(fm.get("actions", []) or []):
+        if isinstance(action, dict):
+            _check_assertions(action.get("graph_assertions"), f"actions[{a_idx}].graph_assertions")
+
     return errors
