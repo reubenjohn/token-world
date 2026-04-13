@@ -236,15 +236,20 @@ class TestSeedUniverse:
         ids = sorted(m.id for m in registry.list_mechanics())
         assert ids == [
             "aoe",
+            "consume",
+            "craft",
             "environmental_reaction",
             "find_nearest",
+            "give",
             "look",
             "movement",
             "observation",
             "passage_move",
+            "pickup",
             "position_sync",
             "speak",
             "terrain_move",
+            "trade",
             "try_door",
         ]
 

@@ -3,7 +3,7 @@ id: UC-R04
 category: resource
 title: "Inventory limit"
 status: reviewed
-expected_outcome: blocked
+expected_outcome: pass
 setup:
   graph_builder: |
     # Alice's inventory is already full: 10 items held, cap 10.

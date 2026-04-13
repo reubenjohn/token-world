@@ -18,23 +18,31 @@ def _create_universe(tmp_data_dir: Path) -> tuple[str, Path]:
 
 
 def test_scaffolds_module_and_test_files(tmp_data_dir: Path, monkeypatch) -> None:
-    """``scaffold-mechanic <slug> --id pickup`` writes both skeleton files."""
+    """``scaffold-mechanic <slug> --id forage`` writes both skeleton files.
+
+    ``forage`` is chosen over a seed id (e.g. ``pickup``) because
+    ``token-world create`` copies every seed under
+    ``src/token_world/mechanic/seeds/`` into the new universe's
+    ``mechanics/``, so scaffolding under a seed id would collide with
+    the copied file. A non-seed id keeps the test purely about the
+    scaffold-CLI surface.
+    """
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_data_dir.parent.parent))
     slug, universe_dir = _create_universe(tmp_data_dir)
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["scaffold-mechanic", slug, "--id", "pickup"])
+    result = runner.invoke(cli, ["scaffold-mechanic", slug, "--id", "forage"])
     assert result.exit_code == 0, result.output
 
-    module_path = universe_dir / "mechanics" / "pickup.py"
-    test_path = universe_dir / "tests" / "test_mechanics" / "test_pickup.py"
+    module_path = universe_dir / "mechanics" / "forage.py"
+    test_path = universe_dir / "tests" / "test_mechanics" / "test_forage.py"
     assert module_path.is_file(), f"module not created: {module_path}"
     assert test_path.is_file(), f"test not created: {test_path}"
 
     module_src = module_path.read_text(encoding="utf-8")
     # Class name is CamelCase of id + "Mechanic"
-    assert "class PickupMechanic(Mechanic):" in module_src
-    assert 'id = "pickup"' in module_src
+    assert "class ForageMechanic(Mechanic):" in module_src
+    assert 'id = "forage"' in module_src
     assert "def check(self, ctx" in module_src
     assert "def apply(self, ctx" in module_src
 
@@ -71,9 +79,7 @@ def test_voluntary_flag_sets_class_attr(tmp_data_dir: Path, monkeypatch) -> None
     slug, universe_dir = _create_universe(tmp_data_dir)
 
     runner = CliRunner()
-    result = runner.invoke(
-        cli, ["scaffold-mechanic", slug, "--id", "foo", "--involuntary"]
-    )
+    result = runner.invoke(cli, ["scaffold-mechanic", slug, "--id", "foo", "--involuntary"])
     assert result.exit_code == 0, result.output
 
     module_src = (universe_dir / "mechanics" / "foo.py").read_text(encoding="utf-8")

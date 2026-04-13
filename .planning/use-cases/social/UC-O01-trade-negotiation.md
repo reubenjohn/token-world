@@ -3,71 +3,76 @@ id: UC-O01
 category: social
 title: "Trade negotiation"
 status: reviewed
-expected_outcome: blocked
+expected_outcome: pass
 setup:
   graph_builder: |
-    # Alice has a sword; bob has 10 coin. They meet in a tavern.
-    kg.add_node("alice", node_type="agent", inventory=[])
-    kg.add_node("bob", node_type="agent", inventory=["coin:10"])
+    # Single-tick atomic trade (Phase 4 scope). Both parties arrive
+    # with their offers already pre-negotiated via pending_trade
+    # mirrors — the multi-turn offer/accept protocol (GAP-ENG01) is
+    # Phase 5's responsibility.
+    kg.add_node(
+        "alice",
+        node_type="agent",
+        pending_trade={
+            "offer_item": "sword",
+            "demand_item": "coin_pouch",
+            "counterparty": "bob",
+        },
+    )
+    kg.add_node(
+        "bob",
+        node_type="agent",
+        pending_trade={
+            "offer_item": "coin_pouch",
+            "demand_item": "sword",
+            "counterparty": "alice",
+        },
+    )
     kg.add_node("sword", node_type="entity", subtype="weapon", value=10)
+    kg.add_node("coin_pouch", node_type="entity", subtype="currency", amount=10)
     kg.add_node("tavern", node_type="entity", subtype="room")
-    kg.add_edge("sword", "alice", relation="held_by")
+    kg.add_edge("alice", "sword", relation="holds")
+    kg.add_edge("bob", "coin_pouch", relation="holds")
     kg.add_edge("alice", "tavern", relation="located_in")
     kg.add_edge("bob", "tavern", relation="located_in")
 actions:
   - actor: alice
-    intent: "offer the sword to bob for 10 coin"
+    intent: "trade sword for bob's coin pouch (offers already staged on both sides)"
     classified:
-      verb: offer
-      target: sword
-      indirect_object: bob
-      amount: 10
-      currency: coin
-  - actor: bob
-    intent: "accept alice's offer"
-    classified:
-      verb: accept
-      target: alice
-      offer_ref: sword
+      verb: trade
+      target: bob
 expected_observations:
   - actor: alice
-    narrative_contains: ["offer", "bob", "sword", "10 coin"]
-    graph_assertions:
-      - kind: has_node
-        node: sword
-      - kind: has_node
-        node: bob
-  - actor: bob
-    narrative_contains: ["accept", "sword", "coin"]
+    narrative_contains: ["trade", "bob", "sword", "coin"]
     graph_assertions:
       - kind: has_edge
-        src: sword
-        dst: bob
-        relation: held_by
+        src: bob
+        dst: sword
+        relation: holds
       - kind: not_has_edge
-        src: sword
-        dst: alice
-        relation: held_by
-      - kind: property_equals
-        node: alice
-        property: inventory
-        value: ["coin:10"]
-      - kind: property_equals
-        node: bob
-        property: inventory
-        value: []
+        src: alice
+        dst: sword
+        relation: holds
+      - kind: has_edge
+        src: alice
+        dst: coin_pouch
+        relation: holds
+      - kind: not_has_edge
+        src: bob
+        dst: coin_pouch
+        relation: holds
 gaps:
   - layer: mechanic
     severity: address-now
     summary: "No trade/exchange mechanic — transactional swap of held items and fungible coin is not expressible today."
-    proposed_fix: "Add a `trade` mechanic with an atomic two-sided commit: precondition both parties agree + items present, side effect swaps `held_by` edges and decrements/increments inventory counts."
+    proposed_fix: "Add a `trade` mechanic with an atomic single-tick commit over two parties' mirrored pending_trade offers. (Shipped 04-08 MECH07.)"
   - layer: engine
-    severity: address-now
-    summary: "Classifier has no notion of a multi-turn offer/accept protocol; each turn is currently interpreted in isolation."
-    proposed_fix: "Introduce a pending-offer state on the offering agent and let the classifier resolve `accept` intents against the most recent open offer directed at the speaker."
+    severity: defer
+    summary: "Classifier has no notion of a multi-turn offer/accept protocol; Phase 4 ships only the single-tick atomic form."
+    proposed_fix: "Introduce a pending-offer state on the offering agent and let the classifier resolve `accept` intents against the most recent open offer directed at the speaker. GAP-ENG01; deferred to Phase 5."
   - layer: graph
     severity: defer
-    summary: "Fungible currency is encoded as `inventory=[\"coin:10\"]` string tags, which does not support arithmetic queries."
+    summary: "Fungible currency is modelled as a coin_pouch entity rather than arithmetic on a scalar property."
     proposed_fix: "Promote fungible resources to first-class nodes with a `quantity` property, so trade mechanics can compose with other resource-handling mechanics."
 ---
 
@@ -83,12 +88,13 @@ her, Alice's belt is lighter and her purse is full.
 ## Why this matters
 
 Trade is the canonical multi-actor transaction. Any simulation that aspires
-to hold a working economy needs an atomic exchange primitive, and the engine
-has to interpret a multi-turn offer/accept protocol as a single logical
-action. Today we have neither: there is no trade mechanic, and the
-classifier treats each utterance as an isolated intent. This use case
-forces us to confront transactional commit semantics before the economy
-category (UC-R0x) compounds the problem.
+to hold a working economy needs an atomic exchange primitive. Phase 4 ships
+the **single-tick atomic swap** via `trade` (MECH07): both parties arrive
+with mirrored `pending_trade` offers in the graph, and the mechanic commits
+the swap in one tick. The **multi-turn offer/accept protocol** (one party
+proposes at tick N, the other accepts at tick N+1) is a classifier concern
+tracked as `GAP-ENG01` and deferred to Phase 5. This UC covers only the
+atomic half.
 
 ## Related use cases
 

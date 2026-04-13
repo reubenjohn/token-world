@@ -3,7 +3,7 @@ id: UC-R02
 category: resource
 title: "Consume food"
 status: reviewed
-expected_outcome: yield
+expected_outcome: pass
 setup:
   graph_builder: |
     # Alice is hungry and holding an apple.

@@ -3,12 +3,25 @@ id: UC-R01
 category: resource
 title: "Craft sword from materials"
 status: reviewed
-expected_outcome: blocked
+expected_outcome: pass
 setup:
   graph_builder: |
     # Alice stands at a forge with raw materials in hand.
+    # The forge carries the recipe inline — a Phase-4 convention that
+    # lets the craft mechanic read the ingredient list + output type
+    # off the target workstation without a recipe registry (Phase 8).
     kg.add_node("alice", node_type="agent", hunger=30, inventory_cap=10)
-    kg.add_node("forge", node_type="entity", subtype="workstation", tool_type="forge")
+    kg.add_node(
+        "forge",
+        node_type="entity",
+        subtype="workstation",
+        tool_type="forge",
+        recipe={
+            "inputs": ["iron_ingot", "wood_plank"],
+            "output_subtype": "sword",
+            "output_name": "sword",
+        },
+    )
     kg.add_node("smithy", node_type="entity", subtype="room")
     kg.add_node("iron_ingot", node_type="entity", subtype="material", material="iron", mass=1.0)
     kg.add_node("wood_plank", node_type="entity", subtype="material", material="wood", mass=0.3)

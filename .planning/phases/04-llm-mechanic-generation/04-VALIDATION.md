@@ -67,6 +67,9 @@ created: 2026-04-12
 | 04-07-T1 | 04-07 | 4 | MECH-03 | — | MECH02/03/04 spatial-query mechanics validate + pass tests | unit | `uv run pytest tests/test_mechanic/test_seeds/test_look.py tests/test_mechanic/test_seeds/test_find_nearest.py tests/test_mechanic/test_seeds/test_aoe.py -x -q` | ✓ | ⬜ pending |
 | 04-07-T2 | 04-07 | 4 | MECH-03 | — | MECH13/27 speak + try_door validate + refusal-narrative pattern | unit | `uv run pytest tests/test_mechanic/test_seeds/test_speak.py tests/test_mechanic/test_seeds/test_try_door.py -x -q` | ✓ | ⬜ pending |
 | 04-07-T3 | 04-07 | 4 | MECH-03, TEST-02 | — | UC-S02/S03/S04/O08/E06 flip to pass | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-S02 or UC-S03 or UC-S04 or UC-O08 or UC-E06" -x -q` | ✓ | ⬜ pending |
+| 04-08-T1 | 04-08 | 4 | MECH-03 | — | MECH15/16 consume + pickup; _count_holds + _refuse_with_narrative helpers | unit | `uv run pytest tests/test_mechanic/test_seeds/test_pickup.py tests/test_mechanic/test_seeds/test_consume.py -x -q` | ✓ | ✅ passing |
+| 04-08-T2 | 04-08 | 4 | MECH-03 | — | MECH07/08/14 trade + give + craft | unit | `uv run pytest tests/test_mechanic/test_seeds/test_trade.py tests/test_mechanic/test_seeds/test_give.py tests/test_mechanic/test_seeds/test_craft.py -x -q` | ✓ | ✅ passing |
+| 04-08-T3 | 04-08 | 4 | MECH-03, TEST-02 | T-04-AST-BYPASS | 6 object-interaction UCs flip from yield/blocked to pass (UC-O01 single-tick; multi-turn is GAP-ENG01 Phase 5) | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-O01 or UC-O03 or UC-R01 or UC-R02 or UC-R03 or UC-R04" -x -q` | ✓ | ✅ passing |
 
 <!--
 Rows will be appended by each plan's final task:

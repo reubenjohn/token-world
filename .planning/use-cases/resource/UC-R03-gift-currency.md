@@ -3,11 +3,18 @@ id: UC-R03
 category: resource
 title: "Gift currency"
 status: reviewed
-expected_outcome: blocked
+expected_outcome: pass
 setup:
   graph_builder: |
     # Alice has 10 coin; bob is broke. Both are in the tavern.
-    kg.add_node("alice", node_type="agent", coin=10)
+    # pending_give pre-stages the scalar-transfer slot that the
+    # classifier will populate directly once GAP-ENG02 is closed.
+    kg.add_node(
+        "alice",
+        node_type="agent",
+        coin=10,
+        pending_give={"property": "coin", "amount": 5, "recipient": "bob"},
+    )
     kg.add_node("bob", node_type="agent", coin=0)
     kg.add_node("tavern", node_type="entity", subtype="room")
     kg.add_edge("alice", "tavern", relation="located_in")
