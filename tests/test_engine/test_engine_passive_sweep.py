@@ -420,3 +420,84 @@ def test_passive_sweep_mutations_counted_in_tick_summary(tmp_universe, kg):
     # Primary pickup mutation (held_by) + sweep mutation_counter mutation (sweep_count)
     # = at least 2 mutations total
     assert data["mutations"]["count"] >= 2
+
+
+# ---------------------------------------------------------------------------
+# Test 9: WR-01 regression — sweep mechanic that raises records a TraceNode
+# ---------------------------------------------------------------------------
+
+_EXPLODING_SWEEP_MECHANIC = """
+from token_world.mechanic.protocol import Mechanic, CheckResult
+from token_world.mechanic.matchers import TickMatcher
+
+class ExplodingSweep(Mechanic):
+    id = "exploding_sweep"
+    description = "Raises in apply() — used to test WR-01 regression"
+    voluntary = False
+    tags = []
+    def watches(self):
+        return [TickMatcher()]
+    def check(self, ctx):
+        return CheckResult(passed=True)
+    def apply(self, ctx):
+        raise RuntimeError("intentional sweep explosion")
+"""
+
+
+def test_passive_sweep_exception_in_apply_records_trace_node(tmp_universe, kg):
+    """WR-01: when a sweep mechanic raises in apply(), a TraceNode with empty
+    mutations is appended to the combined trace so the failure is observable
+    in diagnostics and the tick summary."""
+    (tmp_universe / "mechanics" / "pickup.py").write_text(_PICKUP_MECHANIC, encoding="utf-8")
+    (tmp_universe / "mechanics" / "exploding_sweep.py").write_text(
+        _EXPLODING_SWEEP_MECHANIC, encoding="utf-8"
+    )
+
+    kg.add_node("alice", node_type="agent")
+    kg.add_node("room_1", node_type="entity")
+    kg.add_node("rock_1", node_type="entity")
+    kg.add_edge("alice", "room_1", type="location")
+    kg.add_edge("room_1", "rock_1", type="contains")
+
+    client = MockAnthropicClient([_OK_PICKUP, _OBSERVATION])
+    engine = SimulationEngine(universe_path=tmp_universe, graph=kg, anthropic_client=client)
+    result = engine.run_tick("pick up rock", "alice")
+
+    # The tick must still succeed (exception is non-fatal to the tick)
+    assert result.kind == "ok"
+
+    # The combined trace must include a TraceNode for the failing sweep mechanic
+    assert result.trace is not None
+    all_mechanic_ids = _collect_mechanic_ids(result.trace)
+    assert "exploding_sweep" in all_mechanic_ids, (
+        f"Expected 'exploding_sweep' TraceNode in trace. Found: {all_mechanic_ids}"
+    )
+
+    # The failing sweep mechanic's TraceNode must have zero mutations
+    exploding_node = _find_trace_node(result.trace, "exploding_sweep")
+    assert exploding_node is not None
+    assert exploding_node.mutations == [], (
+        f"Expected empty mutations for failed sweep, got: {exploding_node.mutations}"
+    )
+
+
+def _collect_mechanic_ids(trace) -> list[str]:
+    """Walk the trace tree and collect all mechanic_ids."""
+    ids = []
+    stack = [trace.root]
+    while stack:
+        node = stack.pop()
+        ids.append(node.mechanic_id)
+        stack.extend(node.children)
+    return ids
+
+
+def _find_trace_node(trace, mechanic_id: str):
+    """Find the first TraceNode with the given mechanic_id, or None."""
+    stack = [trace.root]
+    while stack:
+        node = stack.pop()
+        if node.mechanic_id == mechanic_id:
+            return node
+        stack.extend(node.children)
+    return None

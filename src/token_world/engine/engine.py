@@ -686,6 +686,15 @@ class SimulationEngine:
                 mutations = mech.apply(sweep_ctx)
             except Exception as exc:
                 logger.warning("Passive sweep mechanic %s raised: %s", mech.id, exc)
+                sweep_nodes.append(
+                    TraceNode(
+                        mechanic_id=mech.id,
+                        actor=sentinel,
+                        target=sentinel,
+                        check_result=check,
+                        mutations=[],
+                    )
+                )
                 continue
 
             sweep_nodes.append(
