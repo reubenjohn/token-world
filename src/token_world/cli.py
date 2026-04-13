@@ -8,8 +8,11 @@ import re
 import sys
 from pathlib import Path
 
+import anthropic
 import click
 
+from token_world.engine.engine import SimulationEngine
+from token_world.graph import KnowledgeGraph
 from token_world.operator.cli_support import (
     latest_halted_tick,
     render_replay_human,
@@ -22,6 +25,14 @@ from token_world.operator.diagnostics import OperatorDiagnosticsReader
 from token_world.operator.harness import OperatorHarness
 from token_world.operator.testing import EngineStub
 from token_world.operator.yield_signal import YieldSignal
+from token_world.resident import (
+    AgentMemory,
+    PersonalityBundle,
+    PersonalityGenerator,
+    ResidentAgent,
+    SessionManager,
+    create_agent_node,
+)
 from token_world.universe.manager import UniverseManager
 
 
@@ -1042,3 +1053,129 @@ def replay_tick(
         click.echo(render_replay_json(reader))
     else:
         click.echo(render_replay_human(reader))
+
+
+# --------------------------------------------------------------------------- #
+# agent-turn  (Phase 06 Plan 01 — D-22, D-29)
+# --------------------------------------------------------------------------- #
+
+
+@cli.command("agent-turn")
+@click.argument("slug")
+@click.option(
+    "--agent-id",
+    default=None,
+    help="Existing agent id; auto-created if omitted and no agent exists (D-29).",
+)
+@click.option(
+    "--no-operator",
+    is_flag=True,
+    default=False,
+    help="Do not invoke OperatorHarness on yield.",
+)
+def agent_turn(slug: str, agent_id: str | None, no_operator: bool) -> None:
+    """Run one agent turn interactively: agent generates action -> engine -> print observation.
+
+    If no agent exists in the universe, one is auto-created with a random personality
+    (D-29). The universe's CLAUDE.md world-rules text is used as the agent's system
+    prompt context (D-04). Memory is persisted to universe.db after each turn (D-05).
+    """
+    # (a) Load universe path
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(slug)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    # (b) Load graph
+    kg = KnowledgeGraph(db_path=universe_dir / "universe.db")
+    kg.load()
+
+    # (c) Load world rules from universe's CLAUDE.md
+    claude_md = universe_dir / "CLAUDE.md"
+    world_rules = claude_md.read_text(encoding="utf-8") if claude_md.exists() else ""
+
+    # (d) Anthropic client
+    client = anthropic.Anthropic()  # type: ignore[attr-defined]
+
+    # (e-f) Memory + sessions adapters
+    db_path = universe_dir / "universe.db"
+    memory = AgentMemory(db_path)
+    sessions = SessionManager(db_path)
+
+    session_id: str
+
+    # (g-h) Resolve or auto-create agent
+    if agent_id is None:
+        existing_agents = sessions.list_agents()
+        if not existing_agents:
+            # Auto-create: generate personality, create graph node, start session
+            universe_desc = world_rules.split("\n")[0] or "a fantasy world"
+            personality = PersonalityGenerator().generate(universe_desc, client=client)
+            agent_id = kg.claim_id("resident")
+            create_agent_node(kg, agent_id, personality)
+            session_id = sessions.create_session(agent_id, personality)
+        else:
+            agent_id = existing_agents[0]
+            existing_sessions = sessions.list_sessions(agent_id)
+            session_id = existing_sessions[-1]  # most recent
+    else:
+        existing_sessions = sessions.list_sessions(agent_id)
+        if not existing_sessions:
+            click.echo(f"Error: no sessions found for agent '{agent_id}'", err=True)
+            raise SystemExit(1)
+        session_id = existing_sessions[-1]
+
+    # (i) Load personality from session
+    session_row = sessions.get_session(session_id)
+    if session_row and session_row.get("agent_personality"):
+        personality = PersonalityBundle.model_validate_json(session_row["agent_personality"])
+    else:
+        # Fallback: personality is stored on graph node
+        node_props = kg.query(agent_id)
+        personality = PersonalityBundle.model_validate(node_props.get("personality", {}))
+
+    # (j) Construct agent
+    agent = ResidentAgent(
+        agent_id=agent_id,
+        session_id=session_id,
+        personality=personality,
+        memory=memory,
+        client=client,
+        world_rules=world_rules,
+    )
+
+    # (k) Generate action
+    action = agent.run_turn()
+
+    # (l-m) Run engine tick
+    engine = SimulationEngine(universe_dir, graph=kg, anthropic_client=client)
+    result = engine.run_tick(action, actor=agent_id)
+
+    # (n) Handle yield via OperatorHarness
+    if result.kind == "yielded" and not no_operator:
+        harness = OperatorHarness(universe_dir)
+        asyncio.run(harness.handle_yield(result.yield_signal))
+        # Resume tick after mechanic was authored
+        result = engine.run_tick(action, actor=agent_id)
+
+    # (o) Persist turn to memory
+    turn_number = sessions.get_next_turn_number(session_id)
+    memory.store_turn(
+        agent_id,
+        session_id,
+        turn_number,
+        action,
+        result.observation or "",
+        result.tick_id,
+    )
+    memory.maybe_compact_summary(session_id, client)
+
+    # (p) Save graph
+    kg.save()
+
+    # (q) Print output
+    click.echo(f"Agent ({agent_id}): {action}\n\nObservation:\n{result.observation}")
+    if result.kind == "refused":
+        click.echo(f"(refused: {result.refusal_reason})")
