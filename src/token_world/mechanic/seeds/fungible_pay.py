@@ -149,6 +149,10 @@ class FungiblePayMechanic(Mechanic):
         if not isinstance(recipient, str) or not ctx.has_node(recipient):
             return _refuse_with_narrative(ctx, ctx.actor, _NARRATIVE_RECIPIENT_MISSING)
 
+        # check() guarantees these, but narrow for mypy.
+        assert isinstance(kind, str)
+        assert isinstance(amount, int) and not isinstance(amount, bool)
+
         coins = _eligible_coins(ctx, ctx.actor, kind)
         if not coins:
             return _refuse_with_narrative(
@@ -156,7 +160,7 @@ class FungiblePayMechanic(Mechanic):
             )
 
         denominations = [d for _id, d in coins]
-        subset_idx = _subset_sum(denominations, int(amount))
+        subset_idx = _subset_sum(denominations, amount)
         if subset_idx is None:
             # No exact subset exists -- defer to change-making (GAP-MECH29).
             return _refuse_with_narrative(

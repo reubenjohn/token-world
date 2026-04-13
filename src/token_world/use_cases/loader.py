@@ -99,8 +99,7 @@ def validate_frontmatter(fm: dict[str, Any], *, source: str = "<unknown>") -> li
         val = fm["expected_outcome"]
         if val not in VALID_EXPECTED_OUTCOMES:
             errors.append(
-                f"{source}: expected_outcome {val!r} not in "
-                f"{sorted(VALID_EXPECTED_OUTCOMES)}"
+                f"{source}: expected_outcome {val!r} not in {sorted(VALID_EXPECTED_OUTCOMES)}"
             )
 
     # Enforce the fixed 6-kind graph_assertion vocabulary (UAT #8).
