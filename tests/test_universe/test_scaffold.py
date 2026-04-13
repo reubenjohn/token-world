@@ -1,12 +1,26 @@
-"""Tests for universe scaffolding: directories, CLAUDE.md, AGENTS.md, .mcp.json, git init."""
+"""Tests for universe scaffolding: directories, CLAUDE.md, AGENTS.md, .mcp.json, git init.
+
+Plan 04.1-05 additions:
+    - :class:`TestScaffoldMechanicAuthorAgent` — the filesystem-based subagent
+      markdown written to ``<universe>/.claude/agents/mechanic-author.md``.
+    - :class:`TestRenderMechanicAuthorMd` — unit tests for the renderer
+      function itself (frontmatter shape, shared-prompt invariant, tools
+      whitelist).
+    - :class:`TestClaudeMdOperatorFlow` — CLAUDE.md template additions
+      (Operator Flow section, accurate 3-tool surface, subagent pointer).
+"""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
+import yaml
+
 from token_world.universe.manager import UniverseManager
 from token_world.universe.scaffold import scaffold_universe
+from token_world.universe.templates.claude_md import render_claude_md
+from token_world.universe.templates.mechanic_author_agent import render_mechanic_author_md
 
 
 class TestScaffoldDirectories:
@@ -87,12 +101,7 @@ class TestScaffoldAuthoringGuide:
         dest = universe_dir / "docs" / "authoring-mechanics.md"
         assert dest.is_file(), f"guide not copied to {dest}"
         # Source-of-truth path: framework-repo docs/guides/authoring-mechanics.md
-        src = (
-            Path(__file__).resolve().parents[2]
-            / "docs"
-            / "guides"
-            / "authoring-mechanics.md"
-        )
+        src = Path(__file__).resolve().parents[2] / "docs" / "guides" / "authoring-mechanics.md"
         assert src.is_file(), f"source guide missing: {src}"
         assert dest.read_bytes() == src.read_bytes(), (
             "copied guide must be byte-identical to docs/guides/authoring-mechanics.md"
@@ -129,9 +138,7 @@ class TestScaffoldClaudeMd:
         assert "rollback" in content
         assert "list_mechanics" in content
 
-    def test_claude_md_does_not_reference_register_mechanic(
-        self, tmp_data_dir: Path
-    ) -> None:
+    def test_claude_md_does_not_reference_register_mechanic(self, tmp_data_dir: Path) -> None:
         """D-10: register_mechanic is not an MCP tool; the authoring guide pointer
         replaces it."""
         universe_dir = tmp_data_dir / "test-world"
@@ -140,9 +147,7 @@ class TestScaffoldClaudeMd:
         content = (universe_dir / "CLAUDE.md").read_text()
         assert "register_mechanic" not in content
 
-    def test_claude_md_contains_mechanic_authoring_section(
-        self, tmp_data_dir: Path
-    ) -> None:
+    def test_claude_md_contains_mechanic_authoring_section(self, tmp_data_dir: Path) -> None:
         """CLAUDE.md contains the '## Mechanic Authoring' pointer section."""
         universe_dir = tmp_data_dir / "test-world"
         universe_dir.mkdir()
@@ -321,3 +326,200 @@ class TestManagerIntegrationWithScaffold:
         # Git
         assert (path / ".git").exists()
         assert (path / ".gitignore").is_file()
+
+
+class TestRenderMechanicAuthorMd:
+    """Unit tests for the :func:`render_mechanic_author_md` renderer itself
+    (Plan 04.1-05 Task 1). No filesystem required — these exercise the
+    string-shaping logic in isolation."""
+
+    def test_render_mechanic_author_md_has_yaml_frontmatter(self, tmp_data_dir: Path) -> None:
+        """Output starts with ``---\\n`` and contains the three required
+        frontmatter keys (description / tools / model)."""
+        text = render_mechanic_author_md(tmp_data_dir)
+        assert text.startswith("---\n")
+        assert "description:" in text
+        assert "tools:" in text
+        assert "model: opus" in text
+
+    def test_render_mechanic_author_md_body_contains_shared_prompt(
+        self, tmp_data_dir: Path
+    ) -> None:
+        """The body section (after frontmatter) contains a stable sentinel
+        phrase from :func:`mechanic_author_prompt` — confirming the shared
+        prompt source (T-04.1-22 mitigation)."""
+        text = render_mechanic_author_md(tmp_data_dir)
+        # Sentinel is from mechanic_author_prompt's opening line.
+        assert "Token World Mechanic Author" in text
+
+    def test_render_mechanic_author_md_tools_exclude_Agent(self, tmp_data_dir: Path) -> None:
+        """YAML ``tools:`` line does NOT include ``Agent`` — Pitfall 5 / T-04.1-23
+        (filesystem subagent must not spawn sub-subagents)."""
+        text = render_mechanic_author_md(tmp_data_dir)
+        # Extract the frontmatter block and check tools line specifically.
+        parts = text.split("---", 2)
+        assert len(parts) >= 3, "expected YAML frontmatter delimiters"
+        frontmatter_yaml = parts[1]
+        frontmatter = yaml.safe_load(frontmatter_yaml)
+        tools_line = frontmatter["tools"]
+        tool_names = {t.strip() for t in tools_line.split(",")}
+        assert "Agent" not in tool_names
+
+    def test_render_mechanic_author_md_tools_include_validate_mechanic(
+        self, tmp_data_dir: Path
+    ) -> None:
+        """``tools:`` mentions ``mcp__validation__validate_mechanic`` — the
+        authoring subagent must be able to call the validator."""
+        text = render_mechanic_author_md(tmp_data_dir)
+        parts = text.split("---", 2)
+        frontmatter = yaml.safe_load(parts[1])
+        tools_line = frontmatter["tools"]
+        assert "mcp__validation__validate_mechanic" in tools_line
+
+    def test_render_mechanic_author_md_tools_include_list_mechanics(
+        self, tmp_data_dir: Path
+    ) -> None:
+        """``tools:`` mentions ``mcp__token-world__list_mechanics`` for pre-
+        authoring existing-coverage checks (mirrors programmatic subagent)."""
+        text = render_mechanic_author_md(tmp_data_dir)
+        parts = text.split("---", 2)
+        frontmatter = yaml.safe_load(parts[1])
+        assert "mcp__token-world__list_mechanics" in frontmatter["tools"]
+
+    def test_render_mechanic_author_md_contains_yield_placeholder(self, tmp_data_dir: Path) -> None:
+        """The filesystem-agent form embeds ``<YIELD_SIGNAL_JSON>`` as a
+        placeholder (live yield pasted at invocation time)."""
+        text = render_mechanic_author_md(tmp_data_dir)
+        assert "<YIELD_SIGNAL_JSON>" in text
+
+
+class TestScaffoldMechanicAuthorAgent:
+    """Tests for the filesystem subagent scaffolded by
+    :func:`scaffold_universe` (Plan 04.1-05 Task 1)."""
+
+    def test_scaffold_dot_claude_dir_created(self, tmp_data_dir: Path) -> None:
+        """``<universe>/.claude/agents/`` directory exists after scaffold."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        assert (universe_dir / ".claude").is_dir()
+        assert (universe_dir / ".claude" / "agents").is_dir()
+
+    def test_scaffold_writes_mechanic_author_md(self, tmp_data_dir: Path) -> None:
+        """After scaffold, ``.claude/agents/mechanic-author.md`` exists and is
+        non-empty."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        path = universe_dir / ".claude" / "agents" / "mechanic-author.md"
+        assert path.is_file()
+        text = path.read_text(encoding="utf-8")
+        assert len(text) > 500, "mechanic-author.md should be substantial"
+
+    def test_scaffold_mechanic_author_md_roundtrips_frontmatter(self, tmp_data_dir: Path) -> None:
+        """YAML frontmatter parses and contains ``model: opus``."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        text = (universe_dir / ".claude" / "agents" / "mechanic-author.md").read_text()
+        parts = text.split("---", 2)
+        assert len(parts) >= 3, "expected ---...--- frontmatter delimiters"
+        frontmatter = yaml.safe_load(parts[1])
+        assert frontmatter["model"] == "opus"
+
+    def test_scaffold_mechanic_author_md_included_in_initial_commit(
+        self, tmp_data_dir: Path
+    ) -> None:
+        """Initial git commit includes the mechanic-author markdown (must be
+        written BEFORE git init commit per plan Step B)."""
+        import subprocess
+
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        result = subprocess.run(
+            ["git", "ls-files"],
+            cwd=universe_dir,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert ".claude/agents/mechanic-author.md" in result.stdout
+
+    def test_scaffold_mechanic_author_md_tools_do_not_include_Agent(
+        self, tmp_data_dir: Path
+    ) -> None:
+        """End-to-end: scaffold output's tools line excludes ``Agent``
+        (T-04.1-23 mitigation — no sub-subagents)."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        text = (universe_dir / ".claude" / "agents" / "mechanic-author.md").read_text()
+        parts = text.split("---", 2)
+        frontmatter = yaml.safe_load(parts[1])
+        tool_names = {t.strip() for t in frontmatter["tools"].split(",")}
+        assert "Agent" not in tool_names
+
+
+class TestClaudeMdOperatorFlow:
+    """Plan 04.1-05 CLAUDE.md template additions — Operator Flow section,
+    accurate 3-tool surface, mechanic-author subagent pointer."""
+
+    def test_claude_md_contains_operator_flow_section(self) -> None:
+        """``render_claude_md`` output contains the H2 heading for the
+        Operator Flow section."""
+        content = render_claude_md(name="X", slug="x")
+        assert "## Operator Flow: When a Tick Yields" in content
+
+    def test_claude_md_mentions_three_mcp_tools_accurately(self) -> None:
+        """Available Tools section mentions all 3 Phase-4 tools
+        (``resume_tick``, ``rollback``, ``list_mechanics``)."""
+        content = render_claude_md(name="X", slug="x")
+        assert "resume_tick" in content
+        assert "rollback" in content
+        assert "list_mechanics" in content
+
+    def test_claude_md_does_not_mention_register_mechanic(self) -> None:
+        """``register_mechanic`` is absent (Phase 4 D-19 dropped it from the
+        MCP surface)."""
+        content = render_claude_md(name="X", slug="x")
+        assert "register_mechanic" not in content
+
+    def test_claude_md_does_not_declare_tools_unimplemented(self) -> None:
+        """Stale ``Not yet implemented`` stamps are gone — the 3 tools are
+        shipped as of Phase 4 / Phase 4.1."""
+        content = render_claude_md(name="X", slug="x")
+        assert "Not yet implemented" not in content
+
+    def test_claude_md_mentions_mechanic_author_subagent(self) -> None:
+        """Body references ``.claude/agents/mechanic-author.md`` so the
+        interactive operator knows the subagent exists."""
+        content = render_claude_md(name="X", slug="x")
+        assert ".claude/agents/mechanic-author.md" in content
+
+    def test_claude_md_operator_flow_references_cli_commands(self) -> None:
+        """Operator Flow section references the three dev-UX CLI commands
+        (``inspect-yield``, ``resume-tick``, ``replay-tick``)."""
+        content = render_claude_md(name="X", slug="x")
+        assert "inspect-yield" in content
+        assert "resume-tick" in content
+        assert "replay-tick" in content
+
+
+class TestScaffoldClaudeMdOperatorFlowEndToEnd:
+    """Belt-and-braces: scaffold end-to-end assertions that the operator
+    flow additions reach the written CLAUDE.md on disk."""
+
+    def test_scaffold_claude_md_has_operator_flow_section(self, tmp_data_dir: Path) -> None:
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        content = (universe_dir / "CLAUDE.md").read_text()
+        assert "## Operator Flow: When a Tick Yields" in content
+
+    def test_scaffold_claude_md_points_at_mechanic_author(self, tmp_data_dir: Path) -> None:
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        content = (universe_dir / "CLAUDE.md").read_text()
+        assert ".claude/agents/mechanic-author.md" in content
