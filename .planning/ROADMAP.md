@@ -126,17 +126,23 @@ Plans (12 plans):
 
 **Goal:** The operator — the concrete realisation of PROJECT.md's Hybrid-SDK operator layer — exists as a working Agent-SDK-driven harness that catches yield signals from the simulation, spawns an Opus mechanic-authoring subagent, validates via Phase 4's pipeline, and resumes the tick. Works identically from an interactive Claude Code session inside a universe folder and from a programmatic Agent SDK driver (the latter unblocks Phase 6's playtest runner).
 **Depends on:** Phase 4
-**Requirements**: AGENT-03, AGENT-04 (operator layer), AUTO-02 (diagnostics — operator namespace extension), UNIV-03 (3-tool MCP surface — preserved, not extended) — planner confirms final list
+**Requirements**: AUTO-02 (diagnostics — operator namespace extension), UNIV-03 (3-tool MCP surface — preserved)
+
+> **Scope clarification:** AGENT-03 (agent memory persists across sessions) and AGENT-04 (session forking for rollback) remain Phase 6 per REQUIREMENTS.md. Phase 4.1 delivers the operator-side *infrastructure* those Phase 6 capabilities will build on (YieldSignal contract, operator harness, diagnostics namespace, `rollback` MCP tool whitelisting in the outer SDK session) — not coverage of those requirements themselves. The Phase 6 agent sessions and session-forking work is what actually satisfies AGENT-03/AGENT-04.
 **Success Criteria** (what must be TRUE):
   1. A fabricated yield signal from a test-only engine stub triggers the harness to spawn an Opus subagent; the subagent authors a valid mechanic; validation passes; `resume_tick` picks up the new mechanic and the tick completes — all autonomously, no human steps
   2. The same yield→author→resume loop completes from an interactive Claude Code session inside a universe folder, using only the 3-tool MCP surface and the universe's CLAUDE.md guidance
   3. A structured `YieldSignal` dataclass is defined as the contract between engine and operator; its shape is what Phase 5 will emit and 4.1's engine stub fabricates
   4. CLI commands `run-tick`, `inspect-yield`, `resume-tick`, `replay-tick` work against a universe and render diagnostics from Phase 4's substrate (extended with an operator subfolder)
   5. The throwaway engine stub is clearly isolated (imports only from tests or a `testing` module); swapping in the real Phase 5 engine requires no operator-code changes
-**Plans:** 0 plans
+**Plans:** 5 plans
 
 Plans:
-- [ ] TBD (planner decomposes — CONTEXT.md proposes ~5 plans: yield-protocol+stub, operator-core, dev-UX-CLI, diagnostics-operator-namespace, interactive-polish)
+- [ ] 04.1-01-PLAN.md — YieldSignal contract + EngineStub + Wave-0 test scaffolding (claude-agent-sdk dep, integration marker)
+- [ ] 04.1-02-PLAN.md — Operator diagnostics namespace (extends Phase 4 DiagnosticsSink with operator/ subfolder; write + read APIs)
+- [ ] 04.1-03-PLAN.md — Operator harness core (Agent SDK driver + mechanic-author subagent + validation @tool + real-Opus integration test)
+- [ ] 04.1-04-PLAN.md — Dev-UX CLI (run-tick, inspect-yield, resume-tick, replay-tick on the existing token-world Click group)
+- [ ] 04.1-05-PLAN.md — Interactive entry-point polish (universe CLAUDE.md Operator Flow + .claude/agents/mechanic-author.md scaffold + VALIDATION.md finalisation + architecture diagram)
 
 ### Phase 5: Simulation Engine
 **Goal**: The engine interprets text actions, routes them to mechanics (or yields to the operator when none match), executes selected mechanics, and returns grounded observations — the full pipeline works end-to-end without a live agent. Under the inversion-of-control model established in Phase 4, the engine NEVER generates code; when no mechanic matches, it halts the tick and yields to the operator, which authors the needed mechanic via normal SDLC before the tick resumes.
