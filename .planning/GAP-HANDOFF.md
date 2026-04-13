@@ -4,9 +4,11 @@
 **Source:** `.planning/GAP-ANALYSIS.md` (synthesis of 35 use cases across 5 categories)
 **Purpose:** Address-now gaps grouped by target downstream phase. Phase N planners MUST read this file and cite these gap IDs in their plan requirements / frontmatter.
 
+> **Note on terminology (2026-04-12):** Phase 4 was reframed from "LLM Mechanic Generation" to "Mechanic Authoring & Validation Infrastructure" (ROADMAP.md, `.planning/phases/04-llm-mechanic-generation/04-CONTEXT.md`). Gap IDs and scope routing remain valid; rationale phrasing like "Phase 4 LLM mechanic generation" should be read as "Phase 4 operator-authored mechanics + validation gate". Two gaps have updated interpretations under inversion of control: see D-34 (GAP-ENG16 split between Phase 4 validation gate and Phase 5 classifier) and D-35 (GAP-MECH19 obsolete trust-boundary concept — validation gate runs on every mechanic regardless of origin) in 04-CONTEXT.md.
+
 ## By Target Phase
 
-### Phase 04 (LLM Mechanic Generation)
+### Phase 04 (Mechanic Authoring & Validation Infrastructure)
 
 | Gap ID | Summary | Source UCs | Rationale |
 |--------|---------|------------|-----------|

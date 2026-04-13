@@ -125,27 +125,60 @@ Explicitly OUT of scope for this phase:
   1. Constructs a `KnowledgeGraph` from the use case's precondition state (using `GraphBuilder` from `tests/test_graph/conftest.py` or an equivalent).
   2. Invokes the mechanic chain execution engine (Phase 2) with the action payload.
   3. Asserts: mutations match the use case's expected mutations (or superset, if non-determinism exists); observation-relevant state matches; any expected involuntary chain fires.
-- **D-28:** Use-case manifest loader lives at `token_world.use_cases.loader` — reads Phase 3's manifest format into a typed structure that the harness consumes.
+- **D-28:** Use-case manifest loader ALREADY EXISTS at `src/token_world/use_cases/loader.py` (built in Phase 3). Phase 4 consumes it directly — does NOT reimplement it. Phase 4 fixes the CRLF bug (M-04 in 03-REVIEW.md) so Windows-authored manifests load correctly; this is prep work for plan 04-04.
 - **D-29:** Failing tests include the use case ID, path, and a minimal repro instruction. The harness is the foundation for Phase 6's DVAL-03 regression suite; Phase 4 ships just the harness + use-case-driven tests, not the full agent-loop regression.
+- **D-29b:** Use-case coverage expectation: some use cases will PASS (those backed by existing or Phase-4-authored seed mechanics); others will yield a "no matching mechanic" signal until Phase 5 classifier routing is built OR the missing mechanic is authored here. The harness marks both as valid outcomes based on the use case's declared expected result. A use case is only a FAILURE when its expected mechanic fires but produces wrong mutations/observations.
 
 ### Authoring Guides
 - **D-30:** `docs/guides/authoring-mechanics.md` — developer-facing reference. Contents: Mechanic class contract, DSL reference (`MechanicContext` methods), common patterns (voluntary vs involuntary, matcher declaration, chain triggering), anti-patterns (no raw graph access, no forbidden imports), worked examples referencing the seed mechanics.
 - **D-31:** Universe-local authoring: the scaffolded universe CLAUDE.md gets a "Mechanic Authoring" section that links to a copied `docs/authoring-mechanics.md` inside the universe (keeping universes self-contained per PROJECT.md). The universe CLAUDE.md template (`src/token_world/universe/templates/claude_md.py`) is updated accordingly.
 - **D-32:** `scaffold-mechanic <universe> --id <id> [--voluntary|--involuntary]` — thin CLI helper that emits a skeleton module (class with empty `check`/`apply`) and a test stub. Purely a convenience; the operator can also write files directly.
 
+### Phase 3 Code Fixes — Prerequisite Work
+- **D-33:** Phase 4's first plan absorbs two Phase 3 code review findings that directly affect Phase 4 deliverables:
+  - **H-01 (HIGH)** — `TemporalIndex.find_state_at_tick` ignores `add_node` events during replay, producing empty state on remove-then-readd sequences. Fix per 03-REVIEW.md line 71: add an `add_node` branch that seeds state from the event payload; add a regression test covering add → remove → add across a snapshot boundary. Required before integration tests exercise resource/crafting use cases.
+  - **M-04 (MEDIUM)** — `src/token_world/use_cases/loader.py` rejects CRLF-encoded frontmatter. Fix to accept both `---\n` and `---\r\n` delimiters. Required before plan 04-04 parametrization works cross-platform.
+  These fixes land in plan 04-01 (alongside the flatten) so the rest of the phase operates on a clean base.
+
+### Interpretation of GAP-HANDOFF.md Entries Under Inversion of Control
+- **D-34:** `GAP-ENG16` (nonsense-verb mechanic-generation pollution) — under inversion of control, the registry only accepts mechanics the operator writes as files. Garbage isn't auto-generated. This gap splits:
+  - **Phase 5 responsibility** — the classifier must return `no_viable_action` for obvious nonsense rather than signaling "no matching mechanic" and yielding to the operator. Belongs with GAP-ENG15.
+  - **Phase 4 responsibility** — the validation gate (D-12..D-16) rejects any authored mechanic that fails contract/AST checks. The "manual-review queue" from the original gap description is unnecessary: the operator IS the review step, in real time.
+- **D-35:** `GAP-MECH19` (trust boundary for `source='llm_generated'`) — under inversion of control there is no trust distinction; all mechanics are operator-authored. The validation gate runs on every mechanic regardless of origin. `source` and `reviewed` metadata fields are not introduced; the gap's original framing is obsolete.
+
+### Seed Mechanic Authoring — Scope Addition
+- **D-36:** Phase 4 authors the 27 seed mechanics (MECH01–MECH27) identified in GAP-HANDOFF.md as part of the phase, not as deferred work. Rationale:
+  - Integration tests become meaningful (use cases exercise real mechanics rather than yield signals).
+  - Dogfoods the authoring experience end-to-end: validation gate, authoring guide, `_helpers.py` reuse patterns, `scaffold-mechanic` CLI. Surfaces friction before Phase 5 depends on the loop.
+  - Phase 5 (simulation engine) can assume a baseline of seed mechanics exists, simplifying its own plan.
+  - Adds ~1500–3000 LOC across 27 files. Natural parallelization: groups of thematically-related mechanics can be authored in waves by subagents, following the Phase-3 wave model.
+- **D-37:** Authoring approach — each seed mechanic plan authors a small thematically-related cluster (e.g., "object interaction seeds" for MECH07/MECH08/MECH14/MECH15; "environmental family" for MECH20/MECH21/MECH22/MECH24; "spatial movement extensions" for MECH01/MECH05/MECH06). Clustering allows shared `_helpers.py` to grow organically. Planner decides the exact groupings.
+- **D-38:** Gating on framework extensions — some MECH gaps depend on engine/framework extensions routed to Phase 5 (e.g., MECH09 needs GAP-ENG03 `llm_adjudicated` category; MECH12 needs `actors: list[NodeId]`). These seed mechanics ship with stub implementations that declare their framework prerequisite and are skipped with a clear message until Phase 5 delivers the extension. The integration test harness records these as "blocked by framework gap", distinguishing them from correctness failures.
+
 ### Claude's Discretion
 - **D-11:** Code-reuse style (free functions vs base classes vs mixins)
 - **D-32:** Whether `scaffold-mechanic` emits a full test stub or just the class skeleton
+- **D-37:** Exact seed-mechanic clustering per plan (thematic grouping is the guideline; planner picks cluster boundaries)
 - Exact CLI output format for `validate-mechanic` (human-readable vs JSON vs both via `--format` flag)
 - Whether the test-execution stage of validation runs the mechanic's tests or just verifies they exist (default: run them)
 - Whether `_helpers.py` is scaffolded empty by default or omitted until needed
 
 ### Proposed Plan Decomposition (informative; planner has final say)
-1. **04-01 — Flatten mechanic layout** (supersedes Phase 2 D-15). Rewrite loader.py and registry.py for module-based discovery; migrate seeds to flat modules; drop meta.yaml; add `tags` as `Mechanic` class attribute; update scaffold.py; move tests to mirrored test tree; update CLI commands that referenced folder paths; update MCP stub server to drop `register_mechanic`; update universe CLAUDE.md template.
+1. **04-01 — Flatten mechanic layout + Phase 3 fixes** (supersedes Phase 2 D-15; absorbs D-33 H-01 and M-04). Rewrite loader.py and registry.py for module-based discovery; migrate seeds to flat modules; drop meta.yaml; add `tags` as `Mechanic` class attribute; update scaffold.py; move tests to mirrored test tree; update CLI commands that referenced folder paths; update MCP stub server to drop `register_mechanic`; update universe CLAUDE.md template. Fix temporal index H-01 and use-case loader M-04 CRLF as part of this plan.
 2. **04-02 — Validation pipeline**. Implement `token_world.mechanic.validation.validate`; AST walker for D-14 rules; wire as CLI `validate-mechanic`; integrate with registry auto-scan so `resume_tick` validates before loading.
 3. **04-03 — Diagnostics substrate**. Define schema (D-21, D-22); implement `DiagnosticsSink`; wire into validation runs and (stub) per-tick hooks ready for Phase 5 to populate; add `prune-diagnostics` CLI.
-4. **04-04 — Integration test harness**. Use-case manifest loader; pytest parametrization from Phase 3 manifests; baseline tests covering the seed-mechanic use cases.
+4. **04-04 — Integration test harness**. Consume the existing `src/token_world/use_cases/loader.py` (Phase 3 artifact); pytest parametrization from `.planning/use-cases/` manifests; coverage model per D-29b (pass / yield / block-by-framework-gap / fail).
 5. **04-05 — Authoring guides + scaffold-mechanic**. `docs/guides/authoring-mechanics.md`; universe CLAUDE.md template update; `scaffold-mechanic` CLI.
+6. **04-06..04-NN — Seed mechanic authoring waves** (per D-36..D-38). Author MECH01–MECH27 in thematic clusters. Each plan authors a cluster, adds tests, validates via the pipeline, and flips the corresponding integration tests from "yield/blocked" to "pass". Planner decides cluster boundaries and wave count. Suggested grouping:
+   - Spatial extensions (MECH01, MECH05, MECH06)
+   - Spatial queries & AoE (MECH02, MECH03, MECH04, MECH27)
+   - Object interaction (MECH07, MECH08, MECH14, MECH15, MECH16)
+   - Social / belief (MECH09, MECH10, MECH11, MECH13, MECH25)
+   - Cooperation (MECH12 — blocked on GAP-ENG05; ships as framework-gap stub)
+   - Resource depletion / fungibility (MECH17, MECH18)
+   - Framework review gate enforcement (MECH19 — absorbed into D-35; no dedicated mechanic needed)
+   - Environmental family (MECH20, MECH21, MECH22, MECH23, MECH24)
+   - Authoring lint (MECH26 — part of 04-05 authoring guide, not a standalone mechanic)
 
 </decisions>
 
@@ -175,7 +208,14 @@ Explicitly OUT of scope for this phase:
 - `.planning/phases/00-universe-infrastructure/00-CONTEXT.md` — universe structure, MCP stub server, scaffolding templates
 - `.planning/phases/01-graph-foundation/01-CONTEXT.md` — KnowledgeGraph API, EventStore, claim_id, JSON-serializable properties
 - `.planning/phases/02-mechanic-framework/02-CONTEXT.md` — mechanic protocol, MechanicContext DSL, voluntary/involuntary, chain execution, registry. **D-15 (folder structure) and D-16 (meta.yaml content) are SUPERSEDED by this phase's D-03..D-08.** All other Phase 2 decisions remain in force.
-- `.planning/phases/03-design-validation/03-CONTEXT.md` — use-case library format (consumed by integration test harness); gap-analysis output informs what mechanics need authoring post-phase
+- `.planning/phases/03-design-validation/03-CONTEXT.md` — use-case library format (consumed by integration test harness)
+
+### Phase 3 Outputs — Primary Inputs to Phase 4
+- `.planning/GAP-ANALYSIS.md` — canonical gap synthesis across 35 use cases; 68 gaps (52 address-now, 16 defer)
+- `.planning/GAP-HANDOFF.md` — address-now gaps routed by target phase; **28 items route to Phase 4** (27 seed mechanics MECH01–MECH27 + GAP-ENG16 validation-gate enforcement). Phase 4 planner MUST cite these gap IDs in plan frontmatter.
+- `.planning/use-cases/` — 35 use-case manifests across 5 categories (spatial, social, resource, environmental, edge-case). YAML-frontmatter format with `setup.graph_builder`, `actions`, `expected_observations` (including `graph_assertions`), and per-case `gaps`. Directly consumable by pytest parametrization.
+- `.planning/phases/03-design-validation/deferred-items.md` — 16 deferred gaps (v2 scope: multi-agent, vocabulary consistency, hardening)
+- `.planning/phases/03-design-validation/03-REVIEW.md` — code review findings. **H-01 (temporal index remove-then-readd bug) and M-04 (use_cases/loader.py CRLF handling) MUST be fixed before plan 04-04 runs.** See D-34.
 
 ### Existing Code (revised by this phase)
 - `src/token_world/mechanic/loader.py` — rewritten for module-based discovery
@@ -189,12 +229,16 @@ Explicitly OUT of scope for this phase:
 - `tests/test_mechanic/` — tests adjusted for module-based discovery; seed tests moved to mirrored layout
 - `tests/test_mcp_server.py`, `tests/test_universe/test_scaffold.py` — assertions updated for 3-tool surface
 
+### Existing Code (already built by Phase 3 — consumed by this phase)
+- `src/token_world/use_cases/loader.py` — manifest loader built in Phase 3. Phase 4 fixes the CRLF bug (M-04) and consumes it in plan 04-04. **Do not reimplement.**
+- `src/token_world/graph/temporal.py` — temporal index with H-01 bug on `find_state_at_tick` after remove-then-readd. Phase 4 fixes this before integration tests exercise remove/re-add sequences (resource/crafting use cases).
+
 ### New Code (this phase creates)
 - `src/token_world/mechanic/validation.py` — validation pipeline (D-12..D-16)
 - `src/token_world/mechanic/diagnostics.py` — DiagnosticsSink and schema (D-21..D-25)
-- `src/token_world/use_cases/loader.py` — Phase 3 manifest loader (D-28)
 - `tests/test_integration/test_use_cases.py` — parametrized integration tests (D-26..D-29)
 - `docs/guides/authoring-mechanics.md` — developer-facing authoring guide (D-30)
+- `src/token_world/mechanic/seeds/*.py` — new seed mechanics authored per GAP-HANDOFF.md MECH01–MECH27 (D-35)
 
 </canonical_refs>
 
