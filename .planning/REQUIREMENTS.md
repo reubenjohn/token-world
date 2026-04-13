@@ -36,7 +36,7 @@
 - [x] **SIM-08**: Conservation laws enforced — matter/energy cannot be created from nothing; mechanics must respect fundamental constraints
 - [ ] **SIM-09**: Action duration and attention threshold — long-running actions skip boring intermediate turns; engine only interrupts when significance exceeds agent's current attention level
 - [ ] **SIM-10**: Attention/consciousness as a reusable mechanic pattern — sleep, daydreaming, drunkenness, autopilot all use the same interruption threshold infrastructure
-- [ ] **SIM-11**: Each tick produces a structured summary (action, mechanics invoked, mutations, outcome) persisted as JSON in the universe folder
+- [x] **SIM-11**: Each tick produces a structured summary (action, mechanics invoked, mutations, outcome) persisted as JSON in the universe folder
 - [ ] **SIM-12**: Tick summaries are hierarchically compressed — batch summaries (e.g. every 100 ticks), epoch summaries (every 100 batches) — enabling any agent to catch up on simulation history without reading every tick
 
 ### Resident Agent
@@ -149,7 +149,7 @@
 | SIM-08 | Phase 5 | Complete |
 | SIM-09 | Phase 7 | Pending |
 | SIM-10 | Phase 7 | Pending |
-| SIM-11 | Phase 5 | Pending |
+| SIM-11 | Phase 5 | Complete |
 | SIM-12 | Phase 6 | Pending |
 | AGENT-01 | Phase 6 | Pending |
 | AGENT-02 | Phase 6 | Pending |
