@@ -57,6 +57,17 @@ class TestWeatherReactionMetadata:
         assert "environmental" in mechanic.tags
         assert "weather" in mechanic.tags
 
+    def test_is_voluntary_for_routing(self, mechanic: WeatherReactionMechanic) -> None:
+        """Phase-4 routing requires voluntary=True so the D-38 stub-probe
+        in test_use_cases.py can find the stub via
+        match_mechanic_for_verb (which only returns voluntary mechanics).
+        Semantic intent remains involuntary; the 'involuntary_intent'
+        tag records that. voluntary flips to False when GAP-ENG09 lands
+        in Phase 5 along with the WorldPropertyMatcher wiring.
+        """
+        assert mechanic.voluntary is True
+        assert "involuntary_intent" in mechanic.tags
+
 
 # ---------------------------------------------------------------------------
 # Registry discovery (D-38 contract)

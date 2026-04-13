@@ -238,13 +238,17 @@ class TestSeedUniverse:
             "aoe",
             "belief_update",
             "consume",
+            "contagion",
             "cooperate",
             "craft",
+            "decay_tick",
             "degrade",
             "environmental_reaction",
             "find_nearest",
+            "fire_spread",
             "fungible_pay",
             "give",
+            "illumination",
             "look",
             "movement",
             "observation",
@@ -258,6 +262,7 @@ class TestSeedUniverse:
             "terrain_move",
             "trade",
             "try_door",
+            "weather_reaction",
         ]
 
     def test_list_mechanics_sorted(self, tmp_universe: Path) -> None:

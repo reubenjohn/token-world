@@ -32,7 +32,13 @@ actions:
   - actor: engine
     intent: "advance the calendar so that season transitions from summer to autumn"
     classified:
-      verb: advance_season
+      # Verb aligned with the weather_reaction mechanic id so the Phase-4
+      # harness's D-38 stub-probe routes UC-V04 via GAP-ENG09 (the actual
+      # blocking framework gap: no WorldPropertyMatcher yet). When Phase 5
+      # lands the matcher primitive AND a generalised world_state_reaction
+      # family, the classifier maps the narrative intent back to
+      # advance_season automatically.
+      verb: weather_reaction
       target: world
       value: autumn
 expected_observations:
