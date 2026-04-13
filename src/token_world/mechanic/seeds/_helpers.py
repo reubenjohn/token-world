@@ -138,6 +138,63 @@ def _count_holds(ctx: MechanicContext, actor: str) -> int:
     return sum(1 for _ in ctx.neighbors(actor, relation="holds"))
 
 
+def _subset_sum(values: list[int], target: int) -> list[int] | None:
+    """Return indices of *values* whose sum equals *target*, or ``None``.
+
+    Backtracking search over the held-coin denominations. Used by
+    ``fungible_pay`` (MECH18) to pick an exact subset of coin entities
+    summing to ``actor.pending_payment["amount"]``. Phase 4 use cases keep
+    coin counts small (≤ ~20); the exponential worst case is acceptable
+    until a real optimization need surfaces.
+
+    Contract:
+        - Returns the FIRST exact-sum subset found (depth-first, descending
+          index order). The caller treats the choice as opaque -- UC-R06's
+          vignette states the shopkeeper "doesn't care which combination".
+        - Returns ``None`` for empty *values*, non-positive *target*, or
+          when no exact subset exists. Paying 0 is not a meaningful
+          transfer; the caller should guard separately.
+        - Negative values are not expected (denominations are positive
+          integers); behaviour is undefined for them.
+
+    GAP-MECH29 (change-making — overpay + emit "change-owed" state) is
+    deferred; ``fungible_pay`` refuses with a narrative when this helper
+    returns ``None`` rather than overpaying.
+
+    Args:
+        values: List of positive integers to choose from.
+        target: Exact sum required.
+
+    Returns:
+        A list of indices into *values* whose values sum to *target*, or
+        ``None`` when no exact subset exists.
+    """
+    if target <= 0 or not values:
+        return None
+
+    # Quick reject: target unreachable.
+    if sum(values) < target:
+        return None
+
+    chosen: list[int] = []
+
+    def _dfs(start: int, remaining: int) -> bool:
+        if remaining == 0:
+            return True
+        if remaining < 0 or start >= len(values):
+            return False
+        for i in range(start, len(values)):
+            chosen.append(i)
+            if _dfs(i + 1, remaining - values[i]):
+                return True
+            chosen.pop()
+        return False
+
+    if _dfs(0, target):
+        return list(chosen)
+    return None
+
+
 def _refuse_with_narrative(
     ctx: MechanicContext,
     actor: str,
