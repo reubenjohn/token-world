@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from pathlib import Path
+from typing import cast
 
 import networkx as nx
 from networkx.readwrite import json_graph
@@ -206,7 +207,7 @@ class GraphPersistence:
                     graph.number_of_edges(),
                 ),
             )
-            return cursor.lastrowid  # type: ignore[return-value]
+            return cast(int, cursor.lastrowid)
 
     def load_snapshot(self, snapshot_id: int) -> tuple[nx.DiGraph, int]:
         """Load a graph snapshot from SQLite.

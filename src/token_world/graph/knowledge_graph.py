@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import networkx as nx
 
@@ -438,7 +438,7 @@ class KnowledgeGraph:
         # Persist current state first
         self.save()
         # Save snapshot
-        snapshot_id = self._persistence.save_snapshot(self._graph, tick_id, summary)
+        snapshot_id = cast(int, self._persistence.save_snapshot(self._graph, tick_id, summary))
         # Prune if over retention limit
         self._persistence.prune_snapshots(max_count=50)
         # Event compaction: find oldest retained snapshot tick
@@ -476,4 +476,4 @@ class KnowledgeGraph:
         """
         if self._persistence is None:
             return []
-        return self._persistence.list_snapshots()
+        return cast(list[SnapshotInfo], self._persistence.list_snapshots())
