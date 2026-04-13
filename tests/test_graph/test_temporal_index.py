@@ -49,6 +49,20 @@ def test_find_state_at_tick_reconstructs(kg) -> None:
     assert state_at_0.get("hp") == 100
 
 
+def test_find_state_at_tick_remove_then_readd_clears_stale_props(kg) -> None:
+    # REVIEW H-01 regression: add_node after remove_node must reset state to {}
+    # so stale pre-remove properties don't leak into the re-added node's state.
+    kg.add_node("item", node_type="entity")
+    kg.set("item", "owner", "alice")  # tick 0
+    kg.set_tick(1)
+    kg.remove_node("item")  # tick 1 — pickup cycle step 1
+    kg.set_tick(2)
+    kg.add_node("item", node_type="entity")  # tick 2 — pickup cycle step 2 (fresh state)
+    idx = TemporalIndex(kg)
+    state_at_2 = idx.find_state_at_tick("item", 2)
+    assert "owner" not in state_at_2, f"expected fresh state after re-add, got {state_at_2}"
+
+
 def test_out_of_range_raises(kg) -> None:
     kg.add_node("a", node_type="entity")
     idx = TemporalIndex(kg)

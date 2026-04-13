@@ -148,7 +148,7 @@ class TemporalIndex:
                 state[e.property_name] = (
                     json.loads(e.new_value_json) if e.new_value_json is not None else None
                 )
-            elif e.event_type == "remove_node":
+            elif e.event_type in ("remove_node", "add_node"):
                 state = {}
         return state
 
