@@ -29,6 +29,7 @@ after she moved from room_a), not on the prior tick.
 
 from __future__ import annotations
 
+import contextlib
 from typing import TYPE_CHECKING
 
 from token_world.graph import Mutation
@@ -109,8 +110,16 @@ class AutopilotAdvanceMechanic(Mechanic):
         """Advance each traveling agent one hop.
 
         For each agent with an unfinished traveling LRA:
-        1. Set actor.location = route[next_index]
-        2. Write back the LRA with next_index incremented by 1
+        1. Set actor.location = route[next_index] (location property)
+        2. Move the actor's type=location edge to the new room so the
+           VisibilityProjector includes the new room in its projection.
+           This is required for threshold evaluation: thresholds reference
+           "room_id.hazard_level", which is only evaluable when the room
+           is in the projection (D-09; projector follows type=location edge).
+           The previous room is route[next_index - 1] (known from the route;
+           no need to scan neighbors). Edge removal is best-effort — if the
+           edge was never added or was already removed, we continue silently.
+        3. Write back the LRA with next_index incremented by 1
 
         When next_index >= len(route) the agent is silently skipped (the hook's
         turns_total completion fires on the same or next tick).
@@ -123,7 +132,19 @@ class AutopilotAdvanceMechanic(Mechanic):
             if next_index >= len(route):
                 continue
             new_room = route[next_index]
+            prev_room = route[next_index - 1] if next_index > 0 else None
+
+            # 1. Update location property
             mutations.append(ctx.set(actor_id, "location", new_room))
+
+            # 2. Move type=location edge: remove old, add new.
+            # prev_room is known from the route — no need to scan all neighbors.
+            if prev_room is not None and ctx.has_edge(actor_id, prev_room):
+                with contextlib.suppress(Exception):
+                    mutations.append(ctx.remove_edge(actor_id, prev_room))
+            mutations.append(ctx.add_edge(actor_id, new_room, type="location"))
+
+            # 3. Increment next_index in payload
             payload["next_index"] = next_index + 1
             updated_lra = dict(lra)
             updated_lra["payload"] = payload
