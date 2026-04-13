@@ -236,7 +236,9 @@ class TestSeedUniverse:
         ids = sorted(m.id for m in registry.list_mechanics())
         assert ids == [
             "aoe",
+            "belief_update",
             "consume",
+            "cooperate",
             "craft",
             "environmental_reaction",
             "find_nearest",
@@ -245,9 +247,12 @@ class TestSeedUniverse:
             "movement",
             "observation",
             "passage_move",
+            "persuade",
             "pickup",
             "position_sync",
             "speak",
+            "teach",
+            "tell",
             "terrain_move",
             "trade",
             "try_door",

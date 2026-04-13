@@ -61,6 +61,50 @@ from .conftest import CATEGORIES, SEEDS_DIR, USE_CASES_DIR
 # ---------------------------------------------------------------------------
 
 
+def _resolve_blocked_by(
+    registry: MechanicRegistry,
+    matched: MechanicInfo | None,
+) -> str | None:
+    """Return the framework-gap id blocking *matched*, or ``None`` (D-38).
+
+    A *framework-gap stub* is a mechanic that ships under the seeds
+    folder so the registry can enumerate it but whose ``check`` always
+    refuses pending a Phase-5 framework feature (GAP-ENG03 for
+    persuade, GAP-ENG05 for cooperate). Per D-38 the stub declares the
+    blocker as a class-level ``blocked_by`` string attribute.
+
+    The harness reads this attribute via the public
+    :meth:`MechanicRegistry.get_class` accessor (added in 04-04's
+    integrate gate, commit 06fc528). When ``blocked_by`` is truthy, the
+    integration test for the owning UC is routed to ``pytest.skip``
+    with the gap id surfaced in the reason -- making the framework gap
+    visible at every test run instead of hiding behind the manifest's
+    stale ``expected_outcome`` field.
+
+    Args:
+        registry: A populated :class:`MechanicRegistry`.
+        matched: The :class:`MechanicInfo` returned by
+            :func:`match_mechanic_for_verb`, or ``None``.
+
+    Returns:
+        The truthy ``blocked_by`` string declared on the matched
+        mechanic's class, or ``None`` when the input is ``None`` /
+        the matched class declares no ``blocked_by`` attribute / the
+        attribute is falsy.
+
+    See also:
+        ``tests/test_mechanic/test_harness_matcher.py``
+        ``TestResolveBlockedBy`` -- contract-regression guard.
+    """
+    if matched is None:
+        return None
+    cls = registry.get_class(matched.id)
+    gap = getattr(cls, "blocked_by", None)
+    if isinstance(gap, str) and gap:
+        return gap
+    return None
+
+
 def match_mechanic_for_verb(
     registry: MechanicRegistry,
     verb: str,
@@ -354,6 +398,40 @@ def test_use_case(
         tick_ctx.write_action(f"UC harness: {uc_id}")
         mechanics_fired: list[str] = []
 
+        # D-38 framework-gap stub probe: build the registry once (cheap)
+        # and probe whether any action's classified verb resolves to a
+        # stub mechanic with a class-level ``blocked_by``. When it does,
+        # the stub's gap id OVERRIDES the manifest's ``expected_outcome``
+        # field -- this is the whole point of the convention (stale
+        # "blocked" reasons in the manifest get surfaced as the actual
+        # blocking framework gap on every test run). Must run BEFORE the
+        # manifest-outcome-driven early skip so that UC-O02/UC-O06 route
+        # via ``GAP-ENG03``/``GAP-ENG05`` instead of the stale engine-
+        # layer summary they carried into this plan.
+        registry = _build_registry()
+        stub_gap: str | None = None
+        for action in fm.get("actions") or []:
+            if not isinstance(action, dict):
+                continue
+            classified = action.get("classified") or {}
+            verb = classified.get("verb")
+            matched = match_mechanic_for_verb(registry, verb) if verb else None
+            gap = _resolve_blocked_by(registry, matched)
+            if gap is not None:
+                stub_gap = gap
+                break
+        if stub_gap is not None:
+            tick_ctx.set_summary(
+                uc_id=uc_id,
+                outcome="blocked",
+                mechanics_fired=[],
+                reason=f"stub: blocked by {stub_gap}",
+            )
+            pytest.skip(
+                f"{uc_id}: matched mechanic is a framework-gap stub "
+                f"blocked by {stub_gap}"
+            )
+
         # Blocked cases skip BEFORE any engine work (no need to exec
         # graph_builder or load seeds when the outcome is predetermined).
         if outcome == "blocked":
@@ -386,8 +464,7 @@ def test_use_case(
                 f"{type(e).__name__}: {e}"
             )
 
-        # 2. Build the registry over the stock seed mechanics.
-        registry = _build_registry()
+        # 2. Registry already built for the D-38 probe above.
 
         # 3. For each action, naive match on verb -> voluntary mechanic;
         # Phase 5 replaces this with classifier-driven routing.
@@ -411,6 +488,8 @@ def test_use_case(
             matched = match_mechanic_for_verb(registry, verb)
             if matched is None:
                 continue
+            # D-38 stub probe already ran above; matched cannot be a stub
+            # here (we would have skipped before reaching this loop).
             mechanic_instance = registry.get_mechanic(matched.id)
             ctx = MechanicContext(harness_kg, actor=actor, target=target)
             try:

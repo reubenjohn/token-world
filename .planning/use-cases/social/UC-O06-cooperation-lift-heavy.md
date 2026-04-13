@@ -18,13 +18,13 @@ actions:
   - actor: alice
     intent: "lift the boulder with bob"
     classified:
-      verb: lift
+      verb: cooperate
       target: boulder
       co_actors: [bob]
   - actor: bob
     intent: "help alice lift the boulder"
     classified:
-      verb: lift
+      verb: cooperate
       target: boulder
       co_actors: [alice]
 expected_observations:

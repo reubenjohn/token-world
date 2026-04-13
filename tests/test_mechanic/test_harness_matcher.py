@@ -30,7 +30,10 @@ from pathlib import Path
 
 import pytest
 
-from tests.test_integration.test_use_cases import match_mechanic_for_verb
+from tests.test_integration.test_use_cases import (
+    _resolve_blocked_by,
+    match_mechanic_for_verb,
+)
 from token_world.mechanic import MechanicInfo, MechanicRegistry
 
 # ---------------------------------------------------------------------------
@@ -196,3 +199,110 @@ class TestMatchMechanicForVerb:
         as a named case so a future relaxation of dedup is forced to
         revisit this contract before shipping.
         """
+
+
+# ---------------------------------------------------------------------------
+# blocked_by routing (D-38 framework-gap stub support)
+# ---------------------------------------------------------------------------
+
+
+def _write_stub_module(path: Path, *, cls_name: str, id_: str, gap: str) -> None:
+    """Write a framework-gap-stub mechanic module per the D-38 convention."""
+    path.write_text(
+        textwrap.dedent(
+            f"""\
+            from __future__ import annotations
+
+            from token_world.graph import Mutation
+            from token_world.mechanic.protocol import CheckResult, Mechanic
+
+
+            class {cls_name}(Mechanic):
+                id = {id_!r}
+                description = "Stub mechanic blocked on {gap}"
+                voluntary = True
+                tags = ["stub"]
+                blocked_by = {gap!r}
+
+                def check(self, ctx) -> CheckResult:
+                    return CheckResult(passed=False, reasons=[
+                        f"blocked by framework gap {{self.blocked_by}}"
+                    ])
+
+                def apply(self, ctx) -> list[Mutation]:
+                    return []
+            """
+        )
+    )
+
+
+@pytest.fixture
+def stub_registry(tmp_path: Path) -> MechanicRegistry:
+    """Registry with one stubbed mechanic and one real voluntary mechanic."""
+    mechanics = tmp_path / "mechanics"
+    mechanics.mkdir()
+    _write_stub_module(
+        mechanics / "stubmech.py",
+        cls_name="StubMechanic",
+        id_="stubmech",
+        gap="GAP-ENGXX",
+    )
+    _write_mechanic_module(
+        mechanics / "move.py",
+        cls_name="MoveMechanic",
+        id_="move",
+        voluntary=True,
+    )
+    return MechanicRegistry(mechanics, universe_dir=tmp_path)
+
+
+class TestResolveBlockedBy:
+    """Contract for :func:`_resolve_blocked_by` — D-38 stub routing.
+
+    The harness reads this on every matched mechanic (after
+    ``match_mechanic_for_verb`` returns a hit). When the matched
+    mechanic's class declares a truthy ``blocked_by`` attribute, the
+    harness short-circuits the UC to ``pytest.skip`` with the gap id
+    in the reason, regardless of the manifest's stale
+    ``expected_outcome`` field.
+    """
+
+    def test_returns_none_for_non_stub_mechanic(
+        self, stub_registry: MechanicRegistry
+    ) -> None:
+        """A real mechanic with no blocked_by attribute resolves to None."""
+        info = match_mechanic_for_verb(stub_registry, "move")
+        assert info is not None
+        assert _resolve_blocked_by(stub_registry, info) is None
+
+    def test_returns_gap_id_for_stub_mechanic(
+        self, stub_registry: MechanicRegistry
+    ) -> None:
+        """A stub with blocked_by="GAP-ENGXX" resolves to that gap id."""
+        info = match_mechanic_for_verb(stub_registry, "stubmech")
+        assert info is not None
+        assert _resolve_blocked_by(stub_registry, info) == "GAP-ENGXX"
+
+    def test_returns_none_when_matched_info_is_none(
+        self, stub_registry: MechanicRegistry
+    ) -> None:
+        """A None match (no mechanic for the verb) safely resolves to None."""
+        assert _resolve_blocked_by(stub_registry, None) is None
+
+    def test_seed_persuade_blocked_by_gap_eng03(self) -> None:
+        """End-to-end with the real seeds: persuade resolves to GAP-ENG03."""
+        from tests.test_integration.conftest import SEEDS_DIR
+
+        seeds_registry = MechanicRegistry(SEEDS_DIR, universe_dir=SEEDS_DIR.parent)
+        info = match_mechanic_for_verb(seeds_registry, "persuade")
+        assert info is not None
+        assert _resolve_blocked_by(seeds_registry, info) == "GAP-ENG03"
+
+    def test_seed_cooperate_blocked_by_gap_eng05(self) -> None:
+        """End-to-end with the real seeds: cooperate resolves to GAP-ENG05."""
+        from tests.test_integration.conftest import SEEDS_DIR
+
+        seeds_registry = MechanicRegistry(SEEDS_DIR, universe_dir=SEEDS_DIR.parent)
+        info = match_mechanic_for_verb(seeds_registry, "cooperate")
+        assert info is not None
+        assert _resolve_blocked_by(seeds_registry, info) == "GAP-ENG05"
