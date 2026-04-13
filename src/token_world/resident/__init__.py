@@ -2,5 +2,6 @@
 
 from token_world.resident.memory import AgentMemory
 from token_world.resident.personality import PersonalityBundle, PersonalityGenerator
+from token_world.resident.session import SessionManager
 
-__all__ = ["AgentMemory", "PersonalityBundle", "PersonalityGenerator"]
+__all__ = ["AgentMemory", "PersonalityBundle", "PersonalityGenerator", "SessionManager"]
