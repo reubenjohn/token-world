@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Mechanic Framework** - Protocol, DSL primitives, seed mechanics, versioning, and CLI tooling (NOTE: D-15 folder-per-mechanic layout superseded by Phase 4; seeds flatten in plan 04-01)
 - [x] **Phase 3: Design Validation** - Use case library (35 UCs across spatial/social/resource/environmental/edge-case), gap analysis (GAP-ANALYSIS.md / GAP-HANDOFF.md), optional spatial + temporal indexes, filtered Mermaid graph visualization
 - [x] **Phase 4: Mechanic Authoring & Validation Infrastructure** - Flat mechanic layout (supersedes folder-per-mechanic), validation pipeline, diagnostics substrate, integration-test harness, authoring guides, and seed mechanic authoring waves (MECH01–MECH27) — so the top-level coding agent (Opus via Agent SDK) authors mechanics as normal Python SDLC
-- [ ] **Phase 5: Simulation Engine** - Action classification (Haiku), mechanic matching, execution, grounded observation synthesis (Sonnet), conservation enforcement, tick summaries. Under inversion of control: when no mechanic matches, the engine yields to the operator — it does NOT generate code.
+- [x] **Phase 5: Simulation Engine** - Action classification (Haiku), mechanic matching, execution, grounded observation synthesis (Sonnet), conservation enforcement, tick summaries. Under inversion of control: when no mechanic matches, the engine yields to the operator — it does NOT generate code. (completed 2026-04-13)
 - [ ] **Phase 6: Resident Agent & End-to-End Loop** - Agent with personality and memory, playtesting, quality scoring, regression suite
 - [ ] **Phase 7: Attention & Consciousness** - Duration-aware actions and reusable interruption threshold pattern
 
@@ -208,6 +208,6 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 2. Mechanic Framework | 0/3 | Planning complete | - |
 | 3. Design Validation | 0/3 | Not started | - |
 | 4. Mechanic Authoring & Validation Infrastructure | 12/12 | Complete | 2026-04-13 |
-| 5. Simulation Engine | 3/4 | In Progress|  |
+| 5. Simulation Engine | 4/4 | Complete   | 2026-04-13 |
 | 6. Resident Agent & End-to-End Loop | 0/4 | Not started | - |
 | 7. Attention & Consciousness | 0/2 | Not started | - |
