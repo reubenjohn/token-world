@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Phase 07 Wave 3 complete — keystone plan 07-04 landed; LRA infrastructure fully wired into engine + runner
-stopped_at: Completed 07-attention-and-consciousness-04-PLAN.md
-last_updated: "2026-04-13T19:12:43Z"
-last_activity: 2026-04-13 -- Phase 07 context gathered
+status: completed
+stopped_at: Completed 07-05-PLAN.md (sleep seed mechanic)
+last_updated: "2026-04-13T19:24:24.452Z"
+last_activity: 2026-04-13 -- Plan 07-04 complete (engine hook + synthetic tick routing + PlaytestRunner LRA integration, 42 new tests)
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 63
-  completed_plans: 57
-  percent: 90
+  completed_plans: 61
+  percent: 97
 ---
 
 # Project State
@@ -79,6 +79,7 @@ Progress: [████████░░] 87% (Phase 07 in progress — 4 plans
 | Phase 07-attention-and-consciousness P02 | 15 | 2 tasks | 2 files |
 | Phase 07-attention-and-consciousness P03 | 15 | 2 tasks | 3 files |
 | Phase 07-attention-and-consciousness P04 | 45 | 3 tasks | 10 files |
+| Phase 07-attention-and-consciousness P05 | 6 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -139,6 +140,7 @@ Recent decisions affecting current work:
 - [Phase 07-04]: PlaytestRunner uses `_lra_check(agent_id) is True` (not truthy) — MagicMock-safe; existing test fakes unaffected
 - [Phase 07-04]: TickSummary.long_running_action optional field; schema_version stays 1 (additive D-17)
 - [Phase 07-04]: "Time passes. You continue {action_text}." static template for continuing case (D-22, no LLM call)
+- [Phase 07-attention-and-consciousness]: SleepMechanic uses location property (not edge) for threshold construction; integration tests need both property + type=location edge for projector inclusion
 
 ### Roadmap Evolution
 
@@ -155,6 +157,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-13T18:54:31Z
-Stopped at: Completed 07-attention-and-consciousness-03-PLAN.md
+Last session: 2026-04-13T19:24:24.448Z
+Stopped at: Completed 07-05-PLAN.md (sleep seed mechanic)
 Resume file: None
