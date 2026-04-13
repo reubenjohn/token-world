@@ -420,3 +420,125 @@ class TestValidationWiring:
 
         with pytest.raises(KeyError):
             registry.get_mechanic("bad")
+
+
+# ---------------------------------------------------------------------------
+# 04-03 Task 4: scan(diagnostics_sink=...) persists failing reports (D-15)
+# ---------------------------------------------------------------------------
+
+
+def _write_bad_mechanic(path: Path) -> None:
+    """Write a mechanic module that fails D-14 AST rules (imports networkx)."""
+    path.write_text(
+        textwrap.dedent(
+            """\
+            import networkx
+            from token_world.mechanic.protocol import CheckResult, Mechanic
+
+
+            class BadMechanic(Mechanic):
+                id = "bad"
+                description = "imports networkx"
+                voluntary = True
+                tags: list[str] = []
+
+                def check(self, ctx):
+                    return CheckResult(passed=False)
+
+                def apply(self, ctx):
+                    return []
+            """
+        ),
+        encoding="utf-8",
+    )
+
+
+class TestRegistrySinkWiring:
+    """D-15 closure: scan(diagnostics_sink=sink) writes per-failure report.json."""
+
+    def test_registry_writes_validation_failure_via_sink(self, tmp_path: Path) -> None:
+        import json
+        import re
+
+        from token_world.mechanic.diagnostics import DiagnosticsSink
+        from token_world.mechanic.registry import MechanicRegistry
+
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+        _write_bad_mechanic(mechanics / "bad.py")
+
+        universe_dir = tmp_path / "universe"
+        universe_dir.mkdir()
+        sink = DiagnosticsSink(universe_dir)
+
+        # __init__'s internal self.scan() fires with no sink (backward compat).
+        registry = MechanicRegistry(mechanics, universe_dir=tmp_path)
+        assert registry.last_scan_reports[0].passed is False
+
+        # Explicit sink-aware scan persists the failure.
+        reports = registry.scan(diagnostics_sink=sink)
+        assert len(reports) == 1
+        assert reports[0].passed is False
+
+        validation_root = universe_dir / "diagnostics" / "validation"
+        assert validation_root.is_dir()
+        subfolders = [p for p in validation_root.iterdir() if p.is_dir()]
+        assert len(subfolders) == 1
+
+        # Folder name: <YYYYMMDDThhmmssZ>_<id>
+        assert re.fullmatch(r"\d{8}T\d{6}Z_.+", subfolders[0].name)
+
+        report_path = subfolders[0] / "report.json"
+        assert report_path.is_file()
+        data = json.loads(report_path.read_text())
+        assert data["passed"] is False
+        # findings list exists and every finding has stage + rule fields.
+        assert isinstance(data["findings"], list)
+        assert data["findings"]  # at least one
+        assert all("stage" in f and "rule" in f for f in data["findings"])
+
+    def test_registry_scan_without_sink_is_unchanged(self, tmp_path: Path) -> None:
+        """Backward-compat guard: no sink -> no diagnostics side-effects."""
+        from token_world.mechanic.registry import MechanicRegistry
+
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+        _write_bad_mechanic(mechanics / "bad.py")
+
+        registry = MechanicRegistry(mechanics, universe_dir=tmp_path)
+        reports = registry.scan()
+        assert len(reports) == 1
+        assert reports[0].passed is False
+        # No diagnostics/ folder should have been created anywhere we can
+        # observe -- we never passed a sink.
+        assert not (tmp_path / "diagnostics").exists()
+
+    def test_registry_sink_write_failure_is_warned_not_raised(self, tmp_path: Path) -> None:
+        """Sink-write errors degrade to warnings; scan must still return reports."""
+        from token_world.mechanic.diagnostics import DiagnosticsSink
+        from token_world.mechanic.registry import MechanicRegistry
+
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+        _write_bad_mechanic(mechanics / "bad.py")
+
+        universe_dir = tmp_path / "universe"
+        universe_dir.mkdir()
+        sink = DiagnosticsSink(universe_dir)
+
+        # Monkeypatch open_validation to raise OSError.
+        def _boom(_mechanic_id: str) -> Path:
+            raise OSError("simulated disk full")
+
+        sink.open_validation = _boom  # type: ignore[method-assign]
+
+        registry = MechanicRegistry(mechanics, universe_dir=tmp_path)
+
+        with pytest.warns(UserWarning, match="Registry failed to write"):
+            reports = registry.scan(diagnostics_sink=sink)
+
+        # The scan still returned the report list.
+        assert len(reports) == 1
+        assert reports[0].passed is False
+        # And no validation folder was created (the sink never completed).
+        assert not (universe_dir / "diagnostics" / "validation").exists()

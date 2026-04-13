@@ -16,8 +16,10 @@ Duplicate ``id`` values across modules raise :class:`ValueError`
 from __future__ import annotations
 
 import subprocess
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from token_world.mechanic.loader import (
     discover_mechanic_modules,
@@ -25,6 +27,9 @@ from token_world.mechanic.loader import (
 )
 from token_world.mechanic.protocol import Mechanic
 from token_world.mechanic.validation import ValidationReport, validate
+
+if TYPE_CHECKING:
+    from token_world.mechanic.diagnostics import DiagnosticsSink
 
 
 @dataclass
@@ -94,7 +99,11 @@ class MechanicRegistry:
         """
         return list(self._last_scan_reports)
 
-    def scan(self) -> list[ValidationReport]:
+    def scan(
+        self,
+        *,
+        diagnostics_sink: DiagnosticsSink | None = None,
+    ) -> list[ValidationReport]:
         """Scan mechanics directory and rebuild the index.
 
         Runs :func:`token_world.mechanic.validation.validate` on every
@@ -103,6 +112,18 @@ class MechanicRegistry:
         the full report list via the return value or
         :attr:`last_scan_reports`. Valid modules pass through the usual
         class-attribute indexing.
+
+        When ``diagnostics_sink`` is provided, every FAILED report is
+        additionally persisted to
+        ``universe/diagnostics/validation/<ts>_<mechanic-id>/report.json``
+        via :meth:`DiagnosticsSink.open_validation` (D-15 wiring loop).
+        Sink-level write failures degrade to a :mod:`warnings` entry --
+        the registry's primary contract (indexing valid mechanics) must not
+        be broken by a diagnostics write failure.
+
+        Args:
+            diagnostics_sink: Optional sink; when ``None`` (default) the
+                scan is silent and behaves exactly as the 04-02 contract.
 
         Returns:
             One :class:`ValidationReport` per module scanned (passing and
@@ -125,6 +146,8 @@ class MechanicRegistry:
             report = validate(module_path)
             reports.append(report)
             if not report.passed:
+                if diagnostics_sink is not None:
+                    self._write_validation_diagnostics(diagnostics_sink, report)
                 continue
 
             classes = load_mechanic_classes(module_path)
@@ -148,6 +171,51 @@ class MechanicRegistry:
 
         self._last_scan_reports = reports
         return reports
+
+    def _write_validation_diagnostics(
+        self,
+        sink: DiagnosticsSink,
+        report: ValidationReport,
+    ) -> None:
+        """Persist a failing ValidationReport via the diagnostics sink (D-15).
+
+        Never raises. Sink-level failures are reported via
+        :func:`warnings.warn` so the scan can continue indexing the remaining
+        modules. Pure helper -- the caller has already decided that *report*
+        is failing.
+        """
+        # Local import avoids a module-level cycle between
+        # token_world.mechanic.registry and token_world.mechanic.diagnostics
+        # (both are re-exported from the mechanic package __init__).
+        from token_world.mechanic.diagnostics import _atomic_write_json
+
+        mechanic_id = self._mechanic_id_from_report(report)
+        try:
+            folder = sink.open_validation(mechanic_id)
+            _atomic_write_json(folder / "report.json", report.to_dict())
+        except (OSError, ValueError) as e:
+            warnings.warn(
+                f"Registry failed to write validation diagnostics for {mechanic_id!r}: {e}",
+                stacklevel=2,
+            )
+
+    @staticmethod
+    def _mechanic_id_from_report(report: ValidationReport) -> str:
+        """Best-effort mechanic id for a failing report.
+
+        Preference order:
+
+        1. An explicit ``mechanic_id`` attribute on the report (04-02's
+           ``ValidationReport`` currently doesn't carry one, but the getattr
+           is forward-compatible if it's added later).
+        2. The module filename stem, which always exists and is safe to pass
+           through :meth:`DiagnosticsSink.open_validation` (that method
+           sanitises the id defensively).
+        """
+        explicit = getattr(report, "mechanic_id", None)
+        if isinstance(explicit, str) and explicit:
+            return explicit
+        return report.module_path.stem
 
     def list_mechanics(self) -> list[MechanicInfo]:
         """Return a sorted list of all discovered mechanic info."""
