@@ -70,6 +70,9 @@ created: 2026-04-12
 | 04-08-T1 | 04-08 | 4 | MECH-03 | — | MECH15/16 consume + pickup; _count_holds + _refuse_with_narrative helpers | unit | `uv run pytest tests/test_mechanic/test_seeds/test_pickup.py tests/test_mechanic/test_seeds/test_consume.py -x -q` | ✓ | ✅ passing |
 | 04-08-T2 | 04-08 | 4 | MECH-03 | — | MECH07/08/14 trade + give + craft | unit | `uv run pytest tests/test_mechanic/test_seeds/test_trade.py tests/test_mechanic/test_seeds/test_give.py tests/test_mechanic/test_seeds/test_craft.py -x -q` | ✓ | ✅ passing |
 | 04-08-T3 | 04-08 | 4 | MECH-03, TEST-02 | T-04-AST-BYPASS | 6 object-interaction UCs flip from yield/blocked to pass (UC-O01 single-tick; multi-turn is GAP-ENG01 Phase 5) | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-O01 or UC-O03 or UC-R01 or UC-R02 or UC-R03 or UC-R04" -x -q` | ✓ | ✅ passing |
+| 04-09-T1 | 04-09 | 4 | MECH-03 | — | MECH10/11/25 tell+teach+belief_update validate + tests | unit | `uv run pytest tests/test_mechanic/test_seeds/test_tell.py tests/test_mechanic/test_seeds/test_teach.py tests/test_mechanic/test_seeds/test_belief_update.py -x -q` | ✓ | ✅ passing |
+| 04-09-T2 | 04-09 | 4 | MECH-03 | T-04-STUB-IMPORT-LEAK | MECH09/12 stubs validate; blocked_by convention wired in harness; UC-O02 routes via GAP-ENG03, UC-O06 via GAP-ENG05 | integration | `uv run pytest tests/test_mechanic/test_seeds/test_persuade.py tests/test_mechanic/test_seeds/test_cooperate.py tests/test_mechanic/test_harness_matcher.py tests/test_integration/test_use_cases.py -k "UC-O02 or UC-O06" -x -q` | ✓ | ✅ passing |
+| 04-09-T3 | 04-09 | 4 | MECH-03, TEST-02 | — | UC-O04/O05/E03 flip to pass; UC-O02/O06 correctly blocked via stub gap ids | integration | `uv run pytest tests/test_integration/test_use_cases.py -k "UC-O02 or UC-O04 or UC-O05 or UC-O06 or UC-E03" -q` | ✓ | ✅ passing |
 
 <!--
 Rows will be appended by each plan's final task:

@@ -55,7 +55,6 @@ from token_world.use_cases.loader import load_use_case, validate_frontmatter
 
 from .conftest import CATEGORIES, SEEDS_DIR, USE_CASES_DIR
 
-
 # ---------------------------------------------------------------------------
 # Public helpers (stable import paths for the post-plan matcher gate)
 # ---------------------------------------------------------------------------
@@ -223,9 +222,7 @@ def _discover_cases() -> list:
                     pytest.param(
                         path,
                         id=f"{path.stem}-LOAD-ERROR",
-                        marks=pytest.mark.skip(
-                            reason=f"manifest load failed: {e!r}"
-                        ),
+                        marks=pytest.mark.skip(reason=f"manifest load failed: {e!r}"),
                     )
                 )
                 continue
@@ -298,14 +295,10 @@ def _run_graph_assertion(kg: KnowledgeGraph, assertion: dict, uc_id: str) -> Non
         dst = assertion["dst"]
         relation = assertion.get("relation")
         if relation is None:
-            assert kg.has_edge(src, dst), (
-                f"{uc_id}: expected edge {src}->{dst} missing"
-            )
+            assert kg.has_edge(src, dst), f"{uc_id}: expected edge {src}->{dst} missing"
         else:
             props = _edge_props(kg, src, dst)
-            assert props is not None, (
-                f"{uc_id}: expected edge {src}-[{relation}]->{dst} missing"
-            )
+            assert props is not None, f"{uc_id}: expected edge {src}-[{relation}]->{dst} missing"
             assert props.get("relation") == relation, (
                 f"{uc_id}: edge {src}->{dst} relation="
                 f"{props.get('relation')!r} (expected {relation!r})"
@@ -315,28 +308,21 @@ def _run_graph_assertion(kg: KnowledgeGraph, assertion: dict, uc_id: str) -> Non
         dst = assertion["dst"]
         relation = assertion.get("relation")
         if relation is None:
-            assert not kg.has_edge(src, dst), (
-                f"{uc_id}: unexpected edge {src}->{dst} present"
-            )
+            assert not kg.has_edge(src, dst), f"{uc_id}: unexpected edge {src}->{dst} present"
         else:
             props = _edge_props(kg, src, dst)
             if props is not None:
                 assert props.get("relation") != relation, (
-                    f"{uc_id}: unexpected edge "
-                    f"{src}-[{relation}]->{dst} still present"
+                    f"{uc_id}: unexpected edge {src}-[{relation}]->{dst} still present"
                 )
     elif kind == "has_property":
         node = assertion["node"]
         prop = assertion["property"]
         expected = assertion.get("value")
         if not kg.has_node(node):
-            raise AssertionError(
-                f"{uc_id}: has_property asserted on missing node {node!r}"
-            )
+            raise AssertionError(f"{uc_id}: has_property asserted on missing node {node!r}")
         props = kg.query(node)
-        assert prop in props, (
-            f"{uc_id}: property {prop!r} missing on {node!r}"
-        )
+        assert prop in props, f"{uc_id}: property {prop!r} missing on {node!r}"
         if expected is not None:
             assert props[prop] == expected, (
                 f"{uc_id}: {node}.{prop}={props[prop]!r} != {expected!r}"
@@ -354,9 +340,7 @@ def _run_graph_assertion(kg: KnowledgeGraph, assertion: dict, uc_id: str) -> Non
         prop = assertion["property"]
         if kg.has_node(node):
             props = kg.query(node)
-            assert prop not in props, (
-                f"{uc_id}: property {prop!r} unexpectedly present on {node!r}"
-            )
+            assert prop not in props, f"{uc_id}: property {prop!r} unexpectedly present on {node!r}"
     # Unknown kinds: silently skip (schema validator already enforces the
     # 6-kind vocabulary at frontmatter-load time).
 
@@ -427,10 +411,7 @@ def test_use_case(
                 mechanics_fired=[],
                 reason=f"stub: blocked by {stub_gap}",
             )
-            pytest.skip(
-                f"{uc_id}: matched mechanic is a framework-gap stub "
-                f"blocked by {stub_gap}"
-            )
+            pytest.skip(f"{uc_id}: matched mechanic is a framework-gap stub blocked by {stub_gap}")
 
         # Blocked cases skip BEFORE any engine work (no need to exec
         # graph_builder or load seeds when the outcome is predetermined).
@@ -441,9 +422,7 @@ def test_use_case(
                 mechanics_fired=[],
                 reason=blocked_reason or "framework gap",
             )
-            pytest.skip(
-                f"{uc_id}: blocked by {blocked_reason or 'framework gap'}"
-            )
+            pytest.skip(f"{uc_id}: blocked by {blocked_reason or 'framework gap'}")
 
         # 1. Build the setup graph. Builder errors surface as pytest.fail
         # with the UC id + short error context (Pitfall 3).
@@ -459,10 +438,7 @@ def test_use_case(
                 outcome="error",
                 mechanics_fired=[],
             )
-            pytest.fail(
-                f"{uc_id}: setup.graph_builder invalid: "
-                f"{type(e).__name__}: {e}"
-            )
+            pytest.fail(f"{uc_id}: setup.graph_builder invalid: {type(e).__name__}: {e}")
 
         # 2. Registry already built for the D-38 probe above.
 
@@ -500,10 +476,7 @@ def test_use_case(
                     outcome="error",
                     mechanics_fired=mechanics_fired,
                 )
-                pytest.fail(
-                    f"{uc_id}: mechanic {matched.id!r} raised "
-                    f"{type(e).__name__}: {e}"
-                )
+                pytest.fail(f"{uc_id}: mechanic {matched.id!r} raised {type(e).__name__}: {e}")
             if trace.root.check_result.passed:
                 any_mechanic_fired = True
                 mechanics_fired.append(matched.id)
@@ -526,9 +499,7 @@ def test_use_case(
             # the UC is ready to flip from yield to pass.
         elif outcome == "pass":
             if not any_mechanic_fired:
-                pytest.fail(
-                    f"{uc_id}: expected mechanic to match but none did"
-                )
+                pytest.fail(f"{uc_id}: expected mechanic to match but none did")
             # fall through to assertions
 
         # 6. Assert graph expectations for any case that reached here.

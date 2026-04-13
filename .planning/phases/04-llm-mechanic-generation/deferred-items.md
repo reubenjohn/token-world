@@ -97,3 +97,31 @@ pass `ruff check` and `ruff format --check` cleanly after the plan's run.
 **Next action:** A future plan (04-12 cleanup) runs `ruff check --fix
 tests/test_mechanic/test_seeds/` and either reflows the E501 docstring or
 adds a `# noqa: E501` ack. All four findings are `--fix`-automatable.
+
+## 04-09 discoveries
+
+### SIM102 in `tests/test_integration/test_use_cases.py` (predates 04-09)
+
+**Found during:** 04-09 Task 3 phase-gate (`ruff check
+tests/test_integration/`).
+
+**File:**
+- `tests/test_integration/test_use_cases.py` — one SIM102
+  (`elif outcome == "pass":` containing nested `if not any_mechanic_fired`
+  at lines ~500-503 of the post-D-38 file). Combine into a single
+  `elif outcome == "pass" and not any_mechanic_fired:`.
+
+**Issue:** Pre-existing finding in code committed by 04-04 (commit
+`55cff4f`); 04-09 left the W5 explicit-outcome-branching block
+unchanged structurally (the new D-38 stub-probe block sits earlier
+in the function). Ruff continues to surface it under the broader
+`ruff check tests/` lens.
+
+**Why deferred:** Out of scope per CLAUDE.md scope-boundary — the
+nested `if` is in a code region 04-09 did not modify. `ruff check`
+on the 12 files this plan actually touched is clean.
+
+**Next action:** A future plan (04-12 cleanup) runs `ruff check
+--fix --select SIM102 tests/test_integration/test_use_cases.py`,
+or — when the W5 branching grows additional cases — restructures
+the outcome dispatch into a single match-statement.

@@ -3,7 +3,7 @@ id: UC-O05
 category: social
 title: "Teaching a skill"
 status: reviewed
-expected_outcome: blocked
+expected_outcome: pass
 validator_exception: target_may_not_exist  # `lockpicking` is an unmodeled skill string; absence-as-node is the engine gap itself.
 setup:
   graph_builder: |

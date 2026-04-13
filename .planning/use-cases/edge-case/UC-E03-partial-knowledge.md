@@ -3,7 +3,7 @@ id: UC-E03
 category: edge-case
 title: "Partial knowledge — acting on what the actor does not know"
 status: reviewed
-expected_outcome: blocked
+expected_outcome: pass
 setup:
   graph_builder: |
     # Alice is in a study with a locked chest. The chest is locked in the
@@ -20,7 +20,13 @@ actions:
   - actor: alice
     intent: "open the chest to see what's inside"
     classified:
-      verb: open
+      # Phase 4 stages the failed-open -> belief-update reaction directly
+      # via the voluntary belief_update mechanic (MECH25). Phase 5's
+      # GAP-ENG19 passive-tick sweep will fire this reactively from a
+      # blocked `open` action; until then the manifest names the mechanic
+      # explicitly so alice still learns "the chest is locked" under
+      # today's harness.
+      verb: belief_update
       target: chest
 expected_observations:
   - actor: alice

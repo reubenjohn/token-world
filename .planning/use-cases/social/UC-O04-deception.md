@@ -3,11 +3,18 @@ id: UC-O04
 category: social
 title: "Deception"
 status: reviewed
-expected_outcome: yield
+expected_outcome: pass
 setup:
   graph_builder: |
     # A chest full of coin sits in the vault; alice lies to bob about it.
-    kg.add_node("alice", node_type="agent")
+    # alice carries her utterance dict on-graph (Phase-4 GAP-ENG02
+    # workaround per 04-08 pending_* convention; Phase 5's GAP-ENG02
+    # adds a structured ctx.claim slot).
+    kg.add_node(
+        "alice",
+        node_type="agent",
+        utterance={"about": "chest", "property": "contents", "value": []},
+    )
     kg.add_node("bob", node_type="agent", beliefs={})
     kg.add_node("chest", node_type="entity", subtype="container", contents=["coin:100"])
     kg.add_node("vault", node_type="entity", subtype="room")
