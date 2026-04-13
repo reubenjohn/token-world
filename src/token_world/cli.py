@@ -25,6 +25,7 @@ from token_world.operator.diagnostics import OperatorDiagnosticsReader
 from token_world.operator.harness import OperatorHarness
 from token_world.operator.testing import EngineStub
 from token_world.operator.yield_signal import YieldSignal
+from token_world.playtest import PlaytestRunner, Scenario
 from token_world.resident import (
     AgentMemory,
     PersonalityBundle,
@@ -1179,3 +1180,188 @@ def agent_turn(slug: str, agent_id: str | None, no_operator: bool) -> None:
     click.echo(f"Agent ({agent_id}): {action}\n\nObservation:\n{result.observation}")
     if result.kind == "refused":
         click.echo(f"(refused: {result.refusal_reason})")
+
+
+# --------------------------------------------------------------------------- #
+# playtest  (Phase 06 Plan 04 — D-09, D-10, D-11, D-23, D-24)
+# --------------------------------------------------------------------------- #
+
+
+def _load_or_create_agent(
+    universe_dir: Path,
+    kg: KnowledgeGraph,
+    memory: AgentMemory,
+    sessions: SessionManager,
+    client: object,
+    world_rules: str,
+) -> tuple[ResidentAgent, str, str]:
+    """Load the most-recent agent+session from a universe, or auto-create one.
+
+    Shared by agent-turn and playtest commands (D-29: auto-create if none exists).
+
+    Returns:
+        Tuple of (ResidentAgent, agent_id, session_id).
+    """
+    session_id: str
+    agent_id_local: str
+
+    existing_agents = sessions.list_agents()
+    if not existing_agents:
+        # Auto-create: generate personality, create graph node, start session
+        universe_desc = world_rules.split("\n")[0] or "a fantasy world"
+        personality = PersonalityGenerator().generate(universe_desc, client=client)
+        agent_id_local = kg.claim_id("resident")
+        create_agent_node(kg, agent_id_local, personality)
+        session_id = sessions.create_session(agent_id_local, personality)
+    else:
+        agent_id_local = existing_agents[0]
+        existing_sessions = sessions.list_sessions(agent_id_local)
+        session_id = existing_sessions[-1]  # most recent
+
+    # Load personality from session
+    session_row = sessions.get_session(session_id)
+    if session_row and session_row.get("agent_personality"):
+        personality = PersonalityBundle.model_validate_json(session_row["agent_personality"])
+    else:
+        node_props = kg.query(agent_id_local)
+        personality = PersonalityBundle.model_validate(node_props.get("personality", {}))
+
+    agent = ResidentAgent(
+        agent_id=agent_id_local,
+        session_id=session_id,
+        personality=personality,
+        memory=memory,
+        client=client,
+        world_rules=world_rules,
+    )
+    return agent, agent_id_local, session_id
+
+
+@cli.command("playtest")
+@click.argument("slug")
+@click.option(
+    "--turns", type=int, default=20, show_default=True, help="Number of turns to simulate."
+)
+@click.option(
+    "--scenario",
+    "scenario_path",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="YAML scenario file (optional).",
+)
+@click.option("--seed", type=int, default=None, help="RNG seed for adversarial injection sampling.")
+@click.option(
+    "--no-operator",
+    "no_operator",
+    is_flag=True,
+    default=False,
+    help="Do not invoke OperatorHarness on yield.",
+)
+@click.option(
+    "--judge",
+    is_flag=True,
+    default=False,
+    help="Run optional Sonnet judge after playtest (extra cost, D-13).",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Override report output path.",
+)
+def playtest(
+    slug: str,
+    turns: int,
+    scenario_path: Path | None,
+    seed: int | None,
+    no_operator: bool,
+    judge: bool,
+    output_path: Path | None,
+) -> None:
+    """Run N simulation turns and write a structured quality report.
+
+    Drives a resident agent through N turns against a SimulationEngine,
+    scores each turn with the D-12 rubric, and writes a JSON report to
+    universe/playtest-reports/<run_id>.json.
+
+    Yields are handled automatically via OperatorHarness (unless --no-operator).
+    Optional --scenario loads a YAML scenario with scripted/inject turns.
+    """
+    # (a) Load universe path
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(slug)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    # (b) Load graph
+    kg = KnowledgeGraph(db_path=universe_dir / "universe.db")
+    kg.load()
+
+    # (c) Load world rules from universe's CLAUDE.md
+    claude_md = universe_dir / "CLAUDE.md"
+    world_rules = claude_md.read_text(encoding="utf-8") if claude_md.exists() else ""
+
+    # (d) Anthropic client
+    client = anthropic.Anthropic()  # type: ignore[attr-defined]
+
+    # (e-f) Memory + sessions adapters
+    db_path = universe_dir / "universe.db"
+    memory = AgentMemory(db_path)
+    sessions = SessionManager(db_path)
+
+    # (g) Load or auto-create agent+session
+    agent, agent_id, session_id = _load_or_create_agent(
+        universe_dir, kg, memory, sessions, client, world_rules
+    )
+
+    # (h) Construct SimulationEngine
+    engine = SimulationEngine(universe_dir, graph=kg, anthropic_client=client)
+
+    # (i) Construct PlaytestRunner
+    runner = PlaytestRunner(
+        engine=engine,
+        agent=agent,
+        memory=memory,
+        agent_id=agent_id,
+        session_id=session_id,
+    )
+
+    # (j) Load scenario if provided
+    scenario_obj: Scenario | None = None
+    if scenario_path is not None:
+        scenario_obj = Scenario.load(scenario_path)
+
+    # (k) Run playtest
+    report_path = runner.run(
+        universe_dir,
+        turns=turns,
+        scenario=scenario_obj,
+        seed=seed,
+        no_operator=no_operator,
+        judge=judge,
+        output_path=output_path,
+    )
+
+    # (l) Print aggregate scores + report path
+    import json as _json_mod
+
+    data = _json_mod.loads(report_path.read_text(encoding="utf-8"))
+    agg = data.get("aggregate_scores", {})
+    click.echo(f"\nPlaytest complete: {turns} turns")
+    click.echo(f"  mechanic_match_rate:     {agg.get('mechanic_match_rate', 0):.3f}")
+    click.echo(f"  observation_groundedness:{agg.get('observation_groundedness', 0):.3f}")
+    click.echo(f"  mutation_count:          {agg.get('mutation_count', 0):.3f}")
+    click.echo(f"  refusal_rate:            {agg.get('refusal_rate', 0):.3f}")
+    click.echo(f"  action_novelty:          {agg.get('action_novelty', 0):.3f}")
+    click.echo(f"  composite:               {agg.get('composite', 0):.3f}")
+    click.echo(f"\nReport: {report_path}")
+
+    # (m) Judge stub (D-13 — full judge deferred to 06-05+)
+    if judge:
+        click.echo(
+            "(--judge flag set: Sonnet judge pass not implemented yet; "
+            "will be wired in a future plan)"
+        )
