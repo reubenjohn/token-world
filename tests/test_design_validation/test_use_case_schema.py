@@ -7,7 +7,10 @@ from pathlib import Path
 import pytest
 
 from token_world.use_cases import load_use_case, validate_frontmatter
-from token_world.use_cases.loader import VALID_ASSERTION_KINDS
+from token_world.use_cases.loader import (
+    VALID_ASSERTION_KINDS,
+    VALID_EXPECTED_OUTCOMES,
+)
 
 
 def test_library_has_use_cases(use_case_files: list[Path]) -> None:
@@ -105,3 +108,50 @@ def test_load_use_case_accepts_legacy_mac_cr_frontmatter(tmp_path: Path) -> None
     fm, body = load_use_case(path)
     assert fm["id"] == "UC-S02"
     assert "body" in body
+
+
+# ----------------------------------------------------------------------
+# 04-04 Task 1: optional expected_outcome schema extension
+# ----------------------------------------------------------------------
+
+
+def _minimal_fm(**overrides: object) -> dict[str, object]:
+    """Return a minimal valid frontmatter dict; overrides add/replace keys."""
+    fm: dict[str, object] = {
+        "id": "UC-S01",
+        "category": "spatial",
+        "title": "test",
+        "status": "draft",
+        "setup": {"graph_builder": ""},
+        "actions": [],
+        "expected_observations": [],
+        "gaps": [],
+    }
+    fm.update(overrides)
+    return fm
+
+
+def test_expected_outcome_is_optional() -> None:
+    """Manifests without ``expected_outcome`` must still validate (backward compat)."""
+    fm = _minimal_fm()  # no expected_outcome key
+    errors = validate_frontmatter(fm, source="<optional>")
+    assert errors == [], errors
+
+
+@pytest.mark.parametrize("value", sorted({"pass", "yield", "blocked"}))
+def test_expected_outcome_valid_values_pass(value: str) -> None:
+    """Every value in VALID_EXPECTED_OUTCOMES must validate cleanly."""
+    fm = _minimal_fm(expected_outcome=value)
+    errors = validate_frontmatter(fm, source="<valid>")
+    assert errors == [], errors
+    assert value in VALID_EXPECTED_OUTCOMES
+
+
+def test_expected_outcome_invalid_value_errors() -> None:
+    """Invalid outcome values must surface exactly one error mentioning the field."""
+    fm = _minimal_fm(expected_outcome="fail")
+    errors = validate_frontmatter(fm, source="<invalid>")
+    assert len(errors) == 1, errors
+    msg = errors[0]
+    assert "expected_outcome" in msg
+    assert "fail" in msg
