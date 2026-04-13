@@ -97,6 +97,11 @@ class Observer:
     last_input_tokens: int = 0  # populated after each synthesize() for tick-summary cost
     last_output_tokens: int = 0
 
+    @classmethod
+    def system_prompt_text(cls) -> str:
+        """Return the observer system prompt text (for SHA-256 hash-based change detection)."""
+        return _SYSTEM_PROMPT
+
     def synthesize(
         self,
         *,

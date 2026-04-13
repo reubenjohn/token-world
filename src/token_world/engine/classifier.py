@@ -56,6 +56,11 @@ class Classifier:
     model: str = _MODEL
     max_tokens: int = 1024
 
+    @classmethod
+    def system_prompt_text(cls) -> str:
+        """Return the classifier system prompt text (for SHA-256 hash-based change detection)."""
+        return _SYSTEM_PROMPT
+
     def classify(
         self,
         action_text: str,

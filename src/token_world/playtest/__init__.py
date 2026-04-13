@@ -1,5 +1,6 @@
-"""Playtest subsystem: runner, scorer, scenarios, reports."""
+"""Playtest subsystem: runner, scorer, scenarios, reports, hash registry, judge."""
 
+from token_world.playtest.hash_registry import PromptHashRegistry
 from token_world.playtest.report import AggregateScores, PlaytestReport, TurnRecord
 from token_world.playtest.runner import PlaytestRunner
 from token_world.playtest.scenarios import InjectionSampler, Scenario
@@ -10,6 +11,7 @@ __all__ = [
     "InjectionSampler",
     "PlaytestReport",
     "PlaytestRunner",
+    "PromptHashRegistry",
     "Scenario",
     "TurnRecord",
     "TurnScore",
