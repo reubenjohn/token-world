@@ -24,7 +24,6 @@ from token_world.operator.diagnostics import (
     OperatorDiagnosticsContext,
 )
 
-
 # ---------------------------------------------------------------------------
 # Lifecycle: directory creation
 # ---------------------------------------------------------------------------
@@ -35,9 +34,7 @@ class TestContextLifecycle:
 
     def test_context_creates_operator_dir(self, universe: Path) -> None:
         with OperatorDiagnosticsContext(universe, "tick_1") as ctx:
-            assert ctx.operator_dir == (
-                universe / "diagnostics" / "tick_tick_1" / "operator"
-            )
+            assert ctx.operator_dir == (universe / "diagnostics" / "tick_tick_1" / "operator")
             assert ctx.operator_dir.is_dir()
             assert (ctx.operator_dir / "validation").is_dir()
 
@@ -85,9 +82,7 @@ class TestWriters:
             ctx.append_attempt({"attempt": 2, "message_type": "tool_result", "ok": True})
             ctx.close({"success": True, "mechanic_id": "x"})
 
-        path = (
-            universe / "diagnostics" / "tick_tick_1" / "operator" / "authoring_attempts.jsonl"
-        )
+        path = universe / "diagnostics" / "tick_tick_1" / "operator" / "authoring_attempts.jsonl"
         assert path.is_file()
         lines = path.read_text(encoding="utf-8").splitlines()
         assert len(lines) == 3
@@ -100,9 +95,7 @@ class TestWriters:
     def test_write_validation_report_zero_padded(self, universe: Path) -> None:
         with OperatorDiagnosticsContext(universe, "tick_1") as ctx:
             ctx.write_validation_report(1, {"passed": False, "findings": ["missing matches"]})
-            ctx.write_validation_report(
-                2, {"passed": True, "findings": [], "duration_ms": 42}
-            )
+            ctx.write_validation_report(2, {"passed": True, "findings": [], "duration_ms": 42})
             ctx.close({"success": True, "mechanic_id": "x"})
 
         vdir = universe / "diagnostics" / "tick_tick_1" / "operator" / "validation"
@@ -118,12 +111,7 @@ class TestWriters:
             ctx.write_validation_report(15, {"passed": True})
             ctx.close({"success": True, "mechanic_id": "x"})
         path = (
-            universe
-            / "diagnostics"
-            / "tick_tick_1"
-            / "operator"
-            / "validation"
-            / "attempt_15.json"
+            universe / "diagnostics" / "tick_tick_1" / "operator" / "validation" / "attempt_15.json"
         )
         assert path.is_file()
 
