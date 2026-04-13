@@ -28,3 +28,27 @@ types so the cast disappears.
 
 **Impact if not fixed:** mypy on the `graph/` package exits non-zero. Does
 not affect runtime behavior or test results.
+
+## Pre-existing ruff errors in `tests/test_mechanic/`
+
+**Found during:** 03-14 (escape_label angle-bracket gap closure) final
+verification (`uv run ruff check src/ tests/`).
+
+- `tests/test_mechanic/test_cli.py:73` — E501 line-too-long (117 > 100)
+- `tests/test_mechanic/test_context.py:5` — F401 unused import `KnowledgeGraph`
+- `tests/test_mechanic/test_engine.py:3` — I001 unsorted import block
+
+**Status:** Pre-existing. Reproduced against `HEAD~2` and earlier before
+any plan-14 changes were applied.
+
+**Scope:** Phase 02 (mechanic-framework tests) artifact. Plan 03-14 only
+touches `src/token_world/viz/mermaid.py` and
+`tests/test_viz/test_mermaid_escape.py`; fixing unrelated test files is
+out of scope per the deviation-rules scope boundary.
+
+**Proposed fix:** `uv run ruff check tests/test_mechanic/ --fix` resolves
+three of the four automatically; the E501 line requires a manual split.
+
+**Impact if not fixed:** `uv run ruff check src/ tests/` exits non-zero,
+but only because of these pre-existing issues. `ruff check src/` and
+`ruff check tests/test_viz/` both pass clean.
