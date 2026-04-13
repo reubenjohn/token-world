@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from token_world.graph import Mutation
     from token_world.mechanic.context import MechanicContext
 
 
@@ -113,3 +114,73 @@ def _find_matching_key(
         if props.get("key_id") == required_key_id:
             return held
     return None
+
+
+def _count_holds(ctx: MechanicContext, actor: str) -> int:
+    """Return the number of outgoing ``holds`` edges from *actor*.
+
+    Shared inventory-count primitive for object-interaction seeds (04-08
+    cluster). ``pickup``'s ``inventory_cap`` check and ``give``'s "actor
+    must hold the item" gate both read this same count.
+
+    Keeping the count in one place means a future "container nesting"
+    design (Phase 8, UC-R04 defer note) only has to re-implement the
+    semantics here -- every seed mechanic inherits the new behaviour.
+
+    Args:
+        ctx: Mechanic execution context.
+        actor: Node id whose outgoing holds edges to count.
+
+    Returns:
+        Integer count of ``holds`` out-neighbors from *actor*. Returns 0
+        when *actor* holds nothing (or has no outgoing edges at all).
+    """
+    return sum(1 for _ in ctx.neighbors(actor, relation="holds"))
+
+
+def _refuse_with_narrative(
+    ctx: MechanicContext,
+    actor: str,
+    narrative: str,
+    target: str | None = None,
+) -> list[Mutation]:
+    """Emit refusal-narrative mutations on *actor*.
+
+    Shared helper for the "voluntary refusal with narrative" pattern
+    established by 04-07's ``try_door`` (UC-E06). A mechanic's ``apply``
+    returns this helper's output when its ``check`` passed but a
+    downstream precondition inside ``apply`` ruled out the canonical
+    side effect (e.g. ``pickup`` where the actor already holds the
+    target, or ``consume`` where a non-food is held).
+
+    This helper deliberately writes the narrative to the *actor*
+    (not the target). Phase 5's harness-level refusal-narrative
+    synthesis (owned by 04-04's Extension Contract) will eventually
+    consume ``last_refusal_narrative`` + ``last_refusal_target`` for
+    observation generation. Until then, seeds write these props
+    directly -- they are graph-resident ground truth and survive
+    restart like every other property.
+
+    Note on check-fail vs. apply-refuse: when a mechanic's ``check``
+    returns ``passed=False``, the engine never calls ``apply``, so this
+    helper never fires for that path. The Phase-4 harness does not yet
+    synthesize narratives from ``CheckResult.reasons`` -- that is a
+    harness concern owned by 04-04. Authors who need a narrative on a
+    voluntary refusal should let ``check`` pass on "the action is
+    coherent" and move the refusal discriminator into ``apply``, as
+    ``pickup`` does with the inventory-full branch.
+
+    Args:
+        ctx: Mechanic execution context.
+        actor: Node id to write the narrative onto.
+        narrative: Human-readable refusal message.
+        target: Optional target node id; when provided, also writes
+            ``last_refusal_target`` for observation-side grounding.
+
+    Returns:
+        A list of 1 or 2 mutations (2 when *target* is provided).
+    """
+    muts: list[Mutation] = [ctx.mutate(actor, "last_refusal_narrative", narrative)]
+    if target is not None:
+        muts.append(ctx.mutate(actor, "last_refusal_target", target))
+    return muts
