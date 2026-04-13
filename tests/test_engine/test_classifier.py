@@ -210,6 +210,79 @@ class TestClassifierPostProcessing:
         assert isinstance(result, VerdictOk)
 
 
+class TestClassifierIndirectObjectValidation:
+    """WR-02: indirect_object must be validated against known_node_ids."""
+
+    def test_hallucinated_indirect_object_becomes_no_such_target(self) -> None:
+        """Ok verdict with indirect_object not in known_node_ids -> VerdictNoSuchTarget.
+
+        WR-02: Haiku may hallucinate a non-existent indirect_object node ID.
+        The classifier must catch this and return VerdictNoSuchTarget, just as
+        it does for a hallucinated target.
+        """
+        response_with_indirect = json.dumps(
+            {
+                "kind": "ok",
+                "classified": {
+                    "verb": "give",
+                    "actor": "alice",
+                    "target": "gold_coin",
+                    "indirect_object": "phantom_bob",  # not in known_node_ids
+                    "params": {},
+                },
+                "confidence": 0.95,
+            }
+        )
+        clf, _ = _clf([response_with_indirect])
+        result = clf.classify(
+            "give gold coin to bob",
+            "alice",
+            available_verbs=["give"],
+            known_node_ids=["alice", "gold_coin"],  # phantom_bob is absent
+            min_confidence=0.0,
+        )
+        assert isinstance(result, VerdictNoSuchTarget)
+        assert result.target_text == "phantom_bob"
+
+    def test_valid_indirect_object_does_not_become_no_such_target(self) -> None:
+        """Ok verdict with indirect_object IN known_node_ids stays VerdictOk."""
+        response_with_indirect = json.dumps(
+            {
+                "kind": "ok",
+                "classified": {
+                    "verb": "give",
+                    "actor": "alice",
+                    "target": "gold_coin",
+                    "indirect_object": "bob",
+                    "params": {},
+                },
+                "confidence": 0.95,
+            }
+        )
+        clf, _ = _clf([response_with_indirect])
+        result = clf.classify(
+            "give gold coin to bob",
+            "alice",
+            available_verbs=["give"],
+            known_node_ids=["alice", "gold_coin", "bob"],
+            min_confidence=0.0,
+        )
+        assert isinstance(result, VerdictOk)
+        assert result.classified.indirect_object == "bob"
+
+    def test_null_indirect_object_does_not_trigger_validation(self) -> None:
+        """Ok verdict with indirect_object=None does not trigger no_such_target."""
+        clf, _ = _clf([_OK_RESPONSE])
+        result = clf.classify(
+            "pick up the rock",
+            "alice",
+            available_verbs=["pickup"],
+            known_node_ids=["alice", "rock_1"],
+            min_confidence=0.0,
+        )
+        assert isinstance(result, VerdictOk)
+
+
 class TestClassifierDiagnostics:
     """Diagnostics sink receives prompt/response/parsed calls."""
 

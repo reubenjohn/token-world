@@ -164,10 +164,16 @@ class Classifier:
     def _apply_known_target_check(
         self, verdict: ClassifierVerdict, known_node_ids: list[str]
     ) -> ClassifierVerdict:
+        if not isinstance(verdict, VerdictOk):
+            return verdict
+        classified = verdict.classified
+        # Check target (direct object)
+        if classified.target is not None and classified.target not in known_node_ids:
+            return VerdictNoSuchTarget(target_text=classified.target)
+        # Check indirect_object (GAP-ENG02 — ditransitive verbs like give/teach)
         if (
-            isinstance(verdict, VerdictOk)
-            and verdict.classified.target is not None
-            and verdict.classified.target not in known_node_ids
+            classified.indirect_object is not None
+            and classified.indirect_object not in known_node_ids
         ):
-            return VerdictNoSuchTarget(target_text=verdict.classified.target)
+            return VerdictNoSuchTarget(target_text=classified.indirect_object)
         return verdict
