@@ -1,8 +1,12 @@
 """Minimal MCP stdio server stub for Token World.
 
-Declares four simulation tools (resume_tick, rollback, list_mechanics,
-register_mechanic) and returns "not implemented" for each.
-This validates Claude Code tool discovery while tools are built in later phases.
+Declares three simulation tools (resume_tick, rollback, list_mechanics)
+and returns "not implemented" for each. Per Phase 4 D-10, mechanic
+authoring is an operator-side SDLC activity (file writes + subagents via
+the Agent SDK), so there is no ``register_mechanic`` MCP tool.
+
+This validates Claude Code tool discovery while tools are built in later
+phases.
 
 Threat mitigation (T-00-05): JSON parse errors return proper JSON-RPC error
 response (-32700). Invalid methods return -32601. No eval/exec of input.
@@ -38,17 +42,6 @@ TOOLS = [
             "properties": {
                 "filter": {"type": "string", "description": "Optional filter pattern"},
             },
-        },
-    },
-    {
-        "name": "register_mechanic",
-        "description": "Register a new mechanic from a mechanics/ subfolder",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "Path to mechanic folder"},
-            },
-            "required": ["path"],
         },
     },
 ]
