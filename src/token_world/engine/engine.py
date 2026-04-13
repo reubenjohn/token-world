@@ -55,7 +55,6 @@ from token_world.mechanic.matchers import (
     TickMatcher,
     VerbMatcher,
     WorldPropertyMatcher,
-    matches,
 )
 from token_world.mechanic.registry import MechanicRegistry
 from token_world.mechanic.trace import ExecutionTrace, TraceNode
@@ -648,9 +647,12 @@ class SimulationEngine:
                     should_fire = True
                     break
                 if isinstance(matcher, WorldPropertyMatcher):
-                    # Fires only if this tick produced a set_property on _world for this property
+                    # Fires only if this tick produced a set_property on _world for this property.
+                    # NOTE: the Phase 2 matches() helper does NOT dispatch WorldPropertyMatcher
+                    # (it only handles PropertyChangeMatcher/EdgeMatcher/NodeMatcher). Use the
+                    # Phase 5 matcher's own .match(mutation) method directly.
                     for mutation in primary_mutations:
-                        if matches(matcher, mutation, self._graph):
+                        if matcher.match(mutation):
                             should_fire = True
                             break
                     if should_fire:
