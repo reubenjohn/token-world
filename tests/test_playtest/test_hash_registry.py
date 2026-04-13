@@ -328,6 +328,51 @@ def test_trigger_regression_handles_subprocess_failure(
     assert row["exit_code"] == -1
 
 
+# ---------------------------------------------------------------------------
+# WR-04 regression: trigger_regression pins cwd to project root
+# ---------------------------------------------------------------------------
+
+
+def test_trigger_regression_uses_project_root_as_cwd(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """WR-04: subprocess.run is called with cwd set to project root, not caller cwd."""
+    import os
+    import subprocess
+
+    captured: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cwd"] = kwargs.get("cwd")
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = "1 passed in 0.1s"
+        result.stderr = ""
+        return result
+
+    # Change to /tmp so caller cwd differs from project root
+    old_cwd = os.getcwd()
+    try:
+        os.chdir("/tmp")
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        reg = PromptHashRegistry()
+        reg.trigger_regression(tmp_path, ["agent_system_prompt"])
+    finally:
+        os.chdir(old_cwd)
+
+    assert captured.get("cwd") is not None, "cwd not passed to subprocess.run"
+    cwd = captured["cwd"]
+    # The cwd must NOT be /tmp — it must point to the project root
+    assert str(cwd) != "/tmp", f"cwd was /tmp instead of project root: {cwd}"
+    # The project root must contain pyproject.toml or src/token_world
+    import pathlib
+
+    project_root = pathlib.Path(cwd)
+    assert (project_root / "pyproject.toml").exists() or (
+        project_root / "src" / "token_world"
+    ).exists(), f"cwd {cwd!r} does not look like the project root"
+
+
 def test_trigger_regression_appends_not_overwrites(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -193,6 +193,9 @@ class PromptHashRegistry:
             "duration_s": 0.0,
             "error": None,
         }
+        # Derive project root: hash_registry.py is at src/token_world/playtest/,
+        # so .parents[3] walks up: playtest/ -> token_world/ -> src/ -> project root
+        _project_root = Path(__file__).parents[3]
         try:
             result = subprocess.run(
                 cmd,
@@ -200,6 +203,7 @@ class PromptHashRegistry:
                 text=True,
                 timeout=600,
                 check=False,
+                cwd=_project_root,
             )
             entry["exit_code"] = result.returncode
             passed, failed, duration = _parse_pytest_summary(result.stdout)
