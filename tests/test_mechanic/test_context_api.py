@@ -88,6 +88,7 @@ EXPECTED_CALLABLES: dict[str, list[tuple[str, str]]] = {
         ("turns_total", "POSITIONAL_OR_KEYWORD"),
         ("thresholds", "POSITIONAL_OR_KEYWORD"),
         ("attention_state", "POSITIONAL_OR_KEYWORD"),
+        ("clear_on_end", "POSITIONAL_OR_KEYWORD"),  # WR-01: companion flag cleanup
     ],
 }
 
