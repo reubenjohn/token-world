@@ -31,6 +31,7 @@ class EnvironmentalReactionMechanic(Mechanic):
     id = "environmental_reaction"
     description = "Fire spreads to adjacent flammable entities when temperature changes"
     voluntary = False
+    tags = ["environmental", "reactive", "core"]
 
     def watches(self) -> list[Matcher]:
         return [PropertyChangeMatcher(property_name="temperature")]

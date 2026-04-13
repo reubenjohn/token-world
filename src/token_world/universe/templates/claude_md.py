@@ -39,10 +39,23 @@ List all registered mechanics with their descriptions and preconditions.
 
 **Status:** Not yet implemented (Phase 2)
 
-### register_mechanic
-Register a new mechanic from a mechanics/ subfolder.
+## Mechanic Authoring
 
-**Status:** Not yet implemented (Phase 2)
+This universe is a Python codebase. Mechanics live as flat modules at
+`mechanics/<id>.py` with a `Mechanic` subclass declaring class-level
+`id`, `description`, `voluntary`, `tags`. Shared helpers go in
+`mechanics/_helpers.py` (underscore-prefixed files are skipped by the
+registry).
+
+Author a new mechanic:
+
+```bash
+token-world scaffold-mechanic $slug --id <mechanic-id>
+token-world validate-mechanic $slug <mechanic-id>
+```
+
+See `docs/authoring-mechanics.md` in this universe for the full guide
+(populated during Phase 4 plan 04-05).
 
 ## Current State
 
@@ -60,13 +73,15 @@ graph summary (node/edge counts, active mechanics, notable entities).
 """)
 
 
-def render_claude_md(*, name: str) -> str:
+def render_claude_md(*, name: str, slug: str) -> str:
     """Render the CLAUDE.md template for a universe.
 
     Args:
         name: Display name of the universe.
+        slug: Slugified universe name (used in the authoring-tool examples
+            rendered in the ``Mechanic Authoring`` section).
 
     Returns:
         The rendered CLAUDE.md content as a string.
     """
-    return _CLAUDE_MD_TEMPLATE.substitute(name=name)
+    return _CLAUDE_MD_TEMPLATE.substitute(name=name, slug=slug)

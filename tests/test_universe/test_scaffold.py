@@ -47,6 +47,33 @@ class TestScaffoldDirectories:
         scaffold_universe(universe_dir, name="Test World", slug="test-world")
         assert (universe_dir / "tick_summaries" / "epochs").is_dir()
 
+    def test_creates_mirrored_test_mechanics_dir(self, tmp_data_dir: Path) -> None:
+        """D-06: scaffold creates tests/test_mechanics/__init__.py as the
+        mirrored test tree root."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        assert (universe_dir / "tests" / "test_mechanics").is_dir()
+        assert (universe_dir / "tests" / "test_mechanics" / "__init__.py").is_file()
+
+    def test_copies_flat_seed_mechanics(self, tmp_data_dir: Path) -> None:
+        """D-10: seeds are copied as flat ``<id>.py`` modules, not subfolders."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        mechanics_dir = universe_dir / "mechanics"
+        assert (mechanics_dir / "movement.py").is_file()
+        assert (mechanics_dir / "observation.py").is_file()
+        assert (mechanics_dir / "environmental_reaction.py").is_file()
+        # Folder-based layout must NOT exist post-flatten.
+        assert not (mechanics_dir / "movement").exists()
+        assert not (mechanics_dir / "observation").exists()
+        assert not (mechanics_dir / "environmental_reaction").exists()
+        # Helpers copied through (underscore prefix is registry signal, not
+        # scaffold signal); __init__.py excluded (destination is not a pkg).
+        assert (mechanics_dir / "_helpers.py").is_file()
+        assert not (mechanics_dir / "__init__.py").exists()
+
 
 class TestScaffoldClaudeMd:
     """Tests for CLAUDE.md generation within scaffold_universe()."""
@@ -67,7 +94,8 @@ class TestScaffoldClaudeMd:
         assert "## World Rules" in content
 
     def test_claude_md_contains_available_tools(self, tmp_data_dir: Path) -> None:
-        """CLAUDE.md contains '## Available Tools' section with all four tools."""
+        """CLAUDE.md contains '## Available Tools' section with the three MCP tools
+        (register_mechanic was dropped per D-10)."""
         universe_dir = tmp_data_dir / "test-world"
         universe_dir.mkdir()
         scaffold_universe(universe_dir, name="Test World", slug="test-world")
@@ -76,7 +104,29 @@ class TestScaffoldClaudeMd:
         assert "resume_tick" in content
         assert "rollback" in content
         assert "list_mechanics" in content
-        assert "register_mechanic" in content
+
+    def test_claude_md_does_not_reference_register_mechanic(
+        self, tmp_data_dir: Path
+    ) -> None:
+        """D-10: register_mechanic is not an MCP tool; the authoring guide pointer
+        replaces it."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        content = (universe_dir / "CLAUDE.md").read_text()
+        assert "register_mechanic" not in content
+
+    def test_claude_md_contains_mechanic_authoring_section(
+        self, tmp_data_dir: Path
+    ) -> None:
+        """CLAUDE.md contains the '## Mechanic Authoring' pointer section."""
+        universe_dir = tmp_data_dir / "test-world"
+        universe_dir.mkdir()
+        scaffold_universe(universe_dir, name="Test World", slug="test-world")
+        content = (universe_dir / "CLAUDE.md").read_text()
+        assert "## Mechanic Authoring" in content
+        assert "scaffold-mechanic test-world" in content
+        assert "docs/authoring-mechanics.md" in content
 
     def test_claude_md_contains_current_state(self, tmp_data_dir: Path) -> None:
         """CLAUDE.md contains '## Current State' section."""

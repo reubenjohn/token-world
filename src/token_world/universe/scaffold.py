@@ -17,10 +17,14 @@ from token_world.universe.templates.mcp_config import render_mcp_json
 
 
 def _copy_seed_mechanics(mechanics_dir: Path) -> None:
-    """Copy bundled seed mechanic folders into a universe's mechanics/ directory.
+    """Copy bundled flat seed mechanic modules into a universe's mechanics/.
 
-    Only copies subdirectories that contain a ``mechanic.py`` file,
-    skipping ``__init__.py``, ``__pycache__``, and other non-mechanic entries.
+    Per D-10 (Phase 4), mechanics are flat ``<id>.py`` modules. This function
+    copies every ``.py`` file from ``src/token_world/mechanic/seeds/`` except
+    ``__init__.py``; underscore-prefixed files (helpers, e.g. ``_helpers.py``)
+    ARE copied because the ``_`` prefix is the registry's skip signal, not
+    the scaffold's. ``__init__.py`` is excluded because the destination is
+    not a Python package.
 
     Args:
         mechanics_dir: The universe's mechanics/ directory.
@@ -29,8 +33,8 @@ def _copy_seed_mechanics(mechanics_dir: Path) -> None:
     if not seeds_dir.is_dir():
         return
     for entry in sorted(seeds_dir.iterdir()):
-        if entry.is_dir() and (entry / "mechanic.py").exists():
-            shutil.copytree(entry, mechanics_dir / entry.name, dirs_exist_ok=True)
+        if entry.is_file() and entry.suffix == ".py" and entry.name != "__init__.py":
+            shutil.copy2(entry, mechanics_dir / entry.name)
 
 
 def scaffold_universe(universe_dir: Path, *, name: str, slug: str) -> None:
@@ -53,13 +57,19 @@ def scaffold_universe(universe_dir: Path, *, name: str, slug: str) -> None:
     # Create subdirectories and copy seed mechanics
     (universe_dir / "mechanics").mkdir(exist_ok=True)
     _copy_seed_mechanics(universe_dir / "mechanics")
+    # Mirrored test tree (D-06): mechanic tests live outside mechanics/ so
+    # pytest never imports mechanics as a package. Create the scaffold here;
+    # authors drop test modules in later.
+    tests_dir = universe_dir / "tests" / "test_mechanics"
+    tests_dir.mkdir(parents=True, exist_ok=True)
+    (tests_dir / "__init__.py").write_text("", encoding="utf-8")
     (universe_dir / "agents").mkdir(exist_ok=True)
     (universe_dir / "tick_summaries" / "ticks").mkdir(parents=True, exist_ok=True)
     (universe_dir / "tick_summaries" / "batches").mkdir(exist_ok=True)
     (universe_dir / "tick_summaries" / "epochs").mkdir(exist_ok=True)
 
     # Generate CLAUDE.md from template
-    claude_md = render_claude_md(name=name)
+    claude_md = render_claude_md(name=name, slug=slug)
     (universe_dir / "CLAUDE.md").write_text(claude_md)
 
     # Create AGENTS.md as symlink to CLAUDE.md (per D-05)

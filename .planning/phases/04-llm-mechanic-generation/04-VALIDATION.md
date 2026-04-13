@@ -40,7 +40,11 @@ created: 2026-04-12
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| — | — | — | — | — | — | — | — | — | ⬜ pending |
+| 04-01-T1 | 04-01 | 1 | MECH-05 | — | Flat module discovery; Mechanic.tags default; import filter prevents base re-detection | unit | `uv run pytest tests/test_mechanic/test_loader.py -x -q` | ✓ (created) | ✅ passing |
+| 04-01-T2 | 04-01 | 1 | MECH-06 | T-04-REGISTRY-SHADOWING | Registry rejects duplicate ids with ValueError | unit | `uv run pytest tests/test_mechanic/test_registry.py tests/test_mechanic/test_seeds/ -x -q` | ✓ (created) | ✅ passing |
+| 04-01-T3 | 04-01 | 1 | UNIV-03 | — | MCP surface = 3 tools; scaffold copies flat files; mirrored test tree | unit | `uv run pytest tests/test_mcp_server.py tests/test_universe/test_scaffold.py -x -q` | ✓ (exists) | ✅ passing |
+| 04-01-T4 | 04-01 | 1 | — (prereq H-01/M-04) | — | find_state_at_tick replays add_node; loader accepts CRLF | unit | `uv run pytest tests/test_graph/test_temporal_index.py::test_find_state_at_tick_handles_remove_then_readd tests/test_design_validation/test_use_case_schema.py::test_load_use_case_accepts_crlf_frontmatter -x -q` | ✓ (created) | ✅ passing |
+| 04-01-T5 | 04-01 | 1 | MECH-05,MECH-06,UNIV-03 | — | Full suite green; lint + mypy clean | phase-gate | `uv run pytest -x -q && uv run ruff check src/ && uv run ruff format --check src/` | ✓ | ✅ passing |
 
 <!--
 Rows will be appended by each plan's final task:

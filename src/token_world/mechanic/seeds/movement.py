@@ -26,6 +26,7 @@ class MovementMechanic(Mechanic):
     id = "movement"
     description = "Agent moves between connected locations"
     voluntary = True
+    tags = ["spatial", "core"]
 
     def check(self, ctx: MechanicContext) -> CheckResult:
         # 1. Actor must exist

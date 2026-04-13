@@ -29,17 +29,24 @@ class TestHandleInitialize:
 class TestHandleToolsList:
     """Tests for the tools/list method."""
 
-    def test_tools_list_returns_four_tools(self) -> None:
-        """tools/list returns exactly 4 tools."""
+    def test_tools_list_returns_three_tools(self) -> None:
+        """tools/list returns exactly 3 tools (register_mechanic dropped per D-10)."""
         response = handle_request({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
         tools = response["result"]["tools"]
-        assert len(tools) == 4
+        assert len(tools) == 3
 
     def test_tools_list_contains_expected_names(self) -> None:
-        """tools/list returns the four expected tool names."""
+        """tools/list returns the three expected tool names."""
         response = handle_request({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
         tool_names = {t["name"] for t in response["result"]["tools"]}
-        assert tool_names == {"resume_tick", "rollback", "list_mechanics", "register_mechanic"}
+        assert tool_names == {"resume_tick", "rollback", "list_mechanics"}
+
+    def test_register_mechanic_is_not_exposed(self) -> None:
+        """register_mechanic was removed as an MCP tool (D-10); authoring is
+        an operator-side SDLC activity, not a simulation tool."""
+        response = handle_request({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
+        tool_names = {t["name"] for t in response["result"]["tools"]}
+        assert "register_mechanic" not in tool_names
 
     def test_tools_have_input_schemas(self) -> None:
         """Each tool has an inputSchema."""
@@ -103,9 +110,10 @@ class TestHandleUnknownMethod:
 class TestToolsConstant:
     """Tests for the TOOLS constant."""
 
-    def test_tools_constant_has_four_entries(self) -> None:
-        """TOOLS constant has exactly 4 tool definitions."""
-        assert len(TOOLS) == 4
+    def test_tools_constant_has_three_entries(self) -> None:
+        """TOOLS constant has exactly 3 tool definitions (D-10 drops
+        register_mechanic)."""
+        assert len(TOOLS) == 3
 
     def test_rollback_requires_snapshot_id(self) -> None:
         """rollback tool requires snapshot_id parameter."""
@@ -113,8 +121,7 @@ class TestToolsConstant:
         assert "snapshot_id" in rollback["inputSchema"]["properties"]
         assert "snapshot_id" in rollback["inputSchema"]["required"]
 
-    def test_register_mechanic_requires_path(self) -> None:
-        """register_mechanic tool requires path parameter."""
-        reg = next(t for t in TOOLS if t["name"] == "register_mechanic")
-        assert "path" in reg["inputSchema"]["properties"]
-        assert "path" in reg["inputSchema"]["required"]
+    def test_register_mechanic_absent_from_tools_constant(self) -> None:
+        """register_mechanic must not be in TOOLS (D-10)."""
+        names = {t["name"] for t in TOOLS}
+        assert "register_mechanic" not in names

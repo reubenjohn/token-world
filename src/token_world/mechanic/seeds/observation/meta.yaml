@@ -1,6 +1,0 @@
-id: observation
-description: Agent observes entities and properties at current location
-voluntary: true
-tags:
-  - perception
-  - core

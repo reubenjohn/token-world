@@ -1,4 +1,4 @@
-"""Tests for mechanic loader and registry."""
+"""Tests for MechanicRegistry (flat module scanning, per D-10)."""
 
 from __future__ import annotations
 
@@ -19,9 +19,9 @@ from token_world.mechanic.protocol import Mechanic
 
 @pytest.fixture
 def tmp_universe(tmp_path: Path) -> Path:
-    """Create a temporary universe directory with seed mechanics and a git repo.
+    """Create a temporary universe directory with flat seed mechanics + git.
 
-    Copies seed mechanic folders from the package into a ``mechanics/``
+    Copies flat seed ``.py`` modules from the package into a ``mechanics/``
     subdirectory, initialises a git repo, and creates an initial commit.
     """
     mechanics_dir = tmp_path / "mechanics"
@@ -31,8 +31,8 @@ def tmp_universe(tmp_path: Path) -> Path:
         Path(__file__).resolve().parent.parent.parent / "src" / "token_world" / "mechanic" / "seeds"
     )
     for entry in sorted(seeds_dir.iterdir()):
-        if entry.is_dir() and (entry / "mechanic.py").exists():
-            shutil.copytree(entry, mechanics_dir / entry.name)
+        if entry.is_file() and entry.suffix == ".py" and entry.name != "__init__.py":
+            shutil.copy2(entry, mechanics_dir / entry.name)
 
     git_env = {
         **os.environ,
@@ -55,7 +55,7 @@ def tmp_universe(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def non_git_universe(tmp_path: Path) -> Path:
-    """Universe dir with mechanics but no git repo."""
+    """Universe dir with flat seed mechanics but no git repo."""
     mechanics_dir = tmp_path / "mechanics"
     mechanics_dir.mkdir()
 
@@ -63,24 +63,176 @@ def non_git_universe(tmp_path: Path) -> Path:
         Path(__file__).resolve().parent.parent.parent / "src" / "token_world" / "mechanic" / "seeds"
     )
     for entry in sorted(seeds_dir.iterdir()):
-        if entry.is_dir() and (entry / "mechanic.py").exists():
-            shutil.copytree(entry, mechanics_dir / entry.name)
+        if entry.is_file() and entry.suffix == ".py" and entry.name != "__init__.py":
+            shutil.copy2(entry, mechanics_dir / entry.name)
 
     return tmp_path
 
 
+def _write_mechanic_module(path: Path, *, cls_name: str, id_: str, tags: list[str]) -> None:
+    """Write a minimal mechanic module to *path*."""
+    path.write_text(
+        textwrap.dedent(
+            f"""\
+            from __future__ import annotations
+
+            from token_world.graph import Mutation
+            from token_world.mechanic.protocol import CheckResult, Mechanic
+
+
+            class {cls_name}(Mechanic):
+                id = {id_!r}
+                description = "Test mechanic {id_}"
+                voluntary = True
+                tags = {tags!r}
+
+                def check(self, ctx) -> CheckResult:
+                    return CheckResult(passed=True)
+
+                def apply(self, ctx) -> list[Mutation]:
+                    return []
+            """
+        )
+    )
+
+
 # ---------------------------------------------------------------------------
-# Registry / Scan Tests
+# Registry / Scan Tests (flat layout)
 # ---------------------------------------------------------------------------
 
 
 class TestRegistryScan:
-    def test_scan_discovers_mechanics(self, tmp_universe: Path) -> None:
+    def test_scan_discovers_flat_modules(self, tmp_path: Path) -> None:
+        """Registry scans ``<id>.py`` files and indexes them."""
+        from token_world.mechanic.registry import MechanicRegistry
+
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+        _write_mechanic_module(
+            mechanics / "movement.py",
+            cls_name="MovementMechanic",
+            id_="movement",
+            tags=["spatial"],
+        )
+
+        registry = MechanicRegistry(mechanics, universe_dir=tmp_path)
+        infos = registry.list_mechanics()
+        assert len(infos) == 1
+        assert infos[0].id == "movement"
+        assert infos[0].path.is_file()
+        assert infos[0].path.suffix == ".py"
+        assert "spatial" in infos[0].tags
+
+    def test_scan_skips_underscore_prefixed_modules(self, tmp_path: Path) -> None:
+        """Registry skips ``_helpers.py`` and similar underscore-prefixed files,
+        even if they contain Mechanic subclasses."""
+        from token_world.mechanic.registry import MechanicRegistry
+
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+        # Real module
+        _write_mechanic_module(
+            mechanics / "real.py",
+            cls_name="RealMechanic",
+            id_="real",
+            tags=[],
+        )
+        # Pathological: underscore-prefixed with a Mechanic subclass
+        _write_mechanic_module(
+            mechanics / "_helpers.py",
+            cls_name="SneakyMechanic",
+            id_="sneaky",
+            tags=[],
+        )
+
+        registry = MechanicRegistry(mechanics, universe_dir=tmp_path)
+        ids = [m.id for m in registry.list_mechanics()]
+        assert ids == ["real"]
+        assert "sneaky" not in ids
+
+    def test_scan_skips_init_py(self, tmp_path: Path) -> None:
+        """Registry skips ``__init__.py`` even if it contains a Mechanic subclass."""
+        from token_world.mechanic.registry import MechanicRegistry
+
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+        _write_mechanic_module(
+            mechanics / "real.py",
+            cls_name="RealMechanic",
+            id_="real",
+            tags=[],
+        )
+        _write_mechanic_module(
+            mechanics / "__init__.py",
+            cls_name="InitMechanic",
+            id_="init_sneak",
+            tags=[],
+        )
+
+        registry = MechanicRegistry(mechanics, universe_dir=tmp_path)
+        ids = [m.id for m in registry.list_mechanics()]
+        assert ids == ["real"]
+        assert "init_sneak" not in ids
+
+    def test_duplicate_id_raises(self, tmp_path: Path) -> None:
+        """Two modules declaring the same ``id`` -> ValueError (T-04)."""
+        from token_world.mechanic.registry import MechanicRegistry
+
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+        _write_mechanic_module(
+            mechanics / "a.py",
+            cls_name="AMechanic",
+            id_="same_id",
+            tags=[],
+        )
+        _write_mechanic_module(
+            mechanics / "b.py",
+            cls_name="BMechanic",
+            id_="same_id",
+            tags=[],
+        )
+
+        with pytest.raises(ValueError, match="Duplicate mechanic id"):
+            MechanicRegistry(mechanics, universe_dir=tmp_path)
+
+    def test_scan_reads_from_class_attributes_no_meta_yaml(self, tmp_path: Path) -> None:
+        """Metadata comes from class attributes only; no meta.yaml anywhere."""
+        from token_world.mechanic.registry import MechanicRegistry
+
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+        _write_mechanic_module(
+            mechanics / "m.py",
+            cls_name="MMechanic",
+            id_="m",
+            tags=["x", "y"],
+        )
+        # A stray meta.yaml must NOT be picked up by the registry.
+        (mechanics / "meta.yaml").write_text("id: ignored\n")
+
+        registry = MechanicRegistry(mechanics, universe_dir=tmp_path)
+        info = registry.get_info("m")
+        assert info.description == "Test mechanic m"
+        assert info.tags == ["x", "y"]
+        assert registry.get_info("ignored") if "ignored" in [
+            i.id for i in registry.list_mechanics()
+        ] else True  # noqa: E501 -- defensive; "ignored" must not be present
+        assert "ignored" not in [i.id for i in registry.list_mechanics()]
+
+
+# ---------------------------------------------------------------------------
+# Seed-universe Integration (flat copy)
+# ---------------------------------------------------------------------------
+
+
+class TestSeedUniverse:
+    def test_scan_discovers_seeds(self, tmp_universe: Path) -> None:
         from token_world.mechanic.registry import MechanicRegistry
 
         registry = MechanicRegistry(tmp_universe / "mechanics", universe_dir=tmp_universe)
-        mechanics = registry.list_mechanics()
-        assert len(mechanics) == 3
+        ids = sorted(m.id for m in registry.list_mechanics())
+        assert ids == ["environmental_reaction", "movement", "observation"]
 
     def test_list_mechanics_sorted(self, tmp_universe: Path) -> None:
         from token_world.mechanic.registry import MechanicRegistry
@@ -114,6 +266,8 @@ class TestRegistryScan:
         assert "move" in info.description.lower()
         assert info.voluntary is True
         assert "spatial" in info.tags
+        assert info.path.is_file()
+        assert info.path.name == "movement.py"
 
 
 # ---------------------------------------------------------------------------
@@ -129,13 +283,29 @@ class TestQueryByTag:
         results = registry.query_by_tag("core")
         assert len(results) == 3
 
-    def test_query_by_tag_spatial(self, tmp_universe: Path) -> None:
+    def test_query_by_tag_returns_matching_mechanics(self, tmp_path: Path) -> None:
+        """query_by_tag returns only mechanics whose tags contain the query tag."""
         from token_world.mechanic.registry import MechanicRegistry
 
-        registry = MechanicRegistry(tmp_universe / "mechanics", universe_dir=tmp_universe)
+        mechanics = tmp_path / "mechanics"
+        mechanics.mkdir()
+        _write_mechanic_module(
+            mechanics / "a.py",
+            cls_name="AMechanic",
+            id_="a",
+            tags=["spatial"],
+        )
+        _write_mechanic_module(
+            mechanics / "b.py",
+            cls_name="BMechanic",
+            id_="b",
+            tags=["social"],
+        )
+
+        registry = MechanicRegistry(mechanics, universe_dir=tmp_path)
         results = registry.query_by_tag("spatial")
         assert len(results) == 1
-        assert results[0].id == "movement"
+        assert results[0].id == "a"
 
 
 # ---------------------------------------------------------------------------
@@ -160,33 +330,3 @@ class TestGitHistory:
         registry = MechanicRegistry(non_git_universe / "mechanics", universe_dir=non_git_universe)
         history = registry.get_history("movement")
         assert history == []
-
-
-# ---------------------------------------------------------------------------
-# Loader Error Cases
-# ---------------------------------------------------------------------------
-
-
-class TestLoaderErrors:
-    def test_loader_missing_mechanic_py(self, tmp_path: Path) -> None:
-        from token_world.mechanic.loader import load_mechanic_class
-
-        empty_dir = tmp_path / "empty_mechanic"
-        empty_dir.mkdir()
-        with pytest.raises(FileNotFoundError):
-            load_mechanic_class(empty_dir)
-
-    def test_loader_no_subclass(self, tmp_path: Path) -> None:
-        from token_world.mechanic.loader import load_mechanic_class
-
-        bad_dir = tmp_path / "bad_mechanic"
-        bad_dir.mkdir()
-        (bad_dir / "mechanic.py").write_text(
-            textwrap.dedent("""\
-                # No Mechanic subclass here
-                class NotAMechanic:
-                    pass
-            """)
-        )
-        with pytest.raises(ValueError, match="No Mechanic subclass"):
-            load_mechanic_class(bad_dir)

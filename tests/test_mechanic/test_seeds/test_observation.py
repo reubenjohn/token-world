@@ -6,7 +6,7 @@ import pytest
 
 from token_world.graph import KnowledgeGraph
 from token_world.mechanic.context import MechanicContext
-from token_world.mechanic.seeds.observation.mechanic import ObservationMechanic
+from token_world.mechanic.seeds.observation import ObservationMechanic
 
 
 @pytest.fixture

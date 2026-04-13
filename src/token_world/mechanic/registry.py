@@ -1,4 +1,17 @@
-"""Mechanic registry: folder scanning, querying, and git versioning."""
+"""Mechanic registry: flat module scanning, querying, and git versioning.
+
+Per Phase 4 D-10 mechanics live as flat ``<id>.py`` modules under
+``mechanics/``. This module scans the directory via
+:func:`token_world.mechanic.loader.discover_mechanic_modules`, loads each
+module with :func:`load_mechanic_classes`, and indexes every concrete
+:class:`Mechanic` subclass by its class-level ``id``. Metadata is read
+entirely from class attributes (``id``, ``description``, ``voluntary``,
+``tags``) -- ``meta.yaml`` has been removed (D-04).
+
+Duplicate ``id`` values across modules raise :class:`ValueError`
+(T-04-REGISTRY-SHADOWING mitigation). Underscore-prefixed modules and
+``__init__.py`` are skipped by the discovery helper.
+"""
 
 from __future__ import annotations
 
@@ -6,9 +19,10 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import yaml
-
-from token_world.mechanic.loader import load_mechanic_class
+from token_world.mechanic.loader import (
+    discover_mechanic_modules,
+    load_mechanic_classes,
+)
 from token_world.mechanic.protocol import Mechanic
 
 
@@ -21,7 +35,7 @@ class MechanicInfo:
         description: Human-readable description.
         voluntary: Whether the mechanic is triggered by agent action.
         tags: Classification tags for querying.
-        path: Filesystem path to the mechanic folder.
+        path: Filesystem path to the mechanic module (.py file).
     """
 
     id: str
@@ -33,7 +47,7 @@ class MechanicInfo:
 
 @dataclass
 class MechanicVersion:
-    """A single git commit touching a mechanic folder.
+    """A single git commit touching a mechanic module.
 
     Attributes:
         commit_hash: Full git commit hash.
@@ -47,15 +61,18 @@ class MechanicVersion:
 
 
 class MechanicRegistry:
-    """Scans a mechanics/ folder and indexes all mechanic folders.
+    """Scans a mechanics/ folder of flat modules and indexes them by id.
 
     Provides listing, lookup by id, tag-based querying, and git-based
-    version history retrieval for individual mechanics.
+    version history retrieval for individual mechanic modules.
 
     Args:
         mechanics_dir: Path to the mechanics/ folder to scan.
         universe_dir: Parent universe directory (used as cwd for git commands).
             Defaults to ``mechanics_dir.parent``.
+
+    Raises:
+        ValueError: If two modules declare the same ``id`` (T-04 mitigation).
     """
 
     def __init__(self, mechanics_dir: Path, *, universe_dir: Path | None = None) -> None:
@@ -68,8 +85,13 @@ class MechanicRegistry:
     def scan(self) -> None:
         """Scan mechanics directory and rebuild the index.
 
-        Clears existing index, iterates subdirectories, loads meta.yaml
-        and mechanic classes. Skips directories without ``mechanic.py``.
+        Clears existing index, walks ``discover_mechanic_modules`` output,
+        and registers every Mechanic subclass found in each module. Metadata
+        comes exclusively from class attributes.
+
+        Raises:
+            ValueError: If two modules declare the same ``id``
+                (T-04-REGISTRY-SHADOWING mitigation).
         """
         self._index.clear()
         self._classes.clear()
@@ -77,38 +99,25 @@ class MechanicRegistry:
         if not self._mechanics_dir.is_dir():
             return
 
-        for entry in sorted(self._mechanics_dir.iterdir()):
-            if not entry.is_dir() or not (entry / "mechanic.py").exists():
-                continue
-
-            # Load mechanic class
-            mechanic_cls = load_mechanic_class(entry)
-            mechanic_id: str
-
-            # Load metadata from meta.yaml or fall back to class attributes
-            meta_path = entry / "meta.yaml"
-            if meta_path.exists():
-                with open(meta_path) as f:
-                    meta = yaml.safe_load(f) or {}
-                mechanic_id = meta.get("id", mechanic_cls.id)
-                description = meta.get("description", mechanic_cls.description)
-                voluntary = meta.get("voluntary", mechanic_cls.voluntary)
-                tags = meta.get("tags", [])
-            else:
-                mechanic_id = mechanic_cls.id
-                description = mechanic_cls.description
-                voluntary = mechanic_cls.voluntary
-                tags = []
-
-            info = MechanicInfo(
-                id=mechanic_id,
-                description=description,
-                voluntary=voluntary,
-                tags=tags,
-                path=entry,
-            )
-            self._index[mechanic_id] = info
-            self._classes[mechanic_id] = mechanic_cls
+        for module_path in discover_mechanic_modules(self._mechanics_dir):
+            classes = load_mechanic_classes(module_path)
+            for cls in classes:
+                mechanic_id = cls.id
+                if mechanic_id in self._index:
+                    prior_path = self._index[mechanic_id].path
+                    raise ValueError(
+                        f"Duplicate mechanic id {mechanic_id!r} in {module_path} "
+                        f"(already registered from {prior_path})"
+                    )
+                info = MechanicInfo(
+                    id=mechanic_id,
+                    description=cls.description,
+                    voluntary=cls.voluntary,
+                    tags=list(cls.tags),
+                    path=module_path,
+                )
+                self._index[mechanic_id] = info
+                self._classes[mechanic_id] = cls
 
     def list_mechanics(self) -> list[MechanicInfo]:
         """Return a sorted list of all discovered mechanic info."""
@@ -161,7 +170,10 @@ class MechanicRegistry:
         )
 
     def get_history(self, mechanic_id: str, limit: int = 10) -> list[MechanicVersion]:
-        """Retrieve git commit history for a mechanic folder.
+        """Retrieve git commit history for a mechanic module.
+
+        ``git log -- <path>`` treats a file identically to a folder, so this
+        works unchanged for flat modules.
 
         Args:
             mechanic_id: The mechanic identifier.
