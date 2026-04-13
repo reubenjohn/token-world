@@ -16,6 +16,7 @@ dependencies = [
     "loguru>=0.7",
     "pyyaml>=6.0.3",
     "rtree>=1.4",
+    "claude-agent-sdk>=0.1.58",
 ]
 
 [project.scripts]
@@ -49,6 +50,10 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "integration: Real-LLM integration test (requires Anthropic API key, costs money; excluded from default run)",
+]
+addopts = "-m 'not integration'"
 
 [tool.coverage.run]
 source = ["token_world"]
