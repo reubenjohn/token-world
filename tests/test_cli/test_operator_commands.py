@@ -689,6 +689,115 @@ class TestResumeTick:
         assert "boom" in result.output or "failed" in result.output.lower()
 
 
+class TestInvokeResumeTickMcp:
+    """WR-02: ``_invoke_resume_tick_mcp`` must propagate MCP-level failures.
+
+    The function used to ``async for _msg in query(...): pass`` — discarding
+    every message including any ``ResultMessage`` carrying ``is_error=True``
+    or an ``error_*`` subtype. An MCP tool failure (graph corruption, invalid
+    tick id, today's Phase-0-stub "not yet implemented") looked identical to
+    a successful resume from the user's perspective, breaking the documented
+    "resume-tick: 0 success | 1 MCP failure" exit-code contract.
+
+    These tests drive the function directly with a fake ``query`` that emits
+    ``ResultMessage`` objects with varying error states.
+    """
+
+    def _fake_query_factory(self, messages: list[Any]):
+        """Return a replacement for ``claude_agent_sdk.query``."""
+        from collections.abc import AsyncIterator
+
+        async def _fake_query(*, prompt: str, options: Any, transport: Any = None) -> AsyncIterator[
+            Any
+        ]:
+            for m in messages:
+                yield m
+
+        return _fake_query
+
+    def _make_result_msg(
+        self, *, is_error: bool = False, subtype: str = "success", result: str = ""
+    ) -> Any:
+        from unittest.mock import MagicMock
+
+        from claude_agent_sdk import ResultMessage
+
+        m = MagicMock(spec=ResultMessage)
+        m.is_error = is_error
+        m.subtype = subtype
+        m.result = result
+        return m
+
+    def test_success_message_does_not_raise(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A non-error ResultMessage: the function returns cleanly."""
+        import asyncio
+
+        import claude_agent_sdk
+
+        from token_world.cli import _invoke_resume_tick_mcp
+
+        universe = _make_universe(tmp_path)
+        msg = self._make_result_msg(is_error=False, subtype="success", result="done")
+        monkeypatch.setattr(claude_agent_sdk, "query", self._fake_query_factory([msg]))
+        # Must complete without raising
+        asyncio.run(_invoke_resume_tick_mcp(universe, "tick_7"))
+
+    def test_is_error_true_raises_runtime_error(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """``is_error=True`` propagates as a RuntimeError so the caller exits 1."""
+        import asyncio
+
+        import claude_agent_sdk
+
+        from token_world.cli import _invoke_resume_tick_mcp
+
+        universe = _make_universe(tmp_path)
+        msg = self._make_result_msg(
+            is_error=True, subtype="success", result="mcp returned an error"
+        )
+        monkeypatch.setattr(claude_agent_sdk, "query", self._fake_query_factory([msg]))
+        with pytest.raises(RuntimeError) as excinfo:
+            asyncio.run(_invoke_resume_tick_mcp(universe, "tick_7"))
+        assert "resume_tick" in str(excinfo.value).lower() or "failed" in str(excinfo.value).lower()
+
+    def test_error_subtype_raises_runtime_error(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A ``subtype`` starting with ``error_`` (e.g. ``error_max_turns``) propagates."""
+        import asyncio
+
+        import claude_agent_sdk
+
+        from token_world.cli import _invoke_resume_tick_mcp
+
+        universe = _make_universe(tmp_path)
+        msg = self._make_result_msg(is_error=False, subtype="error_max_turns", result="")
+        monkeypatch.setattr(claude_agent_sdk, "query", self._fake_query_factory([msg]))
+        with pytest.raises(RuntimeError) as excinfo:
+            asyncio.run(_invoke_resume_tick_mcp(universe, "tick_7"))
+        # Error message should surface the subtype for operator debugging
+        assert "error_max_turns" in str(excinfo.value)
+
+    def test_error_flows_through_cli_to_exit_code_1(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """End-to-end: MCP error subtype -> CLI exit code 1 (documented contract)."""
+        import claude_agent_sdk
+
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+
+        msg = self._make_result_msg(is_error=True, subtype="error_during_execution", result="")
+        monkeypatch.setattr(claude_agent_sdk, "query", self._fake_query_factory([msg]))
+
+        result = _invoke_cli(["resume-tick", "--tick", "7"], universe=universe)
+        assert result.exit_code == 1, result.output
+        assert "failed" in result.output.lower() or "error" in result.output.lower()
+
+
 # --------------------------------------------------------------------------- #
 # replay-tick
 # --------------------------------------------------------------------------- #
