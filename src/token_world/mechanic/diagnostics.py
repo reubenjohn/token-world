@@ -360,9 +360,15 @@ class TickDiagnostics:
         self._summary.update(fields)
 
     def finalize(self) -> None:
-        """Write ``summary.json`` atomically. Idempotent."""
+        """Write ``summary.json`` atomically. Idempotent.
+
+        If the caller never explicitly called :meth:`set_summary` with a
+        ``status`` field, the default ``"pending"`` placeholder is upgraded
+        to ``"ok"`` so readers don't see a stuck "pending" tick.
+        """
         if self._finalized:
             return
-        self._summary.setdefault("status", "ok")
+        if self._summary.get("status") == "pending":
+            self._summary["status"] = "ok"
         _atomic_write_json(self._dir / "summary.json", self._summary)
         self._finalized = True
