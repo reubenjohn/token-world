@@ -1,7 +1,8 @@
 """CLAUDE.md template generation for universe folders.
 
 Generates the per-universe CLAUDE.md with sections for world rules,
-available MCP tools, current state, and grounding constraints (per D-04).
+available MCP tools, operator flow guidance (Phase 4.1), current state,
+and grounding constraints (per D-04, D-05, D-19).
 """
 
 from __future__ import annotations
@@ -10,6 +11,10 @@ from string import Template
 
 _CLAUDE_MD_TEMPLATE = Template("""\
 # Universe: $name
+
+> When a tick yields because no mechanic matches the resident agent's action,
+> see [Operator Flow: When a Tick Yields](#operator-flow-when-a-tick-yields)
+> below for the canonical author-and-resume process.
 
 ## World Rules
 
@@ -22,22 +27,49 @@ corresponding entry. This section must always reflect the current rule set.
 
 ## Available Tools
 
-### resume_tick
-Resume or start a new simulation tick. The engine interprets the resident
-agent's action, matches it to a mechanic, executes the mechanic, and
-returns an observation grounded in the knowledge graph.
+Three MCP tools (Phase 4 surface, UNIV-03 stable) are exposed to any
+MCP-aware harness opening this universe. The `mechanic-author` subagent
+(defined in `.claude/agents/mechanic-author.md`) is the canonical way to
+respond to a yield.
 
-**Status:** Not yet implemented (Phase 5)
+### resume_tick
+Resume or start a simulation tick. The engine interprets the resident agent's
+action, matches it to a mechanic, executes the mechanic, and returns an
+observation grounded in the knowledge graph. May yield a `YieldSignal` when
+no mechanic matches — see [Operator Flow](#operator-flow-when-a-tick-yields).
 
 ### rollback
-Roll back the universe to a previous snapshot.
-
-**Status:** Not yet implemented (Phase 1)
+Roll back the universe to a previous snapshot. Takes a tick id or snapshot id
+and restores graph + mechanic state to that point.
 
 ### list_mechanics
-List all registered mechanics with their descriptions and preconditions.
+List all registered mechanics with their ids, descriptions, tags, and voluntary
+flag. Useful to check existing coverage before authoring a new mechanic in
+response to a yield.
 
-**Status:** Not yet implemented (Phase 2)
+## Operator Flow: When a Tick Yields
+
+If `token-world run-tick` (or `resume_tick` returns a yield result), the
+simulation has halted because no mechanic matches the resident agent's action.
+Your job is to author the needed mechanic and resume the tick.
+
+Canonical flow:
+
+1. Run `token-world inspect-yield` to see the yield signal (classified action,
+   actor state, candidate existing mechanics).
+2. Use the `mechanic-author` subagent (defined in `.claude/agents/mechanic-author.md`)
+   to write the mechanic. The subagent reads the authoring guide, writes
+   `mechanics/<id>.py` + a test, and validates with `validate-mechanic` until
+   passing.
+3. Run `token-world resume-tick --tick <tick_id>` to continue. The registry
+   re-scans, picks up the new mechanic, and the tick completes.
+
+When to author vs extend: if the yield's `candidate_mechanic_ids` list is
+populated, Read those files first — prefer extending over rewriting when the
+verb semantics match.
+
+Debugging past ticks: `token-world replay-tick <tick_id>` renders the full
+per-tick diagnostics.
 
 ## Mechanic Authoring
 

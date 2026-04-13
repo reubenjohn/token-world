@@ -14,6 +14,7 @@ from pathlib import Path
 
 from token_world.universe.templates.claude_md import render_claude_md
 from token_world.universe.templates.mcp_config import render_mcp_json
+from token_world.universe.templates.mechanic_author_agent import render_mechanic_author_md
 
 
 def _copy_authoring_guide(universe_dir: Path) -> None:
@@ -56,6 +57,30 @@ def _copy_seed_mechanics(mechanics_dir: Path) -> None:
     for entry in sorted(seeds_dir.iterdir()):
         if entry.is_file() and entry.suffix == ".py" and entry.name != "__init__.py":
             shutil.copy2(entry, mechanics_dir / entry.name)
+
+
+def _write_mechanic_author_agent(universe_dir: Path) -> None:
+    """Write ``.claude/agents/mechanic-author.md`` for a universe (Plan 04.1-05).
+
+    Scaffolds the filesystem-based subagent definition Claude Code picks up
+    automatically when a user opens the universe folder. The prompt body is
+    sourced from
+    :func:`token_world.universe.templates.mechanic_author_agent.render_mechanic_author_md`
+    which in turn delegates to
+    :func:`token_world.operator.subagent.mechanic_author_prompt` — the SAME
+    function the programmatic :class:`OperatorHarness` uses. This shared
+    source is the mitigation for T-04.1-22 (prompt drift between interactive
+    and programmatic operator paths).
+
+    Called from :func:`scaffold_universe` after CLAUDE.md / .mcp.json are
+    written but BEFORE git init, so the initial commit includes the file.
+    """
+    agents_dir = universe_dir / ".claude" / "agents"
+    agents_dir.mkdir(parents=True, exist_ok=True)
+    (agents_dir / "mechanic-author.md").write_text(
+        render_mechanic_author_md(universe_dir),
+        encoding="utf-8",
+    )
 
 
 def scaffold_universe(universe_dir: Path, *, name: str, slug: str) -> None:
@@ -102,6 +127,12 @@ def scaffold_universe(universe_dir: Path, *, name: str, slug: str) -> None:
     # Generate .mcp.json for MCP tool discovery
     mcp_json = render_mcp_json()
     (universe_dir / ".mcp.json").write_text(mcp_json)
+
+    # Write filesystem-based mechanic-author subagent (Plan 04.1-05) so
+    # interactive Claude Code picks it up automatically when a user opens
+    # the universe folder. Must happen BEFORE git init so the initial commit
+    # includes the file.
+    _write_mechanic_author_agent(universe_dir)
 
     # Create .gitignore for SQLite WAL files
     gitignore_content = "*.db-wal\n*.db-shm\n"
