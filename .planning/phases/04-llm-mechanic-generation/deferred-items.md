@@ -29,3 +29,27 @@ issues DIRECTLY caused by the current task's changes"). 04-02 only added
 
 **Next action:** A future plan (04-12 cleanup or a dedicated tooling plan)
 can run `ruff format tests/` and commit the result.
+
+## 04-03 discoveries
+
+### ruff E501 + format drift in `src/token_world/mechanic/validation.py`
+
+**Found during:** 04-03 Task 3 (running `ruff check src/` + `ruff format --check src/`).
+
+**Files:**
+- `src/token_world/mechanic/validation.py` — 2 × E501 (lines 441, 544: function
+  signature lines 110 chars); additional format diff reported by
+  `ruff format --check`.
+
+**Issue:** Both findings exist in commit `a6c1491` (04-02 Task 4 "phase-gate"),
+verified by stashing 04-03 changes and re-running the checks. They predate
+this plan's source edits.
+
+**Why deferred:** Out of scope per CLAUDE.md §4 scope boundary
+("Only auto-fix issues DIRECTLY caused by the current task's changes").
+04-03 changes in `src/` are `diagnostics.py` (new file, clean)
+and the `prune-diagnostics` command appended to `cli.py` (clean).
+
+**Next action:** 04-12 cleanup plan (or a dedicated tooling plan) runs
+`ruff format src/` and either shortens the `_stage_tests` / `_stage_smoke`
+function signatures onto multiple lines or applies a `# noqa: E501` ack.

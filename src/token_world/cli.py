@@ -448,3 +448,83 @@ def validate_mechanic(universe_or_path: str, mechanic_id: str | None, fmt: str) 
             click.echo(f"  [{f.severity}] [{f.stage}:{f.rule}] {f.path}{loc} -- {f.message}")
 
     raise SystemExit(0 if report.passed else 1)
+
+
+@cli.command("prune-diagnostics")
+@click.argument("universe_slug")
+@click.option(
+    "--before-tick",
+    type=int,
+    default=None,
+    help="Prune tick folders whose id is strictly less than N.",
+)
+@click.option(
+    "--before-date",
+    type=str,
+    default=None,
+    help="Prune folders older than YYYY-MM-DD.",
+)
+@click.option(
+    "--confirm",
+    is_flag=True,
+    default=False,
+    help="Actually delete (default is dry-run).",
+)
+def prune_diagnostics(
+    universe_slug: str,
+    before_tick: int | None,
+    before_date: str | None,
+    confirm: bool,
+) -> None:
+    """Prune old diagnostics folders from a universe. Dry-run by default.
+
+    Exactly one of ``--before-tick`` or ``--before-date`` is required.
+    Without ``--confirm`` the command prints the candidate list and exits 0
+    without touching the filesystem (T-04-PRUNE-DESTRUCTION).
+    """
+    from datetime import date as _date
+
+    if (before_tick is None) == (before_date is None):
+        click.echo(
+            "Error: specify exactly one of --before-tick or --before-date",
+            err=True,
+        )
+        raise SystemExit(2)
+
+    before_dt: _date | None = None
+    if before_date is not None:
+        try:
+            before_dt = _date.fromisoformat(before_date)
+        except ValueError as e:
+            click.echo(
+                f"Error: invalid --before-date (expected YYYY-MM-DD): {before_date}",
+                err=True,
+            )
+            raise SystemExit(2) from e
+
+    from token_world.mechanic.diagnostics import DiagnosticsSink
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(universe_slug)
+    except (FileNotFoundError, ValueError) as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    sink = DiagnosticsSink(universe_dir)
+    candidates = sink.prune(
+        before_tick=before_tick,
+        before_date=before_dt,
+        confirm=confirm,
+    )
+    verb = "Deleted" if confirm else "Would delete"
+    click.echo(f"{verb} {len(candidates)} diagnostics folder(s):")
+    for c in candidates:
+        try:
+            rel = c.relative_to(universe_dir)
+            label: str = str(rel)
+        except ValueError:
+            label = str(c)
+        click.echo(f"  {label}")
+    if not confirm:
+        click.echo("(dry-run -- rerun with --confirm to actually delete)")
