@@ -54,8 +54,10 @@ token-world scaffold-mechanic $slug --id <mechanic-id>
 token-world validate-mechanic $slug <mechanic-id>
 ```
 
-See `docs/authoring-mechanics.md` in this universe for the full guide
-(populated during Phase 4 plan 04-05).
+See `docs/authoring-mechanics.md` in this universe for the full guide —
+class contract, MechanicContext DSL reference, forbidden imports/calls,
+voluntary/involuntary matcher patterns, the `blocked_by` framework-gap
+stub convention, and common anti-patterns.
 
 ## Current State
 

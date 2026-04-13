@@ -450,6 +450,137 @@ def validate_mechanic(universe_or_path: str, mechanic_id: str | None, fmt: str) 
     raise SystemExit(0 if report.passed else 1)
 
 
+_MECHANIC_SKELETON = '''"""{description}"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from token_world.graph import Mutation
+from token_world.mechanic.protocol import CheckResult, Mechanic
+
+if TYPE_CHECKING:
+    from token_world.mechanic.context import MechanicContext
+
+
+class {class_name}(Mechanic):
+    """{description}.
+
+    Preconditions:
+        - TODO
+    Side effects:
+        - TODO
+    """
+
+    id = "{mechanic_id}"
+    description = "{description}"
+    voluntary = {voluntary}
+    tags: list[str] = []
+
+    def check(self, ctx: "MechanicContext") -> CheckResult:
+        # TODO: implement preconditions
+        return CheckResult(passed=False, reasons=["TODO: implement check"])
+
+    def apply(self, ctx: "MechanicContext") -> list[Mutation]:
+        # TODO: implement side effects
+        return []
+'''
+
+
+_TEST_SKELETON = '''"""Tests for the ``{mechanic_id}`` mechanic."""
+
+from __future__ import annotations
+
+import pytest
+
+
+@pytest.mark.skip(reason="TODO: implement test for {mechanic_id} mechanic")
+def test_{mechanic_id}_placeholder() -> None:
+    """Placeholder — fill in after implementing check()/apply()."""
+    assert False, "TODO"
+'''
+
+
+def _camel_case(s: str) -> str:
+    """Convert ``lowercase_with_underscores`` to ``UpperCamelCase``."""
+    return "".join(part.capitalize() or "_" for part in s.split("_"))
+
+
+@cli.command("scaffold-mechanic")
+@click.argument("universe_slug")
+@click.option(
+    "--id",
+    "mechanic_id",
+    required=True,
+    help="Unique mechanic id (lowercase_with_underscores)",
+)
+@click.option(
+    "--voluntary/--involuntary",
+    default=True,
+    help="Voluntary (default) or involuntary",
+)
+@click.option(
+    "--description",
+    default="TODO: describe this mechanic",
+    help="One-line description",
+)
+def scaffold_mechanic(
+    universe_slug: str,
+    mechanic_id: str,
+    voluntary: bool,
+    description: str,
+) -> None:
+    """Scaffold a new mechanic in a universe (module + test stub).
+
+    Writes ``<universe>/mechanics/<id>.py`` and
+    ``<universe>/tests/test_mechanics/test_<id>.py``. Refuses to overwrite
+    existing files (exit 1). Invalid ids exit 2.
+    """
+    import re as _re
+
+    if not _re.match(r"^[a-z][a-z0-9_]*$", mechanic_id):
+        click.echo(
+            f"Error: mechanic-id must be lowercase_with_underscores (got {mechanic_id!r})",
+            err=True,
+        )
+        raise SystemExit(2)
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(universe_slug)
+    except (FileNotFoundError, ValueError) as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    module_path = universe_dir / "mechanics" / f"{mechanic_id}.py"
+    test_path = universe_dir / "tests" / "test_mechanics" / f"test_{mechanic_id}.py"
+    if module_path.exists():
+        click.echo(f"Error: {module_path} already exists", err=True)
+        raise SystemExit(1)
+    if test_path.exists():
+        click.echo(f"Error: {test_path} already exists", err=True)
+        raise SystemExit(1)
+
+    class_name = _camel_case(mechanic_id) + "Mechanic"
+    module_path.parent.mkdir(parents=True, exist_ok=True)
+    test_path.parent.mkdir(parents=True, exist_ok=True)
+    module_path.write_text(
+        _MECHANIC_SKELETON.format(
+            class_name=class_name,
+            mechanic_id=mechanic_id,
+            description=description,
+            voluntary=voluntary,
+        ),
+        encoding="utf-8",
+    )
+    test_path.write_text(
+        _TEST_SKELETON.format(mechanic_id=mechanic_id),
+        encoding="utf-8",
+    )
+    click.echo(f"Scaffolded {module_path}")
+    click.echo(f"Scaffolded {test_path}")
+
+
 @cli.command("prune-diagnostics")
 @click.argument("universe_slug")
 @click.option(

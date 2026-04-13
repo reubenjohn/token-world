@@ -53,3 +53,20 @@ and the `prune-diagnostics` command appended to `cli.py` (clean).
 **Next action:** 04-12 cleanup plan (or a dedicated tooling plan) runs
 `ruff format src/` and either shortens the `_stage_tests` / `_stage_smoke`
 function signatures onto multiple lines or applies a `# noqa: E501` ack.
+
+## 04-05 discoveries
+
+### Continued pre-existing drift in `src/token_world/mechanic/validation.py`
+
+**Found during:** 04-05 Task 2 phase-gate (running `ruff check src/`).
+
+**Status:** still 2 × E501 on lines 441, 544 (unchanged from 04-03 finding).
+04-05 does not touch `validation.py`; the phase-gate for this plan narrows
+to `ruff check` on the three files it actually modifies
+(`cli.py`, `universe/scaffold.py`, `universe/templates/claude_md.py`),
+all of which are clean.
+
+**Why deferred:** Out of scope per CLAUDE.md §4. Already logged above;
+noted here for continuity.
+
+**Next action:** As above — 04-12 cleanup plan.

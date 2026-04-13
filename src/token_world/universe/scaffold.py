@@ -16,6 +16,27 @@ from token_world.universe.templates.claude_md import render_claude_md
 from token_world.universe.templates.mcp_config import render_mcp_json
 
 
+def _copy_authoring_guide(universe_dir: Path) -> None:
+    """Copy ``docs/guides/authoring-mechanics.md`` into the universe (D-31).
+
+    The universe-local copy lives at ``<universe>/docs/authoring-mechanics.md``
+    and is referenced by the universe CLAUDE.md template so operators can
+    author mechanics without leaving the universe folder.
+
+    If the source guide does not exist (e.g. in a partial framework
+    checkout), this is a silent no-op — the scaffold continues.
+    """
+    # Source lives in the framework repo at ``docs/guides/authoring-mechanics.md``.
+    # ``Path(__file__).resolve()`` -> .../src/token_world/universe/scaffold.py
+    # parents[3] -> framework repo root (src/token_world/universe/ -> ... -> repo)
+    guide_src = Path(__file__).resolve().parents[3] / "docs" / "guides" / "authoring-mechanics.md"
+    if not guide_src.is_file():
+        return
+    dest_dir = universe_dir / "docs"
+    dest_dir.mkdir(exist_ok=True)
+    shutil.copy2(guide_src, dest_dir / "authoring-mechanics.md")
+
+
 def _copy_seed_mechanics(mechanics_dir: Path) -> None:
     """Copy bundled flat seed mechanic modules into a universe's mechanics/.
 
@@ -57,6 +78,8 @@ def scaffold_universe(universe_dir: Path, *, name: str, slug: str) -> None:
     # Create subdirectories and copy seed mechanics
     (universe_dir / "mechanics").mkdir(exist_ok=True)
     _copy_seed_mechanics(universe_dir / "mechanics")
+    # D-31: copy the authoring guide into the universe
+    _copy_authoring_guide(universe_dir)
     # Mirrored test tree (D-06): mechanic tests live outside mechanics/ so
     # pytest never imports mechanics as a package. Create the scaffold here;
     # authors drop test modules in later.
