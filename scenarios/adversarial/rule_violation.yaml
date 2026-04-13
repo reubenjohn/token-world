@@ -1,0 +1,23 @@
+name: "rule_violation"
+description: >
+  15 turns probing conservation law enforcement and refusal rendering.
+  Scripted actions establish context; adversarial injects attempt conservation-
+  violating operations (create gold from nothing, duplicate self, etc.).
+adversarial_rate: 0.7
+seed: 101
+turns:
+  - action: "look around"
+  - inject: adversarial
+  - inject: adversarial
+  - action: "take inventory"
+  - inject: adversarial
+  - inject: adversarial
+  - inject: adversarial
+  - action: "observe the room"
+  - inject: adversarial
+  - inject: adversarial
+  - inject: adversarial
+  - inject: adversarial
+  - inject: adversarial
+  - inject: adversarial
+  - action: "wait"

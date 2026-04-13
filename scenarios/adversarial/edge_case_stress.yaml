@@ -1,0 +1,28 @@
+name: "edge_case_stress"
+description: >
+  20 turns of edge_case inject — cycles through empty strings, 500-char
+  action strings, and special-character inputs. Tests that the engine handles
+  boundary inputs without crashing.
+adversarial_rate: 0.0
+seed: 103
+turns:
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case
+  - inject: edge_case

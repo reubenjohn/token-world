@@ -1,0 +1,38 @@
+name: "mixed_chaos"
+description: >
+  30 turns of realistic combined pressure — adversarial injections interleaved
+  with agent-driven turns. Tests the runner's ability to handle all four inject
+  types in a realistic distribution alongside normal agent behavior.
+adversarial_rate: 0.3
+seed: 104
+turns:
+  - action: "look around"
+  - action: null
+  - inject: adversarial
+  - action: null
+  - inject: nonsense
+  - action: null
+  - inject: edge_case
+  - action: null
+  - inject: adversarial
+  - action: null
+  - inject: repeat_last
+  - action: null
+  - action: null
+  - inject: adversarial
+  - action: null
+  - inject: nonsense
+  - action: null
+  - action: null
+  - inject: edge_case
+  - action: null
+  - inject: adversarial
+  - action: null
+  - action: null
+  - inject: repeat_last
+  - action: null
+  - inject: adversarial
+  - action: null
+  - action: null
+  - inject: nonsense
+  - action: "wait"

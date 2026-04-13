@@ -1,0 +1,27 @@
+name: "nonsense_barrage"
+description: >
+  20 turns of pure nonsense inject — stress-tests the classifier's no_viable_action
+  handling. Expects a high refusal/yield rate and low mechanic_match_rate.
+adversarial_rate: 1.0
+seed: 100
+turns:
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
+  - inject: nonsense
