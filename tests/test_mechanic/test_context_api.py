@@ -82,6 +82,13 @@ EXPECTED_CALLABLES: dict[str, list[tuple[str, str]]] = {
         ("reason_code", "POSITIONAL_OR_KEYWORD"),
         ("details", "POSITIONAL_OR_KEYWORD"),
     ],
+    # --- Long-running action helper (D-05, D-15, Plan 07-03) ---
+    "begin_long_action": [
+        ("action_text", "POSITIONAL_OR_KEYWORD"),
+        ("turns_total", "POSITIONAL_OR_KEYWORD"),
+        ("thresholds", "POSITIONAL_OR_KEYWORD"),
+        ("attention_state", "POSITIONAL_OR_KEYWORD"),
+    ],
 }
 
 EXPECTED_ATTRS: dict[str, type | None] = {

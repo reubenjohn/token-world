@@ -283,6 +283,71 @@ class MechanicContext:
         """
         return self._graph.remove_edge(src, dst)
 
+    def begin_long_action(
+        self,
+        action_text: str,
+        turns_total: int | None,
+        thresholds: list[dict],
+        attention_state: dict | None = None,
+    ) -> Mutation:
+        """Start a long-running action on the actor node (D-05, D-15).
+
+        Writes a ``current_long_action`` dict property to ``self.actor`` via
+        :meth:`KnowledgeGraph.set`. The engine's LongRunningHook (Plan 04)
+        reads this property on subsequent ticks to advance ``turns_elapsed``,
+        evaluate thresholds, and interrupt when a threshold fires.
+
+        Args:
+            action_text: Human-readable label (e.g. ``"sleeping"``, ``"traveling"``).
+                This is what the Observer will render in "time passes"
+                observations and interruption narratives.
+            turns_total: Bounded duration in ticks (e.g. 8 for a sleep cycle),
+                or ``None`` for an indefinite action (e.g. drunkenness; D-16).
+            thresholds: List of plain threshold dicts in the shape
+                ``{"property": "<node_id>.<prop>", "op": "<operator>", "value": <v>}``
+                where operator is one of ``>``, ``>=``, ``<``, ``<=``, ``==``, ``!=``
+                (D-03). Dicts (not :class:`ThresholdSpec` instances) — the graph
+                stores plain JSON-serializable values (D-02; ALLOWED_PROPERTY_TYPES
+                excludes tuples and custom classes).
+            attention_state: Optional ``{"suppress": [...], "boost": [...]}``
+                dict that modulates the :class:`VisibilityProjector` output while
+                this action is active (D-12). ``None`` means no modulation.
+
+        Returns:
+            The :class:`Mutation` recording the ``set_property`` on the actor
+            node. Mechanics include this in their ``apply()`` return list so
+            the Phase 4 diagnostics substrate logs it like any other mutation.
+
+        Example (sleep seed mechanic, Plan 05):
+            >>> def apply(self, ctx: MechanicContext) -> list[Mutation]:
+            ...     return [
+            ...         ctx.set(ctx.actor, "is_sleeping", True),
+            ...         ctx.begin_long_action(
+            ...             action_text="sleeping",
+            ...             turns_total=8,
+            ...             thresholds=[
+            ...                 {"property": "bedroom.noise_level", "op": ">", "value": 0.7},
+            ...                 {"property": f"{ctx.actor}.health", "op": "<", "value": 0.2},
+            ...             ],
+            ...             attention_state={
+            ...                 "suppress": ["visual_detail", "smell"],
+            ...                 "boost": ["noise_level"],
+            ...             },
+            ...         ),
+            ...     ]
+        """
+        payload: dict[str, Any] = {}
+        if attention_state is not None:
+            payload["attention_state"] = attention_state
+        stored = {
+            "action_text": action_text,
+            "turns_total": turns_total,
+            "turns_elapsed": 0,
+            "thresholds": list(thresholds),  # defensive copy
+            "payload": payload,
+        }
+        return self._graph.set(self.actor, "current_long_action", stored)
+
     # --- Refusal helper (D-13) ---
 
     def refuse(self, reason_code: str, details: dict[str, Any] | None = None) -> CheckResult:
