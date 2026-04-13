@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: idle
-stopped_at: Completed 06-resident-agent-end-to-end-loop-06-00-PLAN.md
-last_updated: "2026-04-13T15:24:00.000Z"
-last_activity: 2026-04-13 -- Phase 06 Plan 00 complete (TickResult.projected_state)
+stopped_at: Completed 06-resident-agent-end-to-end-loop-06-01-PLAN.md
+last_updated: "2026-04-13T16:07:43.000Z"
+last_activity: 2026-04-13 -- Phase 06 Plan 01 complete (ResidentAgent module + agent-turn CLI)
 progress:
   total_phases: 9
   completed_phases: 7
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 ## Current Position
 
 Phase: 06 (resident-agent-end-to-end-loop) — In progress
-Plans: 1 of TBD — Plan 00 complete 2026-04-13
-Status: Wave-0 prep done; TickResult.projected_state live; Wave-1 plans unblocked
-Last activity: 2026-04-13 -- Phase 06 Plan 00 complete (TickResult.projected_state for groundedness scoring)
+Plans: 2 of TBD — Plan 01 complete 2026-04-13
+Status: Wave-1 Plan 01 done; ResidentAgent module + agent-turn CLI live; Wave-1 plans 02/03 still pending
+Last activity: 2026-04-13 -- Phase 06 Plan 01 complete (ResidentAgent + AgentMemory + SessionManager + agent-turn CLI)
 
 Progress: [██████░░░░] 67% (6 of 9 phases complete)
 
@@ -70,6 +70,7 @@ Progress: [██████░░░░] 67% (6 of 9 phases complete)
 | Phase 05-simulation-engine P08 | 130 | 2 tasks | 4 files |
 | Phase 05-simulation-engine P09 | 5 | 1 tasks | 3 files |
 | Phase 06-resident-agent P00 | 18 | 1 tasks | 2 files |
+| Phase 06-resident-agent P01 | 75 | 5 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,10 @@ Recent decisions affecting current work:
 - [Phase 05-simulation-engine]: Lazy imports inside _tool_* functions keep mcp_server module import cost minimal
 - [Phase 05-simulation-engine]: _anthropic_factory module-level monkeypatch surface; rollback missing db is -32602 not -32603
 - [Phase 06-00]: TickResult.projected_state reuses the projection dict already computed for Observer.synthesize — no extra projector call, no drift; None on yield/refuse paths (scorer must handle None as groundedness=0.5 per 06-RESEARCH)
+- [Phase 06-01]: ResidentAgent uses raw Anthropic SDK (not Agent SDK); default model claude-haiku-4-5 per D-02; system prompt is hash-stable (world_rules + personality block, NO history)
+- [Phase 06-01]: Session forking via KnowledgeGraph.snapshot/restore — no DB copy, no git branch per D-08
+- [Phase 06-01]: ensure_memory_tables(conn) shared DDL helper imported by both AgentMemory and SessionManager (no DDL duplication)
+- [Phase 06-01]: CLI module-level imports required for monkeypatching (deferred imports break patch("token_world.cli.X"))
 
 ### Roadmap Evolution
 
@@ -125,6 +130,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-13T14:20:37.013Z
-Stopped at: Completed 05-simulation-engine-05-09-PLAN.md
+Last session: 2026-04-13T16:07:43Z
+Stopped at: Completed 06-resident-agent-end-to-end-loop-06-01-PLAN.md
 Resume file: None
