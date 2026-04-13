@@ -308,3 +308,70 @@ class TestFindPathBfs:
         ctx = MechanicContext(kg, actor="room_a", target="ghost", tick_id="t1", universe_seed=42)
         result = _find_path(ctx, "room_a", "ghost")
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# WR-02: apply() returns [] when path resolves to None or len < 2 (no assert)
+# ---------------------------------------------------------------------------
+
+
+class TestAutopilotTravelApplyGuard:
+    def test_apply_returns_empty_list_when_path_is_none(
+        self, mech: AutopilotTravelMechanic
+    ) -> None:
+        """apply() must return [] gracefully when _find_path returns None (WR-02).
+
+        We simulate the failure by removing the room nodes after check() passes
+        but before apply() would run — i.e., by calling apply() directly on a
+        context where the graph no longer has a valid path.
+        """
+        kg = KnowledgeGraph()
+        # Actor with a location property that exists but has no outgoing edges to target
+        kg.add_node("alice", node_type="agent", location="room_a")
+        kg.add_node("room_a", node_type="entity")
+        kg.add_node("room_d", node_type="entity")
+        # No edges — BFS returns None
+        ctx = MechanicContext(kg, actor="alice", target="room_d", tick_id="t1", universe_seed=42)
+        result = mech.apply(ctx)
+        assert result == []
+
+    def test_apply_returns_empty_list_when_path_is_single_node(
+        self, mech: AutopilotTravelMechanic
+    ) -> None:
+        """apply() must return [] when path has only one node (start == end) (WR-02)."""
+        kg = KnowledgeGraph()
+        kg.add_node("alice", node_type="agent", location="room_a")
+        kg.add_node("room_a", node_type="entity")
+        # Target is the same as location — _find_path returns ["room_a"] (len=1)
+        ctx = MechanicContext(kg, actor="alice", target="room_a", tick_id="t1", universe_seed=42)
+        result = mech.apply(ctx)
+        assert result == []
+
+    def test_apply_does_not_raise_when_path_is_none(self, mech: AutopilotTravelMechanic) -> None:
+        """No AssertionError or AttributeError when path is None (WR-02)."""
+        kg = KnowledgeGraph()
+        kg.add_node("alice", node_type="agent", location="room_a")
+        kg.add_node("room_a", node_type="entity")
+        kg.add_node("room_d", node_type="entity")
+        ctx = MechanicContext(kg, actor="alice", target="room_d", tick_id="t1", universe_seed=42)
+        # Must not raise
+        try:
+            mech.apply(ctx)
+        except (AssertionError, AttributeError) as exc:
+            raise AssertionError(f"apply() raised {type(exc).__name__}: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# WR-01: apply() stores clear_on_end={"is_traveling": False} in LRA payload
+# ---------------------------------------------------------------------------
+
+
+class TestAutopilotTravelClearOnEnd:
+    def test_apply_stores_clear_on_end_in_lra_payload(self, mech: AutopilotTravelMechanic) -> None:
+        """apply() must include clear_on_end={"is_traveling": False} in the LRA payload."""
+        kg = _make_linear_kg()
+        ctx = _ctx(kg)
+        mech.apply(ctx)
+        lra = kg.query("alice", "current_long_action")
+        assert "clear_on_end" in lra["payload"]
+        assert lra["payload"]["clear_on_end"] == {"is_traveling": False}

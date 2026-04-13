@@ -289,6 +289,7 @@ class MechanicContext:
         turns_total: int | None,
         thresholds: list[dict],
         attention_state: dict | None = None,
+        clear_on_end: dict | None = None,
     ) -> Mutation:
         """Start a long-running action on the actor node (D-05, D-15).
 
@@ -339,6 +340,8 @@ class MechanicContext:
         payload: dict[str, Any] = {}
         if attention_state is not None:
             payload["attention_state"] = attention_state
+        if clear_on_end is not None:
+            payload["clear_on_end"] = dict(clear_on_end)  # defensive copy
         stored = {
             "action_text": action_text,
             "turns_total": turns_total,

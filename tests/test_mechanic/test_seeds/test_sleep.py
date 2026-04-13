@@ -314,3 +314,20 @@ class TestSleepApplyFallback:
         mech.apply(ctx)
         lra = kg_no_location.query("alice", "current_long_action")
         assert lra["turns_total"] == 8
+
+
+# ---------------------------------------------------------------------------
+# WR-01: apply() stores clear_on_end in LRA payload
+# ---------------------------------------------------------------------------
+
+
+class TestSleepClearOnEnd:
+    def test_apply_stores_clear_on_end_in_lra_payload(
+        self, kg_with_bedroom: KnowledgeGraph, mech: SleepMechanic
+    ) -> None:
+        """apply() must include clear_on_end={"is_sleeping": False} in the LRA payload (WR-01)."""
+        ctx = _ctx(kg_with_bedroom)
+        mech.apply(ctx)
+        lra = kg_with_bedroom.query("alice", "current_long_action")
+        assert "clear_on_end" in lra["payload"]
+        assert lra["payload"]["clear_on_end"] == {"is_sleeping": False}

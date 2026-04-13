@@ -152,8 +152,9 @@ class AutopilotTravelMechanic(Mechanic):
         actor_props = ctx.query_node(ctx.actor)
         current_location = actor_props["location"]
         path = _find_path(ctx, current_location, ctx.target)
-        # check() guarantees path is valid and len >= 2
-        assert path is not None and len(path) >= 2
+        # check() guarantees path is valid and len >= 2; defensive guard for production
+        if path is None or len(path) < 2:
+            return []
 
         # One hazard threshold per room in the route (D-18; see module docstring)
         thresholds = [
@@ -173,7 +174,7 @@ class AutopilotTravelMechanic(Mechanic):
             ),
         ]
 
-        # 2-step augment: merge route + next_index into the stored LRA payload.
+        # 2-step augment: merge route + next_index + clear_on_end into the stored LRA payload.
         # begin_long_action already wrote the dict; we read it back, enrich,
         # and write again. This stays within ALLOWED_PROPERTY_TYPES (list, dict, int).
         stored = ctx.query_node(ctx.actor, "current_long_action")
@@ -181,6 +182,7 @@ class AutopilotTravelMechanic(Mechanic):
         augmented_payload = dict(augmented.get("payload", {}))
         augmented_payload["route"] = list(path)
         augmented_payload["next_index"] = 1
+        augmented_payload["clear_on_end"] = {"is_traveling": False}
         augmented["payload"] = augmented_payload
         mutations.append(ctx.set(ctx.actor, "current_long_action", augmented))
 

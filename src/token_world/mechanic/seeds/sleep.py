@@ -99,5 +99,6 @@ class SleepMechanic(Mechanic):
                     "suppress": ["visual_detail", "smell"],
                     "boost": ["noise_level"],
                 },
+                clear_on_end={"is_sleeping": False},
             ),
         ]

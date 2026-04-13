@@ -73,4 +73,8 @@ class SoberUpMechanic(Mechanic):
         for actor_id, current_sobriety in _find_drunk_actors_with_room_to_recover(ctx):
             new_sobriety = min(1.0, current_sobriety + RECOVERY_RATE)
             mutations.append(ctx.set(actor_id, "sobriety_level", new_sobriety))
+            if new_sobriety >= 1.0:
+                # IN-02: clear is_drunk flag when fully sober so the gate in
+                # _find_drunk_actors_with_room_to_recover no longer matches this actor
+                mutations.append(ctx.set(actor_id, "is_drunk", False))
         return mutations

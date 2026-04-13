@@ -199,3 +199,49 @@ class TestSoberUpApply:
         ctx = MechanicContext(kg, actor="sentinel", target="sentinel")
         mutations = mechanic.apply(ctx)
         assert len(mutations) == 2
+
+
+# ---------------------------------------------------------------------------
+# IN-02: sober_up clears is_drunk when sobriety reaches 1.0
+# ---------------------------------------------------------------------------
+
+
+class TestSoberUpClearsDrunkFlag:
+    def test_apply_clears_is_drunk_when_sobriety_reaches_1(self, mechanic: SoberUpMechanic) -> None:
+        """When new_sobriety >= 1.0, apply() must set is_drunk=False (IN-02)."""
+        kg, ctx = _make_drunk_ctx(sobriety=0.95)
+        mechanic.apply(ctx)
+        # 0.95 + 0.1 = 1.05 → clamped to 1.0 → is_drunk cleared
+        assert kg.query("alice", "sobriety_level") == 1.0
+        assert kg.query("alice", "is_drunk") is False
+
+    def test_apply_clears_is_drunk_at_exactly_1_0(self, mechanic: SoberUpMechanic) -> None:
+        """Sobriety exactly at 1.0 after recovery: is_drunk must be cleared (IN-02)."""
+        kg, ctx = _make_drunk_ctx(sobriety=0.9)
+        mechanic.apply(ctx)
+        # 0.9 + 0.1 = 1.0 exactly → is_drunk cleared
+        assert abs(kg.query("alice", "sobriety_level") - 1.0) < 1e-9
+        assert kg.query("alice", "is_drunk") is False
+
+    def test_apply_does_not_clear_is_drunk_below_1_0(self, mechanic: SoberUpMechanic) -> None:
+        """When new_sobriety < 1.0, is_drunk must remain True (IN-02 — no premature clear)."""
+        kg, ctx = _make_drunk_ctx(sobriety=0.5)
+        mechanic.apply(ctx)
+        # 0.5 + 0.1 = 0.6 < 1.0 → is_drunk still True
+        assert kg.query("alice", "is_drunk") is True
+
+    def test_apply_returns_extra_mutation_when_clearing_is_drunk(
+        self, mechanic: SoberUpMechanic
+    ) -> None:
+        """When is_drunk cleared, apply() returns 2 mutations: sobriety_level + is_drunk (IN-02)."""
+        kg, ctx = _make_drunk_ctx(sobriety=0.95)
+        mutations = mechanic.apply(ctx)
+        assert len(mutations) == 2
+
+    def test_apply_returns_one_mutation_when_not_clearing_is_drunk(
+        self, mechanic: SoberUpMechanic
+    ) -> None:
+        """When sobriety < 1.0 after increment, only sobriety_level mutation returned (IN-02)."""
+        kg, ctx = _make_drunk_ctx(sobriety=0.5)
+        mutations = mechanic.apply(ctx)
+        assert len(mutations) == 1

@@ -281,3 +281,13 @@ class TestDrunkApply:
         mechanic.apply(ctx)
         lra = drunk_graph.query("alice", "current_long_action")
         assert lra["turns_elapsed"] == 0
+
+    def test_apply_stores_clear_on_end_in_lra_payload(
+        self, drunk_graph: KnowledgeGraph, mechanic: DrunkMechanic
+    ) -> None:
+        """apply() must include clear_on_end={"is_drunk": False} in the LRA payload (WR-01)."""
+        ctx = MechanicContext(drunk_graph, actor="alice", target="ale")
+        mechanic.apply(ctx)
+        lra = drunk_graph.query("alice", "current_long_action")
+        assert "clear_on_end" in lra["payload"]
+        assert lra["payload"]["clear_on_end"] == {"is_drunk": False}

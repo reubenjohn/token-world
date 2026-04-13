@@ -98,5 +98,6 @@ class DrunkMechanic(Mechanic):
                     "suppress": ["fine_detail", "social_nuance"],
                     "boost": ["aggression_level"],
                 },
+                clear_on_end={"is_drunk": False},
             ),
         ]
