@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from token_world.engine.classifier import Classifier
+from token_world.engine.compressor import TickCompressor
 from token_world.engine.config import EngineConfig, load_engine_config
 from token_world.engine.conservation import ConservationChecker
 from token_world.engine.decider import decide
@@ -203,6 +204,7 @@ class SimulationEngine:
     ) -> None:
         self._universe_path = Path(universe_path).resolve()
         self._graph = graph
+        self._anthropic_client = anthropic_client
         self._config = config or load_engine_config(self._universe_path)
         self._registry = MechanicRegistry(self._universe_path / "mechanics")
         self._diagnostics = DiagnosticsSink(self._universe_path)
@@ -214,6 +216,10 @@ class SimulationEngine:
             self._universe_path / "conservation.yaml"
         )
         self._summary_writer = TickSummaryWriter()
+        self._compressor = TickCompressor(
+            batch_size=self._config.compression_batch_size,
+            epoch_size=self._config.compression_epoch_size,
+        )
 
     def run_tick(self, action_text: str, actor: str) -> TickResult:
         """Execute one tick through the complete D-01 staged pipeline.
@@ -772,6 +778,12 @@ class SimulationEngine:
             observer_output_tokens=observer_out,
         )
         self._summary_writer.write(summary, self._universe_path)
+        # D-19: opportunistic compression after every tick write.
+        # Failures MUST NOT cause the tick itself to fail — compression is best-effort.
+        try:
+            self._compressor.maybe_compress(self._universe_path, self._anthropic_client)
+        except Exception as exc:
+            logger.warning("TickCompressor failed (tick still succeeded): %s", exc)
 
 
 # ---------------------------------------------------------------------------
