@@ -2,7 +2,7 @@
 
 ## Overview
 
-Token World is built bottom-up along its hard dependency chain: universe infrastructure as the foundation, then knowledge graph, then mechanic framework, then use-case-informed design validation, then LLM generation, then the simulation engine, then the resident agent closing the loop, and finally the attention/consciousness system that makes the world feel alive. Each phase delivers a testable, observable capability. Testing and autonomy tooling are woven into the phases where their target features are built, not deferred to a separate phase.
+Token World is built bottom-up along its hard dependency chain: universe infrastructure as the foundation, then knowledge graph, then mechanic framework, then use-case-informed design validation, then mechanic authoring & validation infrastructure (supersedes the originally-planned "LLM generation pipeline" — the top-level coding agent is the mechanic author; the framework provides the gate, not the generator), then the simulation engine, then the resident agent closing the loop, and finally the attention/consciousness system that makes the world feel alive. Each phase delivers a testable, observable capability. Testing and autonomy tooling are woven into the phases where their target features are built, not deferred to a separate phase.
 
 ## Phases
 
@@ -12,12 +12,12 @@ Token World is built bottom-up along its hard dependency chain: universe infrast
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 0: Universe Infrastructure** - Universe scaffolding, instance management, CLAUDE.md/MCP generation, harness-agnostic design
-- [ ] **Phase 1: Graph Foundation** - Knowledge graph with persistence, snapshots, and test infrastructure
-- [ ] **Phase 2: Mechanic Framework** - Protocol, DSL primitives, seed mechanics, versioning, and CLI tooling
-- [ ] **Phase 3: Design Validation** - Use case library, gap analysis, optional indexes, and graph visualization
-- [ ] **Phase 4: Mechanic Authoring & Validation Infrastructure** - Flat mechanic layout (supersedes folder-per-mechanic), validation pipeline, diagnostics substrate, integration-test harness, and authoring guides — so the top-level coding agent (Opus via Agent SDK) authors mechanics as normal Python SDLC
-- [ ] **Phase 5: Simulation Engine** - Action interpretation, mechanic execution, grounded observations, and history
+- [x] **Phase 0: Universe Infrastructure** - Universe scaffolding, instance management, CLAUDE.md/MCP generation, harness-agnostic design
+- [x] **Phase 1: Graph Foundation** - Knowledge graph with persistence, snapshots, and test infrastructure
+- [x] **Phase 2: Mechanic Framework** - Protocol, DSL primitives, seed mechanics, versioning, and CLI tooling (NOTE: D-15 folder-per-mechanic layout superseded by Phase 4; seeds flatten in plan 04-01)
+- [x] **Phase 3: Design Validation** - Use case library (35 UCs across spatial/social/resource/environmental/edge-case), gap analysis (GAP-ANALYSIS.md / GAP-HANDOFF.md), optional spatial + temporal indexes, filtered Mermaid graph visualization
+- [ ] **Phase 4: Mechanic Authoring & Validation Infrastructure** - Flat mechanic layout (supersedes folder-per-mechanic), validation pipeline, diagnostics substrate, integration-test harness, authoring guides, and seed mechanic authoring waves (MECH01–MECH27) — so the top-level coding agent (Opus via Agent SDK) authors mechanics as normal Python SDLC
+- [ ] **Phase 5: Simulation Engine** - Action classification (Haiku), mechanic matching, execution, grounded observation synthesis (Sonnet), conservation enforcement, tick summaries. Under inversion of control: when no mechanic matches, the engine yields to the operator — it does NOT generate code.
 - [ ] **Phase 6: Resident Agent & End-to-End Loop** - Agent with personality and memory, playtesting, quality scoring, regression suite
 - [ ] **Phase 7: Attention & Consciousness** - Duration-aware actions and reusable interruption threshold pattern
 
@@ -84,9 +84,18 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [x] 03-01: TBD
-- [x] 03-02: TBD
-- [x] 03-03: TBD
+- [x] 03-01-PLAN.md — Wave-0 scaffolding (use-cases directory layout, manifest schema, shared fixtures)
+- [x] 03-02-PLAN.md — Spatial index (R-tree via rtree library on MechanicContext)
+- [x] 03-03-PLAN.md — Temporal index (EventStore-backed time-range queries, find_state_at_tick)
+- [x] 03-04-PLAN.md — viz-graph CLI (Mermaid emission with ego-graph filtering, label escaping)
+- [x] 03-05-PLAN.md — Use-case manifest loader (YAML frontmatter parser, schema validation)
+- [x] 03-06-PLAN.md — Authoring spatial use cases (UC-S01..UC-S07)
+- [x] 03-07-PLAN.md — Authoring social use cases (UC-O01..UC-O08)
+- [x] 03-08-PLAN.md — Authoring resource use cases (UC-R01..UC-R07)
+- [x] 03-09-PLAN.md — Authoring environmental use cases (UC-V01..UC-V07)
+- [x] 03-10-PLAN.md — Authoring edge-case use cases (UC-E01..UC-E06)
+- [x] 03-11-PLAN.md — Category aggregation (5 CATEGORY-SUMMARY.md files)
+- [x] 03-12-PLAN.md — Gap analysis synthesis (GAP-ANALYSIS.md, GAP-HANDOFF.md, deferred-items.md)
 
 ### Phase 4: Mechanic Authoring & Validation Infrastructure
 **Goal**: The universe acts as a codebase that the top-level coding agent (Opus via Agent SDK) authors with normal SDLC. Phase 4 delivers the flat mechanic layout (supersedes Phase 2 folder-per-mechanic), a validation gate (syntax → AST → import → contract → tests → dry-execute), a diagnostics substrate ready for Phase 5 to populate, an integration-test harness built on Phase 3 use-case manifests, and authoring guides. "LLM mechanic generation" = operator-driven SDLC; no bespoke generation pipeline is built.
@@ -97,24 +106,28 @@ Plans:
   2. Mechanics use only the framework protocol (check/apply) and `MechanicContext` DSL; AST enforcement guarantees this without relying on reviewer discipline
   3. Multi-mechanic chains execute correctly, verified by the integration-test harness parametrized from Phase 3's use-case action-observation manifests
   4. Per-tick diagnostics folders capture prompts, raw LLM responses, parsed output, execution traces, mutations, and observation synthesis; schema is versioned and populated via a shared `DiagnosticsSink` API ready for Phase 5 wiring
-**Plans**: TBD
+**Plans**: ~11 plans (infrastructure + seed-mechanic authoring waves; planner finalizes decomposition)
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
-- [ ] 04-03: TBD
+- [ ] 04-01 — Flatten mechanic layout (supersedes Phase 2 D-15) + Phase 3 code fixes (H-01, M-04)
+- [ ] 04-02 — Validation pipeline (syntax → AST rules → import → contract → tests → dry-execute) + `validate-mechanic` CLI + registry auto-scan wiring
+- [ ] 04-03 — Diagnostics substrate (per-tick folder schema, `DiagnosticsSink` API, `prune-diagnostics` CLI)
+- [ ] 04-04 — Integration test harness (consumes existing `src/token_world/use_cases/loader.py`; parametrized tests with pass / yield / blocked-by-framework-gap outcomes)
+- [ ] 04-05 — Authoring guides (`docs/guides/authoring-mechanics.md`, universe CLAUDE.md template update, `scaffold-mechanic` CLI)
+- [ ] 04-06..04-NN — Seed mechanic authoring waves (MECH01–MECH27 from GAP-HANDOFF.md; thematic clusters; planner picks boundaries)
 
 ### Phase 5: Simulation Engine
-**Goal**: The engine interprets text actions, matches or generates mechanics, executes them against the graph, and returns grounded observations -- the full pipeline works end-to-end without a live agent
+**Goal**: The engine interprets text actions, routes them to mechanics (or yields to the operator when none match), executes selected mechanics, and returns grounded observations — the full pipeline works end-to-end without a live agent. Under the inversion-of-control model established in Phase 4, the engine NEVER generates code; when no mechanic matches, it halts the tick and yields to the operator, which authors the needed mechanic via normal SDLC before the tick resumes.
 **Depends on**: Phase 4
-**Requirements**: SIM-01, SIM-02, SIM-03, SIM-04, SIM-05, SIM-06, SIM-07, SIM-08, SIM-11
+**Requirements**: SIM-01, SIM-02, SIM-03, SIM-04, SIM-05, SIM-06, SIM-07, SIM-08, SIM-11 (plus absorbs the Phase-5 half of GAP-ENG16 per 04-CONTEXT.md D-34)
 **Success Criteria** (what must be TRUE):
-  1. A text action (e.g. "pick up the rock") is classified into a structured action and matched to the correct existing mechanic
-  2. When no mechanic exists for an action, the engine triggers generation and the new mechanic executes successfully
-  3. Observations returned to the caller contain only information derivable from current graph state -- no hallucinated properties or entities
+  1. A text action (e.g. "pick up the rock") is classified into a structured action (Haiku) and matched to the correct existing mechanic; classifier returns `no_viable_action` for nonsense rather than triggering yield
+  2. When no mechanic matches a well-formed action, the engine halts the tick with a structured yield signal ("no mechanic for: <classified-action>"); after the operator authors + validates the needed mechanic, a subsequent `resume_tick` picks up the new mechanic (registry auto-scan) and completes the tick
+  3. Observations returned to the caller contain only information derivable from current graph state — no hallucinated properties or entities
   4. Observations are contextually filtered so only relevant properties appear (e.g. temperature not shown when examining a keyboard)
-  5. Conservation laws are enforced -- mechanics cannot create matter/energy from nothing; attempts produce appropriate failure observations
+  5. Conservation laws are enforced — mechanics cannot create matter/energy from nothing; attempts produce appropriate failure observations
   6. Per-tick summaries are written to tick_summaries/ after each simulation tick, enabling agent catch-up and context compaction
+  7. Classifier, matcher, and observer LLM calls write prompts, raw responses, and parsed output to the Phase 4 diagnostics substrate (AUTO-02 fully wired end-to-end)
 **Plans**: TBD
 
 Plans:
