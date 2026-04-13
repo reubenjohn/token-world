@@ -66,3 +66,49 @@ def test_truncation_never_produces_malformed_entity(raw: str, max_len: int) -> N
         gt = body.find(">", lt)
         assert gt != -1, f"truncation produced unterminated '<' tag: {out!r}"
         idx = gt + 1
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        "<script>alert(1)</script>",
+        "<img src=x onerror=alert(1)>",
+        "<iframe src=//evil></iframe>",
+        "<b>bold</b>",
+        "a < b and c > d",
+    ],
+)
+def test_escape_neutralises_angle_brackets(payload: str) -> None:
+    """UAT #7 regression: raw < and > must be entity-escaped.
+
+    The only <...> token permitted in the output is the literal <br/>
+    inserted BY escape_label in response to a real newline in the input.
+    """
+    out = escape_label(payload, max_len=200)
+    assert "<script" not in out, f"raw <script survived: {out!r}"
+    assert "<img" not in out, f"raw <img survived: {out!r}"
+    assert "<iframe" not in out, f"raw <iframe survived: {out!r}"
+    assert "<b>" not in out, f"raw <b> survived: {out!r}"
+    # No raw < > at all (except any <br/> which we assert separately)
+    residue = out.replace("<br/>", "")
+    assert "<" not in residue, f"raw '<' survived: {out!r}"
+    assert ">" not in residue, f"raw '>' survived: {out!r}"
+
+
+def test_escape_preserves_newline_as_br() -> None:
+    """Newlines in input -> literal <br/> in output (the ONE legal <> token)."""
+    out = escape_label("line1\nline2", max_len=100)
+    assert "<br/>" in out
+    # The <br/> is the only < in the output
+    assert out.count("<") == 1
+    assert out.count(">") == 1
+
+
+def test_attacker_supplied_br_is_escaped() -> None:
+    """A <br/> token already present in the input must be neutralised;
+    only our injected <br/> (from real \\n) is legal."""
+    out = escape_label("safe<br/>attacker", max_len=100)
+    # Attacker's <br/> must be entity-escaped -- no literal <br/> at all
+    # (since input had no \n, escape_label did not inject one).
+    assert "<br/>" not in out, f"attacker <br/> survived: {out!r}"
+    assert "&lt;br/&gt;" in out
