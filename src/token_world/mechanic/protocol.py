@@ -37,11 +37,15 @@ class Mechanic(ABC):
         description: Human-readable description.
         voluntary: Whether this mechanic is triggered by agent action (True)
             or reactively by graph mutations (False). Defaults to True.
+        tags: Classification tags for querying (e.g. ``["spatial"]``). Defaults
+            to an empty list. Per D-04, ``tags`` supersedes ``meta.yaml`` as
+            the single source of truth for mechanic classification.
     """
 
     id: str
     description: str
     voluntary: bool = True
+    tags: list[str] = []
 
     @abstractmethod
     def check(self, ctx: MechanicContext) -> CheckResult:

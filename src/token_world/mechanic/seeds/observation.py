@@ -25,6 +25,7 @@ class ObservationMechanic(Mechanic):
     id = "observation"
     description = "Agent observes entities and properties at current location"
     voluntary = True
+    tags = ["perception", "core"]
 
     def check(self, ctx: MechanicContext) -> CheckResult:
         if not ctx.has_node(ctx.actor):

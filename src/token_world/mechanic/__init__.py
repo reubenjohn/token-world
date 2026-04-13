@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from token_world.mechanic.context import MechanicContext
 from token_world.mechanic.engine import ChainExecutionEngine
-from token_world.mechanic.loader import load_mechanic_class
+from token_world.mechanic.loader import discover_mechanic_modules, load_mechanic_classes
 from token_world.mechanic.matchers import (
     EdgeMatcher,
     Matcher,
@@ -21,13 +21,14 @@ __all__ = [
     "EdgeMatcher",
     "ExecutionTrace",
     "Matcher",
-    "MechanicContext",
     "Mechanic",
+    "MechanicContext",
     "MechanicInfo",
     "MechanicRegistry",
     "MechanicVersion",
     "NodeMatcher",
     "PropertyChangeMatcher",
     "TraceNode",
-    "load_mechanic_class",
+    "discover_mechanic_modules",
+    "load_mechanic_classes",
 ]
