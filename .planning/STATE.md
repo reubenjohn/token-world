@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: idle
-stopped_at: Phase 06 context gathered — ready for planning
-last_updated: "2026-04-13T15:30:00.000Z"
-last_activity: 2026-04-13 -- Phase 06 context gathered (30 decisions, --auto mode)
+stopped_at: Completed 06-resident-agent-end-to-end-loop-06-00-PLAN.md
+last_updated: "2026-04-13T15:24:00.000Z"
+last_activity: 2026-04-13 -- Phase 06 Plan 00 complete (TickResult.projected_state)
 progress:
   total_phases: 9
   completed_phases: 7
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 
 ## Current Position
 
-Phase: 06 (resident-agent-end-to-end-loop) — Context gathered
-Plans: 0 of TBD — context gathered 2026-04-13
-Status: CONTEXT.md written (30 decisions, --auto mode); ready for /gsd-plan-phase 6
-Last activity: 2026-04-13 -- Phase 06 context gathered
+Phase: 06 (resident-agent-end-to-end-loop) — In progress
+Plans: 1 of TBD — Plan 00 complete 2026-04-13
+Status: Wave-0 prep done; TickResult.projected_state live; Wave-1 plans unblocked
+Last activity: 2026-04-13 -- Phase 06 Plan 00 complete (TickResult.projected_state for groundedness scoring)
 
 Progress: [██████░░░░] 67% (6 of 9 phases complete)
 
@@ -69,6 +69,7 @@ Progress: [██████░░░░] 67% (6 of 9 phases complete)
 | Phase 05-simulation-engine P07 | 4 | 1 tasks | 3 files |
 | Phase 05-simulation-engine P08 | 130 | 2 tasks | 4 files |
 | Phase 05-simulation-engine P09 | 5 | 1 tasks | 3 files |
+| Phase 06-resident-agent P00 | 18 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,7 @@ Recent decisions affecting current work:
 - [Phase 05-simulation-engine]: _ClassifierDiagnosticsAdapter bridges Wave 1 classifier.py write_prompt/response/parsed API to Phase 4 TickDiagnostics.write_classification
 - [Phase 05-simulation-engine]: Lazy imports inside _tool_* functions keep mcp_server module import cost minimal
 - [Phase 05-simulation-engine]: _anthropic_factory module-level monkeypatch surface; rollback missing db is -32602 not -32603
+- [Phase 06-00]: TickResult.projected_state reuses the projection dict already computed for Observer.synthesize — no extra projector call, no drift; None on yield/refuse paths (scorer must handle None as groundedness=0.5 per 06-RESEARCH)
 
 ### Roadmap Evolution
 
