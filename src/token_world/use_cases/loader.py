@@ -32,7 +32,12 @@ def load_use_case(path: Path) -> tuple[dict[str, Any], str]:
     Raises ``ValueError`` if the file is missing frontmatter or the YAML is
     invalid.
     """
-    text = path.read_text(encoding="utf-8")
+    raw = path.read_text(encoding="utf-8")
+    # Normalise line endings so use-case files authored on Windows/VSCode
+    # (CRLF or bare CR) load the same way as files authored on Unix.
+    # REVIEW M-04: the frontmatter framing check is strict on "---\n", so we
+    # pre-normalise before inspecting it. yaml.safe_load is CRLF-tolerant.
+    text = raw.replace("\r\n", "\n").replace("\r", "\n")
     if not text.startswith("---\n"):
         raise ValueError(f"{path}: missing YAML frontmatter")
     parts = text.split("---\n", 2)
