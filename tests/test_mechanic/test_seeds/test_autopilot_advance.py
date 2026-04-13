@@ -288,3 +288,42 @@ class TestAutopilotAdvanceApply:
         mech.apply(ctx)
         lra = kg.query("alice", "current_long_action")
         assert lra["payload"]["route"] == route
+
+
+# ---------------------------------------------------------------------------
+# IN-03: apply() skips actors with next_index=0 (corrupt LRA payload guard)
+# ---------------------------------------------------------------------------
+
+
+class TestAutopilotAdvanceNextIndexZeroGuard:
+    def test_apply_returns_empty_when_next_index_is_zero(
+        self, mech: AutopilotAdvanceMechanic
+    ) -> None:
+        """next_index=0 indicates corrupt payload; apply() must return [] (IN-03)."""
+        kg = _make_kg_with_traveler(next_index=0)
+        ctx = _sentinel_ctx(kg)
+        mutations = mech.apply(ctx)
+        assert mutations == []
+
+    def test_apply_does_not_mutate_location_when_next_index_is_zero(
+        self, mech: AutopilotAdvanceMechanic
+    ) -> None:
+        """With next_index=0, actor location must not change (IN-03)."""
+        kg = _make_kg_with_traveler(next_index=0, location="room_a")
+        ctx = _sentinel_ctx(kg)
+        mech.apply(ctx)
+        assert kg.query("alice", "location") == "room_a"
+
+    def test_apply_logs_warning_when_next_index_is_zero(
+        self, mech: AutopilotAdvanceMechanic, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """next_index=0 must produce a WARNING log entry (IN-03)."""
+        import logging
+
+        kg = _make_kg_with_traveler(next_index=0)
+        ctx = _sentinel_ctx(kg)
+        with caplog.at_level(
+            logging.WARNING, logger="token_world.mechanic.seeds.autopilot_advance"
+        ):
+            mech.apply(ctx)
+        assert any("next_index=0" in r.message for r in caplog.records)

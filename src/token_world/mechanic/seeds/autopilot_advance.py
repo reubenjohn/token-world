@@ -30,11 +30,14 @@ after she moved from room_a), not on the prior tick.
 from __future__ import annotations
 
 import contextlib
+import logging
 from typing import TYPE_CHECKING
 
 from token_world.graph import Mutation
 from token_world.mechanic.matchers import TickMatcher
 from token_world.mechanic.protocol import CheckResult, Mechanic
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from token_world.mechanic.context import MechanicContext
@@ -129,6 +132,15 @@ class AutopilotAdvanceMechanic(Mechanic):
             payload = dict(lra.get("payload", {}))
             route = list(payload.get("route", []))
             next_index = int(payload.get("next_index", 0))
+            if next_index <= 0:
+                # IN-03: next_index=0 indicates a corrupt or manually-crafted LRA payload.
+                # autopilot_travel always initialises next_index=1, so 0 is invalid.
+                logger.warning(
+                    "autopilot_advance: next_index=0 for actor %s; skipping "
+                    "(likely corrupt LRA payload)",
+                    actor_id,
+                )
+                continue
             if next_index >= len(route):
                 continue
             new_room = route[next_index]
