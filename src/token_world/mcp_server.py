@@ -306,12 +306,14 @@ def handle_request(request: dict) -> dict | None:
                 return _jsonrpc_error(req_id, -32602, f"Unknown tool: {tool_name}")
         except _InvalidParams as exc:
             return _jsonrpc_error(req_id, -32602, f"Invalid params: {exc}")
-        except Exception as exc:
+        except Exception:
             # Log full trace to stderr (not stdout — stdout is reserved for JSON-RPC responses)
             import traceback
 
             sys.stderr.write(traceback.format_exc())
-            return _jsonrpc_error(req_id, -32603, f"Internal error: {exc}")
+            # Do not echo exc details to the client — full trace is on stderr.
+            # Tick diagnostics/summary.json captures error state for operator debugging.
+            return _jsonrpc_error(req_id, -32603, "Internal error")
 
         return {
             "jsonrpc": "2.0",

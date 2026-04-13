@@ -552,10 +552,11 @@ class TestErrorHandling:
         assert response["error"]["code"] == -32602
         assert "Unknown tool" in response["error"]["message"]
 
-    def test_internal_error_returns_32603_and_no_stack_trace_leak(
+    def test_internal_error_returns_32603_with_generic_message(
         self, tmp_universe: Path, mock_client_factory: Any, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """SimulationEngine.run_tick crash → -32603 with exc message; no Traceback in message."""
+        """WR-04: SimulationEngine.run_tick crash → -32603 with generic 'Internal error'
+        message only; exc details and stack trace must NOT appear in the client response."""
         from token_world.graph import KnowledgeGraph
 
         kg = KnowledgeGraph(db_path=tmp_universe / "universe.db")
@@ -582,9 +583,14 @@ class TestErrorHandling:
         )
         assert "error" in response
         assert response["error"]["code"] == -32603
-        assert "boom" in response["error"]["message"]
+        # Generic message only — exc repr must NOT be in client-facing message
+        assert "boom" not in response["error"]["message"], (
+            "Internal error message must not leak exception details to the client"
+        )
         # Stack trace must NOT appear in the error message
         assert "Traceback" not in response["error"]["message"]
+        # The message must be the fixed generic string
+        assert response["error"]["message"] == "Internal error"
 
 
 # ---------------------------------------------------------------------------
