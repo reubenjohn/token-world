@@ -133,6 +133,15 @@ Run quick test after every change. Run full suite before commits.
 | `uv run ruff check src/` | Lint check |
 | `uv run ruff format src/` | Auto-format |
 | `uv run mypy src/token_world/graph/` | Type check graph module |
+| `uv run python scripts/phase_waves.py <phase>` | Report wave structure + files_modified overlap for a phase (pre-execution safety check) |
+
+## Bash Hygiene for Agents
+
+A few rough edges worth knowing:
+
+- **Use absolute paths, not `$HOME`** — a Claude Code permission-prompt bug mis-handles `$HOME` in commands, rejecting tool uses that would otherwise auto-approve. Write `/home/reuben/.claude/...` explicitly. Same applies to `~/`.
+- **Avoid inline `python3 -c` / heredoc pipelines** — they look opaque in permission prompts and aren't reviewable after the fact. If you need to parse JSON, pipe to `jq`. If the logic is more than a one-liner, promote it to a script in `scripts/` (see `phase_waves.py` for the pattern).
+- **Avoid long chained pipelines that assert invariants** — if bash is computing something you'll want to re-run later, it belongs in a committed `scripts/` file (grounding rule #4, "ad-hoc bash is a missing-tool signal").
 
 ## Critical Constraints
 
