@@ -401,7 +401,21 @@ class OperatorHarness:
             # ToolResultBlock — match against pending, write report.
             elif block_cls == "ToolResultBlock":
                 tool_use_id = getattr(block, "tool_use_id", None) or getattr(block, "id", None)
-                if not isinstance(tool_use_id, str) or tool_use_id not in pending:
+                if not isinstance(tool_use_id, str):
+                    continue
+                if tool_use_id not in pending:
+                    # WR-03: could be an unrelated tool's result OR a
+                    # correlation miss (SDK reorders blocks, different SDK
+                    # version, etc.). Behaviour unchanged — still skip — but
+                    # log at DEBUG so forensic operators can spot misses in
+                    # replay-tick / trace logs. Aggressive fallbacks ("claim
+                    # the next pending slot") risk miscorrelating distinct
+                    # overlapping validations; logging is the minimal fix.
+                    logger.debug(
+                        "Uncorrelated ToolResultBlock tool_use_id={} "
+                        "(no pending validate_mechanic); skipping",
+                        tool_use_id,
+                    )
                     continue
                 attempt_n = pending.pop(tool_use_id)
                 report = OperatorHarness._extract_validation_report(block, attempt_n=attempt_n)
