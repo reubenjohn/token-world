@@ -239,6 +239,8 @@ class TestSeedUniverse:
             "movement",
             "observation",
             "passage_move",
+            "position_sync",
+            "terrain_move",
         ]
 
     def test_list_mechanics_sorted(self, tmp_universe: Path) -> None:
