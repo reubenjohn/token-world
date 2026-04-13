@@ -116,6 +116,17 @@ def scaffold_universe(universe_dir: Path, *, name: str, slug: str) -> None:
     (universe_dir / "tick_summaries" / "batches").mkdir(exist_ok=True)
     (universe_dir / "tick_summaries" / "epochs").mkdir(exist_ok=True)
 
+    # Seed universe.yaml ONLY if it does not already exist (idempotent).
+    universe_yaml_path = universe_dir / "universe.yaml"
+    if not universe_yaml_path.exists():
+        from token_world.engine.config import generate_universe_seed
+        from token_world.universe.templates.universe_yaml import render_universe_yaml
+
+        universe_yaml_path.write_text(
+            render_universe_yaml(universe_seed=generate_universe_seed()),
+            encoding="utf-8",
+        )
+
     # Generate CLAUDE.md from template
     claude_md = render_claude_md(name=name, slug=slug)
     (universe_dir / "CLAUDE.md").write_text(claude_md)
