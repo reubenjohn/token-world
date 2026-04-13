@@ -4,10 +4,8 @@ Plan 04.1-01 ships:
     - ``universe``: a scaffolded temporary universe folder
     - ``yield_signal_json_fixture``: a dict matching the 7 ``YieldSignal`` fields,
       used by Plan-02's ``test_yield_signal.py`` round-trip tests.
-
-The ``stub_yield`` factory fixture is intentionally deferred to Task 3, which
-ships alongside ``EngineStub`` (avoids a transitional stub-absent-but-referenced
-state). Tests that need it import ``EngineStub`` directly or rely on Task 3.
+    - ``stub_yield``: factory callable returning a validated :class:`YieldSignal`
+      wired to the per-test :func:`universe` fixture (Task 3).
 """
 
 from __future__ import annotations
@@ -18,6 +16,8 @@ from typing import Any
 
 import pytest
 
+from token_world.operator import YieldSignal
+from token_world.operator.testing import EngineStub
 from token_world.universe.manager import UniverseManager
 
 
@@ -63,3 +63,15 @@ def yield_signal_json_fixture() -> Callable[..., dict[str, Any]]:
         return base
 
     return _make
+
+
+@pytest.fixture
+def stub_yield(universe: Path) -> Callable[..., YieldSignal]:
+    """Factory: call with ``verb=...``, ``actor=...``, plus any optional overrides.
+
+    Returns :meth:`EngineStub.fabricate_yield` bound to the per-test ``universe``
+    fixture so every fabricated :class:`YieldSignal` carries ``universe_path``
+    pointing at the scaffolded temp universe (D-09/D-10 contract guarantee).
+    """
+    stub = EngineStub(universe_path=universe)
+    return stub.fabricate_yield
