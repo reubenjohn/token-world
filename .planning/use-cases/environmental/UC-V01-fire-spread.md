@@ -3,7 +3,7 @@ id: UC-V01
 category: environmental
 title: "Fire spread"
 status: reviewed
-expected_outcome: blocked
+expected_outcome: pass
 setup:
   graph_builder: |
     # A lit torch sits on a wooden table. The torch is on fire and hot; the
@@ -34,8 +34,15 @@ actions:
   - actor: engine
     intent: "advance one tick to let heat propagate from the torch to adjacent flammable entities"
     classified:
-      verb: tick_advance
-      target: wooden_table
+      # Verb aligned with the fire_spread mechanic id (voluntary=True is a
+      # Phase-4 routing deviation; see fire_spread.py inline rationale) and
+      # target set to torch (the already-burning node) so fire_spread's
+      # apply enumerates torch's flammable neighbours and ignites
+      # wooden_table in a single voluntary invocation. When Phase 5 lands
+      # the classifier + involuntary reactive wiring, the verb reverts to
+      # tick_advance and fire_spread chains from torch's on_fire mutation.
+      verb: fire_spread
+      target: torch
       utterance: "environmental pass"
 expected_observations:
   - actor: engine

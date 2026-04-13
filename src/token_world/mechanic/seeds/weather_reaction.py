@@ -54,9 +54,7 @@ class WeatherReactionMechanic(Mechanic):
     """
 
     id = "weather_reaction"
-    description = (
-        "World-level weather/season reaction (framework-gap stub until GAP-ENG09)"
-    )
+    description = "World-level weather/season reaction (framework-gap stub until GAP-ENG09)"
     # NOTE: voluntary=True is a Phase-4 routing requirement for the D-38
     # harness stub-probe. The semantic intent remains *involuntary* (the
     # tag below records that intent); when GAP-ENG09 lands in Phase 5

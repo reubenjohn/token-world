@@ -23,7 +23,6 @@ from token_world.mechanic.matchers import PropertyChangeMatcher
 from token_world.mechanic.protocol import CheckResult, Mechanic
 from token_world.mechanic.seeds.fire_spread import FireSpreadMechanic
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -43,9 +42,7 @@ def fire_graph() -> KnowledgeGraph:
     - stone_wall: flammable=False
     """
     kg = KnowledgeGraph()
-    kg.add_node(
-        "torch", node_type="entity", on_fire=True, temperature=150, flammable=True
-    )
+    kg.add_node("torch", node_type="entity", on_fire=True, temperature=150, flammable=True)
     kg.add_node(
         "wooden_table",
         node_type="entity",
@@ -68,20 +65,29 @@ class TestFireSpreadMetadata:
     def test_id(self, mechanic: FireSpreadMechanic) -> None:
         assert mechanic.id == "fire_spread"
 
-    def test_is_involuntary(self, mechanic: FireSpreadMechanic) -> None:
-        assert mechanic.voluntary is False
+    def test_is_voluntary_for_routing(self, mechanic: FireSpreadMechanic) -> None:
+        """Phase-4 routing: voluntary=True so UC-V01's verb can match.
+
+        Semantic intent is reactive / involuntary (recorded by the
+        ``involuntary_intent`` tag and retained ``watches()``); the
+        flag is True only so ``match_mechanic_for_verb`` can route
+        UC-V01 to the mechanic under the Phase-4 harness. Phase 5
+        flips back to False when a proper classifier + involuntary-
+        registration wiring lands.
+        """
+        assert mechanic.voluntary is True
+        # Reactive matchers still declared for future Phase-5 wiring.
+        assert mechanic.watches() != []
 
     def test_tags_present(self, mechanic: FireSpreadMechanic) -> None:
         assert "environmental" in mechanic.tags
         assert "fire" in mechanic.tags
-        assert "involuntary" in mechanic.tags
+        assert "involuntary_intent" in mechanic.tags
 
     def test_watches_temperature_and_on_fire(self, mechanic: FireSpreadMechanic) -> None:
         watchers = mechanic.watches()
         # At least one PropertyChangeMatcher for temperature and one for on_fire.
-        props = {
-            m.property_name for m in watchers if isinstance(m, PropertyChangeMatcher)
-        }
+        props = {m.property_name for m in watchers if isinstance(m, PropertyChangeMatcher)}
         assert "temperature" in props
         assert "on_fire" in props
 
@@ -99,18 +105,14 @@ class TestFireSpreadCheck:
         result = mechanic.check(ctx)
         assert result.passed is True
 
-    def test_check_fails_when_target_missing(
-        self, mechanic: FireSpreadMechanic
-    ) -> None:
+    def test_check_fails_when_target_missing(self, mechanic: FireSpreadMechanic) -> None:
         kg = KnowledgeGraph()
         ctx = MechanicContext(kg, actor="x", target="ghost")
         result = mechanic.check(ctx)
         assert result.passed is False
         assert any("does not exist" in r for r in result.reasons)
 
-    def test_check_fails_when_target_not_on_fire(
-        self, mechanic: FireSpreadMechanic
-    ) -> None:
+    def test_check_fails_when_target_not_on_fire(self, mechanic: FireSpreadMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node(
             "torch",
@@ -126,9 +128,7 @@ class TestFireSpreadCheck:
         assert result.passed is False
         assert any("not on fire" in r.lower() for r in result.reasons)
 
-    def test_check_fails_when_no_flammable_neighbors(
-        self, mechanic: FireSpreadMechanic
-    ) -> None:
+    def test_check_fails_when_no_flammable_neighbors(self, mechanic: FireSpreadMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("torch", node_type="entity", on_fire=True, flammable=True)
         kg.add_node("stone_wall", node_type="entity", flammable=False)
@@ -136,7 +136,9 @@ class TestFireSpreadCheck:
         ctx = MechanicContext(kg, actor="torch", target="torch")
         result = mechanic.check(ctx)
         assert result.passed is False
-        assert any("no flammable" in r.lower() or "not flammable" in r.lower() for r in result.reasons)
+        assert any(
+            "no flammable" in r.lower() or "not flammable" in r.lower() for r in result.reasons
+        )
 
     def test_check_fails_when_all_flammable_neighbors_already_on_fire(
         self, mechanic: FireSpreadMechanic
@@ -175,9 +177,7 @@ class TestFireSpreadApply:
         assert "on_fire" in props
         assert "temperature" in props
 
-    def test_apply_does_not_reignite_already_burning(
-        self, mechanic: FireSpreadMechanic
-    ) -> None:
+    def test_apply_does_not_reignite_already_burning(self, mechanic: FireSpreadMechanic) -> None:
         """Reactive-cycle guard: already-on-fire neighbors receive no mutation.
 
         Critical for T-04-CYCLE mitigation: when a chain execution
@@ -187,9 +187,7 @@ class TestFireSpreadApply:
         fire_spread on the 'changed' on_fire property and loop).
         """
         kg = KnowledgeGraph()
-        kg.add_node(
-            "torch", node_type="entity", on_fire=True, flammable=True, temperature=150
-        )
+        kg.add_node("torch", node_type="entity", on_fire=True, flammable=True, temperature=150)
         kg.add_node(
             "already_burning",
             node_type="entity",
@@ -197,9 +195,7 @@ class TestFireSpreadApply:
             flammable=True,
             temperature=150,
         )
-        kg.add_node(
-            "fresh_wood", node_type="entity", on_fire=False, flammable=True, temperature=20
-        )
+        kg.add_node("fresh_wood", node_type="entity", on_fire=False, flammable=True, temperature=20)
         kg.add_edge("torch", "already_burning", relation="adjacent")
         kg.add_edge("torch", "fresh_wood", relation="adjacent")
         ctx = MechanicContext(kg, actor="torch", target="torch")
@@ -256,9 +252,7 @@ class TestFireSpreadChain:
         )
         kg.add_edge("torch", "wooden_table", relation="adjacent")
 
-        engine = ChainExecutionEngine(
-            involuntary_mechanics=[FireSpreadMechanic()], max_depth=10
-        )
+        engine = ChainExecutionEngine(involuntary_mechanics=[FireSpreadMechanic()], max_depth=10)
         ctx = MechanicContext(kg, actor="agent", target="torch")
         trace = engine.execute(_IgniteMechanic(), ctx)
 

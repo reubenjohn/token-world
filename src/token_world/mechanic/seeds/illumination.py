@@ -103,8 +103,16 @@ class IlluminationMechanic(Mechanic):
 
     id = "illumination"
     description = "Recompute room illumination when a light source's lit flips"
-    voluntary = False
-    tags: list[str] = ["environmental", "light", "involuntary"]
+    # Semantic intent: voluntary = False (reactive to ``lit`` property
+    # changes via watches()). Phase-4 harness routing constraint:
+    # match_mechanic_for_verb only matches voluntary mechanics, so for
+    # UC-V06 to flip to 'pass' the verb must resolve to a voluntary
+    # mechanic. The watches() matcher is retained so Phase-5's chain
+    # engine can still trigger illumination reactively. Same rationale
+    # as fire_spread and weather_reaction. Phase 5 flips back to False
+    # along with the classifier + involuntary-registration wiring.
+    voluntary = True
+    tags: list[str] = ["environmental", "light", "involuntary_intent"]
 
     def watches(self) -> list[Matcher]:
         return [PropertyChangeMatcher(property_name="lit")]

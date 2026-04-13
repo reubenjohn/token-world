@@ -24,7 +24,6 @@ from token_world.graph import KnowledgeGraph
 from token_world.mechanic.context import MechanicContext
 from token_world.mechanic.seeds.contagion import ContagionMechanic
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -85,18 +84,14 @@ class TestContagionCheck:
         ctx = MechanicContext(office_graph, actor="alice", target="alice")
         assert mechanic.check(ctx).passed is True
 
-    def test_check_fails_when_target_missing(
-        self, mechanic: ContagionMechanic
-    ) -> None:
+    def test_check_fails_when_target_missing(self, mechanic: ContagionMechanic) -> None:
         kg = KnowledgeGraph()
         ctx = MechanicContext(kg, actor="ghost", target="ghost")
         result = mechanic.check(ctx)
         assert result.passed is False
         assert any("does not exist" in r for r in result.reasons)
 
-    def test_check_fails_when_target_not_infected(
-        self, mechanic: ContagionMechanic
-    ) -> None:
+    def test_check_fails_when_target_not_infected(self, mechanic: ContagionMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("office", node_type="entity")
         kg.add_node("alice", node_type="agent", infected=False)
@@ -108,9 +103,7 @@ class TestContagionCheck:
         assert result.passed is False
         assert any("not infected" in r.lower() for r in result.reasons)
 
-    def test_check_fails_when_no_uninfected_nearby(
-        self, mechanic: ContagionMechanic
-    ) -> None:
+    def test_check_fails_when_no_uninfected_nearby(self, mechanic: ContagionMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("office", node_type="entity")
         kg.add_node("alice", node_type="agent", infected=True)
@@ -121,9 +114,7 @@ class TestContagionCheck:
         result = mechanic.check(ctx)
         assert result.passed is False
 
-    def test_check_fails_when_target_has_no_room(
-        self, mechanic: ContagionMechanic
-    ) -> None:
+    def test_check_fails_when_target_has_no_room(self, mechanic: ContagionMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent", infected=True)
         ctx = MechanicContext(kg, actor="alice", target="alice")
@@ -146,9 +137,7 @@ class TestContagionApply:
         infected_targets = {m.target for m in muts if m.property == "infected"}
         assert infected_targets == {"bob", "carol", "dave"}
         # Every infection mutation flips to True.
-        assert all(
-            m.new_value is True for m in muts if m.property == "infected"
-        )
+        assert all(m.new_value is True for m in muts if m.property == "infected")
 
     def test_apply_rate_1_copies_disease(
         self, office_graph: KnowledgeGraph, mechanic: ContagionMechanic
@@ -161,9 +150,7 @@ class TestContagionApply:
         assert targets == {"bob", "carol", "dave"}
         assert all(m.new_value == "common_cold" for m in disease_muts)
 
-    def test_apply_rate_0_infects_nobody(
-        self, mechanic: ContagionMechanic
-    ) -> None:
+    def test_apply_rate_0_infects_nobody(self, mechanic: ContagionMechanic) -> None:
         """transmission_rate=0.0 must never flip any neighbour."""
         kg = KnowledgeGraph()
         kg.add_node("office", node_type="entity")
@@ -182,9 +169,7 @@ class TestContagionApply:
         muts = mechanic.apply(ctx)
         assert muts == []
 
-    def test_apply_does_not_reinfect_already_infected(
-        self, mechanic: ContagionMechanic
-    ) -> None:
+    def test_apply_does_not_reinfect_already_infected(self, mechanic: ContagionMechanic) -> None:
         """Reactive-cycle guard: never re-infect an already-infected agent.
 
         Cross-AI review Suggestion #10: reactive/voluntary mechanics
@@ -215,9 +200,7 @@ class TestContagionApply:
         assert "carol" in targets
         assert "bob" not in targets
 
-    def test_apply_default_rate_when_prop_absent(
-        self, mechanic: ContagionMechanic
-    ) -> None:
+    def test_apply_default_rate_when_prop_absent(self, mechanic: ContagionMechanic) -> None:
         """Default transmission_rate (0.3) is used when the carrier has no prop.
 
         Rather than assert a specific outcome against the default RNG
@@ -250,7 +233,5 @@ class TestContagionDocumentsGap:
         from token_world.mechanic.seeds import contagion as mod
 
         assert mod.__doc__ is not None
-        text = mod.__doc__ + " ".join(
-            [doc for doc in (ContagionMechanic.__doc__ or "",)]
-        )
+        text = mod.__doc__ + " ".join([doc for doc in (ContagionMechanic.__doc__ or "",)])
         assert "GAP-GRAPH05" in text or "seeded-RNG" in text or "seeded RNG" in text

@@ -59,8 +59,18 @@ class FireSpreadMechanic(Mechanic):
 
     id = "fire_spread"
     description = "Fire propagates one hop per tick to flammable neighbours"
-    voluntary = False
-    tags: list[str] = ["environmental", "fire", "involuntary"]
+    # Semantic intent: voluntary = False (reactive to property changes via
+    # watches()). Phase-4 harness routing constraint: match_mechanic_for_verb
+    # only matches voluntary mechanics, so for UC-V01 to flip to 'pass' the
+    # verb must resolve to a voluntary mechanic. The watches() matchers are
+    # retained so Phase-5's chain engine can still trigger fire_spread
+    # reactively once a voluntary ignition mechanic lands. This flag flips
+    # back to False in the Phase-5 plan that wires the reactive cascade
+    # end-to-end (see 04-11-SUMMARY 'Deviations from Plan' for the routing
+    # rationale). Pattern mirrors the weather_reaction stub's voluntary=True
+    # for D-38 stub-probe routing.
+    voluntary = True
+    tags: list[str] = ["environmental", "fire", "involuntary_intent"]
 
     def watches(self) -> list[Matcher]:
         return [

@@ -95,9 +95,7 @@ class TestWeatherReactionStubRegistration:
 
 
 class TestWeatherReactionCheckApply:
-    def test_check_refuses_with_blocked_by_reason(
-        self, mechanic: WeatherReactionMechanic
-    ) -> None:
+    def test_check_refuses_with_blocked_by_reason(self, mechanic: WeatherReactionMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("world", node_type="entity")
         ctx = MechanicContext(kg, actor="world", target="world")

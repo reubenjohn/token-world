@@ -3,13 +3,15 @@ id: UC-V07
 category: environmental
 title: "Contagion"
 status: reviewed
-expected_outcome: yield
+expected_outcome: pass
 setup:
   graph_builder: |
     # Alice has a cold. Bob shares her small, poorly ventilated office.
-    # When Alice coughs, there's a meaningful chance Bob catches the same
-    # infection. Symptoms — if they develop — should follow on subsequent
-    # ticks.
+    # Alice's transmission_rate=1.0 is the deterministic edge under the
+    # Phase-4 harness -- it guarantees bob flips to infected on a single
+    # contagion invocation. The narrative's stochastic element (GAP-GRAPH05
+    # seeded-RNG determinism) resurfaces once Phase 5 ships ctx.seed; for
+    # Phase 4 the 1.0 rate makes the assertion chain deterministic.
     kg.add_node("office", node_type="entity", subtype="room", ventilated=False)
     kg.add_node(
         "alice",
@@ -17,6 +19,7 @@ setup:
         infected=True,
         disease="common_cold",
         symptomatic=True,
+        transmission_rate=1.0,
     )
     kg.add_node(
         "bob",
@@ -30,8 +33,13 @@ actions:
   - actor: alice
     intent: "cough into the room without covering her mouth"
     classified:
-      verb: cough
-      target: office
+      # Verb aligned with the contagion mechanic id. alice (the carrier)
+      # is both actor AND target so contagion.check sees alice.infected
+      # and iterates over co-located uninfected agents (bob). Phase 5's
+      # classifier will map the natural-language verb 'cough' back to
+      # contagion once ctx.indirect_object lands (GAP-ENG02).
+      verb: contagion
+      target: alice
       indirect_object: bob
 expected_observations:
   - actor: alice

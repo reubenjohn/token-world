@@ -19,7 +19,6 @@ from token_world.graph import KnowledgeGraph
 from token_world.mechanic.context import MechanicContext
 from token_world.mechanic.seeds.decay_tick import DecayTickMechanic
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -76,9 +75,7 @@ class TestDecayTickCheck:
         ctx = MechanicContext(apple_graph, actor="engine", target="apple")
         assert mechanic.check(ctx).passed is True
 
-    def test_check_fails_when_target_missing(
-        self, mechanic: DecayTickMechanic
-    ) -> None:
+    def test_check_fails_when_target_missing(self, mechanic: DecayTickMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("engine", node_type="agent")
         ctx = MechanicContext(kg, actor="engine", target="ghost")
@@ -86,9 +83,7 @@ class TestDecayTickCheck:
         assert result.passed is False
         assert any("does not exist" in r for r in result.reasons)
 
-    def test_check_fails_when_no_decay_period(
-        self, mechanic: DecayTickMechanic
-    ) -> None:
+    def test_check_fails_when_no_decay_period(self, mechanic: DecayTickMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("engine", node_type="agent")
         kg.add_node("rock", node_type="entity")
@@ -97,9 +92,7 @@ class TestDecayTickCheck:
         assert result.passed is False
         assert any("decay_period" in r for r in result.reasons)
 
-    def test_check_fails_when_already_rotten(
-        self, mechanic: DecayTickMechanic
-    ) -> None:
+    def test_check_fails_when_already_rotten(self, mechanic: DecayTickMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("engine", node_type="agent")
         kg.add_node(
@@ -168,9 +161,7 @@ class TestDecayTickApply:
         assert apple_graph.query("apple", "rotten") is True
         assert apple_graph.query("apple", "freshness") == "rotten"
 
-    def test_apply_defaults_decay_progress_to_zero(
-        self, mechanic: DecayTickMechanic
-    ) -> None:
+    def test_apply_defaults_decay_progress_to_zero(self, mechanic: DecayTickMechanic) -> None:
         """apple without decay_progress property is treated as progress=0."""
         kg = KnowledgeGraph()
         kg.add_node("engine", node_type="agent")

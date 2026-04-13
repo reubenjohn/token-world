@@ -3,6 +3,36 @@ id: UC-V03
 category: environmental
 title: "Decay"
 status: reviewed
+# UC-V03 STAYS BLOCKED per 04-11 decision tree (PLAN task 3 acceptance:
+# "UC-V03 either flipped to pass if manifest's actions include an
+#  explicit decay invocation OR remains blocked with GAP-ENG07 rationale").
+# The decision to stay blocked rests on three structural mismatches
+# between this UC's assertion chain and decay_tick's Phase-4 contract:
+#
+#   1. decay_tick is a SINGLE-STEP wrapper per PLAN must_haves: "applies
+#      a one-step rot delta to a target with decay_period". UC-V03's
+#      narrative advances 100 ticks in one engine action; bridging the
+#      single-step contract would require 100 separate decay_tick
+#      invocations in the manifest's actions list, which is a
+#      Phase-5-friendly pattern only once GAP-ENG07 (passive tick
+#      sweep) lands and automates the per-tick firing.
+#   2. The assertion `world.current_tick == 100` is a world-level time
+#      property that no Phase-4 mechanic mutates. Satisfying it needs
+#      GAP-ENG07's tick-advance hook OR a dedicated world_tick_advance
+#      mechanic, neither of which is in 04-11's scope.
+#   3. UC-V03's original engine-layer gap summary already cites GAP-ENG07
+#      ("tick-end sweep"); the manifest's `blocked` outcome correctly
+#      signals this. No verb rewrite would make the world.current_tick
+#      assertion pass under the Phase-4 harness without a 100-step
+#      action chain and an ad-hoc world-tick mechanic -- both of which
+#      would defeat the plan's scope boundary.
+#
+# Phase-5 swap-in: once GAP-ENG07 ships the passive-tick sweep,
+# decay_tick fires reactively per tick on every node with decay_period,
+# and a world_tick_advance (or similar) mechanic updates
+# world.current_tick. UC-V03 flips to `pass` at that point without
+# further decay_tick surgery -- the mechanic's single-step contract is
+# the building block the sweep composes.
 expected_outcome: blocked
 setup:
   graph_builder: |

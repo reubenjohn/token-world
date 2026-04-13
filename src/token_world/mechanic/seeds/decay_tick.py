@@ -75,9 +75,7 @@ class DecayTickMechanic(Mechanic):
             progress_raw = 0
         new_progress = int(progress_raw) + 1
 
-        mutations: list[Mutation] = [
-            ctx.mutate(ctx.target, "decay_progress", new_progress)
-        ]
+        mutations: list[Mutation] = [ctx.mutate(ctx.target, "decay_progress", new_progress)]
         if new_progress >= period:
             mutations.append(ctx.mutate(ctx.target, "rotten", True))
             mutations.append(ctx.mutate(ctx.target, "freshness", "rotten"))
