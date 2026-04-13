@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Mechanic Authoring & Validation Infrastructure** - Flat mechanic layout (supersedes folder-per-mechanic), validation pipeline, diagnostics substrate, integration-test harness, authoring guides, and seed mechanic authoring waves (MECH01–MECH27) — so the top-level coding agent (Opus via Agent SDK) authors mechanics as normal Python SDLC
 - [x] **Phase 5: Simulation Engine** - Action classification (Haiku), mechanic matching, execution, grounded observation synthesis (Sonnet), conservation enforcement, tick summaries. Under inversion of control: when no mechanic matches, the engine yields to the operator — it does NOT generate code. (completed 2026-04-13)
 - [x] **Phase 6: Resident Agent & End-to-End Loop** - Agent with personality and memory, playtesting, quality scoring, regression suite (completed 2026-04-13)
-- [ ] **Phase 7: Attention & Consciousness** - Duration-aware actions and reusable interruption threshold pattern
+- [x] **Phase 7: Attention & Consciousness** - Duration-aware actions and reusable interruption threshold pattern (completed 2026-04-13)
 
 ## Phase Details
 
@@ -193,7 +193,7 @@ Plans:
   1. Long-running actions skip boring intermediate turns and only interrupt the agent when significance exceeds the current attention threshold
   2. Sleep, daydreaming, and autopilot travel all use the same interruption threshold infrastructure, demonstrating the pattern's composability
   3. An agent traveling a long distance experiences compressed time with interruptions only for significant events (demonstrating both SIM-09 and SIM-10 working together)
-**Plans:** 5/7 plans executed
+**Plans:** 7/7 plans complete
 
 Plans:
 - [x] 07-01-PLAN.md — LongRunningAction + ThresholdSpec + ThresholdEvaluator (pure dataclasses + evaluator)
@@ -202,7 +202,7 @@ Plans:
 - [x] 07-04-PLAN.md — Engine tick hook + synthetic action routing + tick summary + runner integration
 - [x] 07-05-PLAN.md — Sleep seed mechanic (bounded, noise/health thresholds)
 - [x] 07-06-PLAN.md — Autopilot-travel seed mechanic + per-tick advance passive (bounded, hazard thresholds)
-- [ ] 07-07-PLAN.md — Drunk seed mechanic + sober_up passive (indefinite, sobriety threshold)
+- [x] 07-07-PLAN.md — Drunk seed mechanic + sober_up passive (indefinite, sobriety threshold)
 
 ## Progress
 
@@ -218,4 +218,4 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. Mechanic Authoring & Validation Infrastructure | 12/12 | Complete | 2026-04-13 |
 | 5. Simulation Engine | 9/9 | Complete   | 2026-04-13 |
 | 6. Resident Agent & End-to-End Loop | 7/7 | Complete   | 2026-04-13 |
-| 7. Attention & Consciousness | 5/7 | In Progress|  |
+| 7. Attention & Consciousness | 7/7 | Complete   | 2026-04-13 |
