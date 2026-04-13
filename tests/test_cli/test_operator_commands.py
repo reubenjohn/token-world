@@ -338,3 +338,487 @@ class TestLatestHaltedTick:
         # docstring owns).
         result = latest_halted_tick(universe)
         assert result in {"2", "abc", "xyz"}
+
+
+# =========================================================================== #
+# Click commands — run-tick, inspect-yield, resume-tick, replay-tick
+# =========================================================================== #
+
+
+def _cli_runner():
+    """Construct a CliRunner. Import kept local so Task-1 tests don't pay the cost."""
+    from click.testing import CliRunner
+
+    return CliRunner()
+
+
+def _invoke_cli(
+    args: list[str], *, env: dict[str, str] | None = None, universe: Path | None = None
+):
+    """Invoke the top-level ``cli`` with *args*; default env isolates from user env."""
+    from token_world.cli import cli
+
+    base_env = {"TOKEN_WORLD_UNIVERSE": str(universe)} if universe else {}
+    if env:
+        base_env.update(env)
+    return _cli_runner().invoke(cli, args, env=base_env, catch_exceptions=False)
+
+
+def _make_universe(tmp_path: Path) -> Path:
+    """Scaffold a proper universe under tmp_path via UniverseManager."""
+    from token_world.universe.manager import UniverseManager
+
+    manager = UniverseManager(data_dir=tmp_path)
+    return manager.create("CLI Test Universe")
+
+
+# --------------------------------------------------------------------------- #
+# run-tick
+# --------------------------------------------------------------------------- #
+
+
+class TestRunTick:
+    def test_no_halted_no_stub_exits_3(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """No halted ticks, no --stub: exits 3 with "No halted ticks" message."""
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+        result = _invoke_cli(["run-tick"], universe=universe)
+        assert result.exit_code == 3, result.output
+        assert "No halted ticks" in result.output
+
+    def test_manual_prints_yield_and_exits_0(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--manual on an existing halted tick prints the yield and exits 0."""
+        universe = _make_universe(tmp_path)
+        _seed_halted_tick(universe, "1", outcome_success=False)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+        result = _invoke_cli(
+            ["run-tick", "--manual", "--format", "human"], universe=universe
+        )
+        assert result.exit_code == 0, result.output
+        assert "tick_1" in result.output
+        assert "pickup" in result.output or "verb:" in result.output
+
+    def test_auto_invokes_harness(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Without --manual, the CLI invokes OperatorHarness.handle_yield (mocked)."""
+        import token_world.cli as cli_mod
+        from token_world.operator.harness import OperatorResult
+
+        universe = _make_universe(tmp_path)
+        _seed_halted_tick(universe, "1", outcome_success=False)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+
+        fake_result = OperatorResult(
+            success=True,
+            tick_id="1",
+            mechanic_id="pickup",
+            attempts=1,
+            final_message="done",
+            cost_usd=0.12,
+            turns=3,
+            error=None,
+        )
+
+        class _FakeHarness:
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def handle_yield(self, signal: Any) -> OperatorResult:
+                return fake_result
+
+        monkeypatch.setattr(cli_mod, "OperatorHarness", _FakeHarness)
+
+        result = _invoke_cli(["run-tick"], universe=universe)  # default --format json
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output.strip())
+        assert payload["success"] is True
+        assert payload["mechanic_id"] == "pickup"
+        assert payload["tick_id"] == "1"
+
+    def test_with_stub_verb_actor_fabricates_yield(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--stub verb=... --stub actor=... builds a yield and calls harness with it."""
+        import token_world.cli as cli_mod
+        from token_world.operator.harness import OperatorResult
+
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+
+        captured: dict[str, Any] = {}
+
+        class _FakeHarness:
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def handle_yield(self, signal: Any) -> OperatorResult:
+                captured["signal"] = signal
+                return OperatorResult(
+                    success=True,
+                    tick_id=signal.tick_id,
+                    mechanic_id="dig",
+                    attempts=1,
+                    final_message="",
+                    cost_usd=0.01,
+                    turns=2,
+                    error=None,
+                )
+
+        monkeypatch.setattr(cli_mod, "OperatorHarness", _FakeHarness)
+
+        result = _invoke_cli(
+            [
+                "run-tick",
+                "--stub",
+                "verb=dig",
+                "--stub",
+                "actor=bob",
+            ],
+            universe=universe,
+        )
+        assert result.exit_code == 0, result.output
+        signal = captured["signal"]
+        assert signal.classified_action["verb"] == "dig"
+        assert signal.classified_action["actor"] == "bob"
+
+    def test_stub_persists_yield_regardless_of_manual(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """BLOCKER-3: stub-fabricated yield is persisted on disk even with --manual."""
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+
+        result = _invoke_cli(
+            [
+                "run-tick",
+                "--stub",
+                "verb=dig",
+                "--stub",
+                "actor=alice",
+                "--manual",
+                "--format",
+                "json",
+            ],
+            universe=universe,
+        )
+        assert result.exit_code == 0, result.output
+
+        yield_file = (
+            universe / "diagnostics" / "tick_tick_1" / "operator" / "yield_signal.json"
+        )
+        assert yield_file.exists(), f"yield file not persisted: {yield_file}"
+        # Round-trip: the persisted signal matches the CLI output
+        from token_world.operator.yield_signal import YieldSignal
+
+        persisted = YieldSignal.from_json(yield_file.read_text(encoding="utf-8"))
+        assert persisted.classified_action["verb"] == "dig"
+        assert persisted.classified_action["actor"] == "alice"
+
+    def test_stub_manual_writes_resume_outcome_pending(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """After --stub --manual, resume_outcome.json exists with pending state."""
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+
+        result = _invoke_cli(
+            ["run-tick", "--stub", "verb=dig", "--stub", "actor=alice", "--manual"],
+            universe=universe,
+        )
+        assert result.exit_code == 0, result.output
+
+        outcome_file = (
+            universe
+            / "diagnostics"
+            / "tick_tick_1"
+            / "operator"
+            / "resume_outcome.json"
+        )
+        assert outcome_file.exists(), f"outcome file not persisted: {outcome_file}"
+        outcome = json.loads(outcome_file.read_text(encoding="utf-8"))
+        assert outcome["success"] is False
+        assert outcome["error"] == "manual_mode_no_harness_invoked"
+
+    def test_harness_failure_exits_1(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A harness that raises causes the CLI to exit 1 with stderr message."""
+        import token_world.cli as cli_mod
+
+        universe = _make_universe(tmp_path)
+        _seed_halted_tick(universe, "1", outcome_success=False)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+
+        class _BrokenHarness:
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def handle_yield(self, signal: Any) -> Any:
+                raise RuntimeError("boom")
+
+        monkeypatch.setattr(cli_mod, "OperatorHarness", _BrokenHarness)
+
+        result = _invoke_cli(["run-tick"], universe=universe)
+        assert result.exit_code == 1, result.output
+        assert "boom" in result.output or "boom" in (result.stderr or "")
+
+    def test_stub_requires_verb_and_actor(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--stub alone without verb/actor raises ClickException."""
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+        result = _invoke_cli(
+            ["run-tick", "--stub", "foo=bar"],
+            universe=universe,
+        )
+        # Not exit 0; message should name the missing pieces.
+        assert result.exit_code != 0
+        assert "verb" in result.output or "actor" in result.output
+
+    def test_stub_rejects_invalid_kv_format(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--stub nonkv (no '=') raises ClickException."""
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+        result = _invoke_cli(
+            ["run-tick", "--stub", "not-a-kv"],
+            universe=universe,
+        )
+        assert result.exit_code != 0
+
+
+# --------------------------------------------------------------------------- #
+# inspect-yield
+# --------------------------------------------------------------------------- #
+
+
+class TestInspectYield:
+    def test_human_format(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        universe = _make_universe(tmp_path)
+        _seed_halted_tick(universe, "1", outcome_success=False)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+        result = _invoke_cli(["inspect-yield"], universe=universe)
+        assert result.exit_code == 0, result.output
+        assert "verb:" in result.output or "pickup" in result.output
+
+    def test_json_format(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        universe = _make_universe(tmp_path)
+        _seed_halted_tick(universe, "1", outcome_success=False)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+        result = _invoke_cli(["inspect-yield", "--format", "json"], universe=universe)
+        assert result.exit_code == 0, result.output
+        parsed = json.loads(result.output.strip())
+        # Canonical form — YieldSignal schema
+        assert parsed["classified_action"]["verb"] == "pickup"
+        assert parsed["schema_version"] == 1
+
+    def test_specific_tick(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        universe = _make_universe(tmp_path)
+        _seed_halted_tick(universe, "5", outcome_success=False)
+        _seed_halted_tick(universe, "9", outcome_success=False)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+        result = _invoke_cli(
+            ["inspect-yield", "--tick", "5", "--format", "json"], universe=universe
+        )
+        assert result.exit_code == 0, result.output
+        parsed = json.loads(result.output.strip())
+        assert parsed["tick_id"] == "5"
+
+    def test_no_halted_exits_4(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+        result = _invoke_cli(["inspect-yield"], universe=universe)
+        assert result.exit_code == 4, result.output
+
+    def test_tick_not_found_exits_4(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+        result = _invoke_cli(
+            ["inspect-yield", "--tick", "999"], universe=universe
+        )
+        assert result.exit_code == 4, result.output
+
+    def test_universe_not_found_exits_2(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """No slug, no env, non-universe cwd -> exit 2."""
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+        monkeypatch.chdir(tmp_path)  # tmp_path is not a universe
+        result = _invoke_cli(["inspect-yield"])
+        assert result.exit_code == 2, result.output
+
+
+# --------------------------------------------------------------------------- #
+# resume-tick
+# --------------------------------------------------------------------------- #
+
+
+class TestResumeTick:
+    def test_requires_tick(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+        result = _invoke_cli(["resume-tick"], universe=universe)
+        # Click raises UsageError (exit 2) when a --required option is missing
+        assert result.exit_code == 2, result.output
+
+    def test_calls_mcp_succeeds(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Mocked SDK call returns cleanly -> exits 0."""
+        import token_world.cli as cli_mod
+
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+
+        captured: dict[str, Any] = {}
+
+        async def fake_invoke(universe_arg: Path, tick_id: str) -> None:
+            captured["universe"] = universe_arg
+            captured["tick_id"] = tick_id
+
+        monkeypatch.setattr(cli_mod, "_invoke_resume_tick_mcp", fake_invoke)
+
+        result = _invoke_cli(
+            ["resume-tick", "--tick", "7"], universe=universe
+        )
+        assert result.exit_code == 0, result.output
+        assert captured["tick_id"] == "7"
+        assert str(captured["universe"]) == str(universe)
+
+    def test_mcp_failure_exits_1(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import token_world.cli as cli_mod
+
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+
+        async def fake_invoke(universe_arg: Path, tick_id: str) -> None:
+            raise RuntimeError("mcp boom")
+
+        monkeypatch.setattr(cli_mod, "_invoke_resume_tick_mcp", fake_invoke)
+
+        result = _invoke_cli(
+            ["resume-tick", "--tick", "7"], universe=universe
+        )
+        assert result.exit_code == 1, result.output
+        assert "boom" in result.output or "failed" in result.output.lower()
+
+
+# --------------------------------------------------------------------------- #
+# replay-tick
+# --------------------------------------------------------------------------- #
+
+
+class TestReplayTick:
+    def test_renders_full_session(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        universe = _make_universe(tmp_path)
+        ctx = OperatorDiagnosticsContext(universe, "1")
+        ctx.write_yield_signal(_build_signal(universe))
+        ctx.append_attempt({"kind": "AssistantMessage", "content": "..."})
+        ctx.append_attempt({"kind": "ToolResult", "content": "..."})
+        ctx.close(
+            {
+                "success": True,
+                "mechanic_id": "pickup",
+                "cost_usd": 0.1,
+                "turns": 3,
+                "tick_continued": True,
+                "error": None,
+            }
+        )
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+
+        result = _invoke_cli(["replay-tick", "1"], universe=universe)
+        assert result.exit_code == 0, result.output
+        # Human-format output includes summary sections
+        assert "attempt" in result.output.lower()
+        assert "outcome" in result.output.lower() or "success=True" in result.output
+
+    def test_json_format(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        universe = _make_universe(tmp_path)
+        ctx = OperatorDiagnosticsContext(universe, "1")
+        ctx.write_yield_signal(_build_signal(universe))
+        ctx.close(
+            {
+                "success": True,
+                "mechanic_id": "pickup",
+                "cost_usd": 0.1,
+                "turns": 3,
+                "tick_continued": True,
+                "error": None,
+            }
+        )
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+
+        result = _invoke_cli(
+            ["replay-tick", "1", "--format", "json"], universe=universe
+        )
+        assert result.exit_code == 0, result.output
+        parsed = json.loads(result.output.strip())
+        assert set(parsed.keys()) >= {
+            "yield_signal",
+            "attempts",
+            "validation_reports",
+            "mechanic_diff",
+            "resume_outcome",
+        }
+
+    def test_not_found_exits_4(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+        result = _invoke_cli(["replay-tick", "999"], universe=universe)
+        assert result.exit_code == 4, result.output
+
+    def test_partial_session_still_renders(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Session with yield + attempts but no outcome: exits 0, notes "not closed"."""
+        universe = _make_universe(tmp_path)
+        ctx = OperatorDiagnosticsContext(universe, "1")
+        ctx.write_yield_signal(_build_signal(universe))
+        ctx.append_attempt({"kind": "AssistantMessage"})
+        # Deliberately no close() -> no resume_outcome.json
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+
+        result = _invoke_cli(["replay-tick", "1"], universe=universe)
+        assert result.exit_code == 0, result.output
+        assert "not closed" in result.output.lower()
+
+    def test_rejects_path_traversal_tick_id(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """T-04.1-18: tick_id with traversal chars must be rejected."""
+        universe = _make_universe(tmp_path)
+        monkeypatch.delenv("TOKEN_WORLD_UNIVERSE", raising=False)
+        result = _invoke_cli(
+            ["replay-tick", "../../etc/passwd"], universe=universe
+        )
+        # Either a ClickException (non-zero) or exit 4 for not found; must
+        # NOT try to read outside universe/diagnostics. Assert no crash + non-zero.
+        assert result.exit_code != 0
