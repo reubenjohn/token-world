@@ -301,6 +301,10 @@ class SimulationEngine:
                     action_text=action_text,
                 )
             else:
+                tick_ctx.set_summary(
+                    status="error",
+                    error=f"Unhandled decision type: {type(decision).__name__}",
+                )
                 raise TypeError(f"Unhandled Decision type: {type(decision).__name__}")
 
     # =========================================================================

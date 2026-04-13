@@ -557,3 +557,51 @@ def test_run_tick_engine_error_during_execute_returns_refused_and_rolls_back(tmp
     assert result.refusal_reason == "engine_error"
     # Graph should be restored to pre-tick state (hp still 10)
     assert kg.query("alice", "hp") == 10
+
+
+# ---------------------------------------------------------------------------
+# Test 18: WR-02 regression — TypeError from unhandled Decision type writes
+#          diagnostics summary with status="error" before propagating
+# ---------------------------------------------------------------------------
+
+
+def test_run_tick_unhandled_decision_type_writes_error_summary(tmp_universe, kg, monkeypatch):
+    """WR-02: if decide() returns an unrecognised Decision subtype, the engine must call
+    tick_ctx.set_summary(status='error', ...) before raising TypeError so the diagnostics
+    summary.json is written with a non-blank status.
+
+    The TypeError still propagates to the caller (the branch is a programmer error),
+    but the diagnostics artefact must be populated.
+    """
+    import token_world.engine.engine as engine_module
+
+    kg.add_node("alice", node_type="agent")
+
+    class _UnknownDecision:
+        """A Decision subclass not handled by the engine's if/elif chain."""
+
+    _NO_VIABLE = json.dumps({"kind": "no_viable_action", "reason": "gibberish"})
+    client = MockAnthropicClient([_NO_VIABLE])
+
+    engine = SimulationEngine(
+        universe_path=tmp_universe,
+        graph=kg,
+        anthropic_client=client,
+    )
+
+    # Patch decide() to return our unknown Decision type
+    def _fake_decide(*args, **kwargs):
+        return _UnknownDecision()
+
+    monkeypatch.setattr(engine_module, "decide", _fake_decide)
+
+    with pytest.raises(TypeError, match="Unhandled Decision type"):
+        engine.run_tick("gibberish", "alice")
+
+    # Diagnostics summary.json must have been written with status="error"
+    summary_file = tmp_universe / "diagnostics" / "tick_1" / "summary.json"
+    assert summary_file.exists(), f"Expected diagnostics summary at {summary_file}"
+    data = json.loads(summary_file.read_text())
+    assert data.get("status") == "error", (
+        f"Expected status='error' in diagnostics summary, got: {data.get('status')!r}"
+    )
