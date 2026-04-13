@@ -1,5 +1,9 @@
 # Architecture Overview
 
+> **See also:** [simulation-pipeline.md](simulation-pipeline.md) for the detailed per-tick flow,
+> including the Phase 7 long-running action continuation branch and the Phase 6 playtest/compression
+> plumbing. This page stays high-level on purpose.
+
 ## System Components
 
 ```mermaid
