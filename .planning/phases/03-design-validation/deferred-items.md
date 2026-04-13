@@ -37,6 +37,8 @@ verification (`uv run ruff check src/ tests/`).
 - `tests/test_mechanic/test_cli.py:73` — E501 line-too-long (117 > 100)
 - `tests/test_mechanic/test_context.py:5` — F401 unused import `KnowledgeGraph`
 - `tests/test_mechanic/test_engine.py:3` — I001 unsorted import block
+- `tests/test_mechanic/test_registry.py:3` — I001 unsorted import block
+  (also observed from 03-15 final ruff gate; pre-existing, same scope as above)
 
 **Status:** Pre-existing. Reproduced against `HEAD~2` and earlier before
 any plan-14 changes were applied.
