@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - run: uv sync --dev
+      - run: uv sync --dev --extra dashboard
       - run: uv run mypy src/
 
   test:
@@ -40,7 +40,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: uv sync --dev
+      - run: uv sync --dev --extra dashboard
       - run: uv run pytest tests/ --cov --cov-report=xml --cov-report=term -v
       - if: matrix.python-version == '3.12'
         uses: codecov/codecov-action@v4
