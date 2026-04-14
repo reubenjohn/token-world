@@ -681,3 +681,79 @@ def test_run_tick_consecutive_conservation_rollbacks_produce_distinct_tick_ids(t
     assert int(result2.tick_id.lstrip("tick_")) > int(result1.tick_id.lstrip("tick_")), (
         f"Expected tick_id monotonic increase, got {result1.tick_id!r} then {result2.tick_id!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Test 20: §E6 regression — a matched primary mechanic whose check() refuses
+#          must produce an honest refusal (refused=True, mechanic_check_failed,
+#          zero mutations) in the tick summary. Previously the engine ignored
+#          check_result.passed=False and recorded the tick as EXECUTED with 0
+#          mutations, lying about what actually happened.
+# ---------------------------------------------------------------------------
+
+_CHECK_FAILED_MECHANIC_SOURCE = '''
+"""Mechanic whose check() refuses — §E6 regression bait."""
+from token_world.mechanic.protocol import Mechanic, CheckResult
+from token_world.mechanic.matchers import VerbMatcher
+
+class CheckRefuses(Mechanic):
+    id = "check_refuses"
+    description = "Deterministic check-refusal mechanic"
+    voluntary = True
+    tags = []
+    def watches(self):
+        return [VerbMatcher(verb="pickup")]
+    def check(self, ctx):
+        return CheckResult(passed=False, reasons=["your hands are full"])
+    def apply(self, ctx):
+        # Must never run — check() returned passed=False.
+        raise AssertionError("apply() called despite check() refusal")
+'''
+
+
+def test_run_tick_primary_check_failed_is_honest_refusal(tmp_universe, kg):
+    """§E6: primary mechanic check() returning passed=False must produce
+    kind=refused with reason_code=mechanic_check_failed, zero mutations, and
+    a tick_summary with refused=true (NOT status=ok/refused=false).
+    """
+    (tmp_universe / "mechanics" / "check_refuses.py").write_text(
+        _CHECK_FAILED_MECHANIC_SOURCE, encoding="utf-8"
+    )
+    kg.add_node("alice", node_type="agent", hp=10)
+    kg.add_node("rock_1", node_type="entity")
+
+    # Only the classifier (Haiku) fires — no observer is called on the refuse path.
+    client = MockAnthropicClient([_OK_PICKUP])
+    engine = SimulationEngine(
+        universe_path=tmp_universe,
+        graph=kg,
+        anthropic_client=client,
+    )
+    result = engine.run_tick("pick up the rock", "alice")
+
+    # Engine contract: honest refusal with reason_code=mechanic_check_failed.
+    assert result.kind == "refused"
+    assert result.refusal_reason == "mechanic_check_failed"
+    # Narrative flows through RefusalTemplate's "mechanic_check_failed" template.
+    assert result.observation is not None
+    assert "your hands are full" in result.observation
+
+    # No observer call — same cost pattern as conservation_violation.
+    assert len(client.messages.calls) == 1
+
+    # Graph is untouched (check() is read-only; no mutations produced).
+    assert kg.query("alice", "hp") == 10
+
+    # Tick summary file must record refused=true, NOT the previous bug-shape
+    # (refused=false + matched_mechanic_id=check_refuses + 0 mutations).
+    summary_path = tmp_universe / "tick_summaries" / "ticks" / "tick_1.json"
+    assert summary_path.exists()
+    data = json.loads(summary_path.read_text())
+    assert data["refused"] is True, (
+        f"§E6: tick summary must record refused=true, got {data['refused']!r}"
+    )
+    assert data["yielded"] is False
+    assert data["refusal_reason"] == "mechanic_check_failed"
+    # matched_mechanic_id is tied to ExecuteDecision; RefuseDecision leaves it None.
+    assert data["matched_mechanic_id"] is None
+    assert data["mutations"]["count"] == 0

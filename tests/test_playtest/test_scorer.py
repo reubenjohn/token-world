@@ -125,6 +125,27 @@ def test_mechanic_match_rate_refused_is_half() -> None:
     assert score.mechanic_match_rate == 0.5
 
 
+def test_mechanic_match_rate_refused_check_failed_is_one() -> None:
+    """§E6: refused with reason=mechanic_check_failed scores like ok (1.0).
+
+    A mechanic was matched and dispatched — only its runtime precondition
+    check returned passed=False. Avoid double-penalising an honest refusal
+    that previously looked like a successful 0-mutation execute.
+    """
+    from token_world.playtest import TurnScorer
+
+    result = _make_tick_result("refused", refusal_reason="mechanic_check_failed")
+    scorer = TurnScorer()
+    score = scorer.score(
+        result=result,
+        action_text="pick up the rock",
+        action_history=[],
+        previous_non_refusal_count=0,
+        total_turns_so_far=0,
+    )
+    assert score.mechanic_match_rate == 1.0
+
+
 # ---------------------------------------------------------------------------
 # observation_groundedness tests (15-17)
 # ---------------------------------------------------------------------------

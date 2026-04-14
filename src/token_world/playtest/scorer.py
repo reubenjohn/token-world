@@ -68,10 +68,11 @@ class TurnScorer:
             A TurnScore with all five metrics and the composite mean.
         """
         kind = result.kind  # type: ignore[attr-defined]
+        refusal_reason = getattr(result, "refusal_reason", None)
 
-        mmr = self._mechanic_match_rate(kind)
+        mmr = self._mechanic_match_rate(kind, refusal_reason)
         grnd = self._observation_groundedness(result, kind)
-        mut = self._mutation_count(result, kind)
+        mut = self._mutation_count(result, kind, refusal_reason)
         ref = self._refusal_rate(kind, previous_non_refusal_count, total_turns_so_far)
         nov = self._action_novelty(action_text, action_history[-3:] if action_history else [])
 
@@ -90,12 +91,20 @@ class TurnScorer:
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def _mechanic_match_rate(kind: str) -> float:
-        """D-12 metric 1: 1.0=ok, 0.0=yielded, 0.5=refused."""
+    def _mechanic_match_rate(kind: str, refusal_reason: str | None = None) -> float:
+        """D-12 metric 1: 1.0=ok, 0.0=yielded, 0.5=refused.
+
+        §E6: ``mechanic_check_failed`` refusals score like ``ok`` because a
+        mechanic *was* matched and dispatched — only the runtime precondition
+        check said "no". Scoring them at 0.5 would double-penalise what is now
+        an honest refusal (previously mis-recorded as a 0-mutation execute).
+        """
         if kind == "ok":
             return 1.0
         elif kind == "yielded":
             return 0.0
+        elif kind == "refused" and refusal_reason == "mechanic_check_failed":
+            return 1.0
         else:  # refused
             return 0.5
 
@@ -121,8 +130,18 @@ class TurnScorer:
         return 0.5
 
     @staticmethod
-    def _mutation_count(result: object, kind: str) -> float:
-        """D-12 metric 3: 1.0 if mutations, 0.5 if trace but empty, 0.0 if refused (no trace)."""
+    def _mutation_count(result: object, kind: str, refusal_reason: str | None = None) -> float:
+        """D-12 metric 3: 1.0 if mutations, 0.5 if trace but empty, 0.0 if refused (no trace).
+
+        §E6: ``mechanic_check_failed`` refusals score 0.5 (not 0.0) because a
+        mechanic was dispatched and its check() ran — the tick was structurally
+        "an executed mechanic that chose not to mutate", matching the existing
+        0.5 rung for "trace exists but empty". Other refusal reasons (classifier
+        refuse, conservation_violation, engine_error) still score 0.0 because
+        no mechanic was dispatched or its work was rolled back.
+        """
+        if kind == "refused" and refusal_reason == "mechanic_check_failed":
+            return 0.5
         if kind == "refused":
             return 0.0
 

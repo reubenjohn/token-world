@@ -462,6 +462,54 @@ class SimulationEngine:
         for mutation in collect_mutations(primary_trace):
             tick_ctx.append_mutation(_mutation_to_dict(mutation))
 
+        # §E6: primary mechanic's check() refused — treat as an honest refusal.
+        # The ChainExecutionEngine records a root trace node with mutations=[] when
+        # check_result.passed is False (apply() never ran). Without this branch, the
+        # engine would continue to observer and write status=ok/refused=false, lying
+        # about a tick that produced zero mutations and a "your check failed" narrative.
+        # Funnel through the same RefuseDecision surface as conservation/engine_error.
+        # No snapshot restore: check() is contracted to be read-only (see protocol.py),
+        # so there are no primary-path mutations to unwind.
+        if not primary_trace.root.check_result.passed:
+            reasons = primary_trace.root.check_result.reasons or []
+            reason_text = "; ".join(reasons) if reasons else "the attempt fails"
+            narrative = RefusalTemplate.render(
+                "mechanic_check_failed",
+                {"reason": reason_text},
+            )
+            tick_ctx.set_summary(
+                status="refused",
+                action_text=action_text,
+                decision_kind="refuse",
+                refused=True,
+                yielded=False,
+                refusal_reason="mechanic_check_failed",
+                mechanic_id=decision.mechanic_id,
+            )
+            refuse_decision = RefuseDecision(
+                reason_code="mechanic_check_failed",
+                details={
+                    "reason": reason_text,
+                    "mechanic_id": decision.mechanic_id,
+                },
+            )
+            self._write_summary(
+                tick_id_str=tick_id_str,
+                action_text=action_text,
+                decision=refuse_decision,
+                classified=verdict.classified,
+                trace=primary_trace,
+                observation_text=narrative,
+                start_time=start_time,
+                classifier_in=classifier_in,
+                classifier_out=classifier_out,
+            )
+            return TickResult.refused(
+                tick_id=tick_id_str,
+                observation=narrative,
+                refusal_reason="mechanic_check_failed",
+            )
+
         # Conservation check on primary trace mutations (D-16)
         primary_mutations = collect_mutations(primary_trace)
         cons_verdict = self._conservation.verify(primary_mutations)
