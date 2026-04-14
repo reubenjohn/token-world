@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-status: idle
-stopped_at: Completed Phase 07 — MILESTONE v1.0 COMPLETE (all 9 phases verified)
-last_updated: "2026-04-13T21:00:00.000Z"
-last_activity: 2026-04-13 -- Phase 07 complete; milestone v1.0 feature-complete (1640 tests)
+milestone_name: v1.0 MVP (archived)
+status: milestone_closed
+stopped_at: v1.0 milestone archived — ready for v1.1 milestone definition
+last_updated: "2026-04-14T00:00:00.000Z"
+last_activity: 2026-04-14 -- v1.0 milestone closed; ROADMAP/REQUIREMENTS archived; git tag v1.0 pushed
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 63
-  completed_plans: 63
+  total_phases: 10
+  completed_phases: 10
+  total_plans: 65
+  completed_plans: 65
   percent: 100
 ---
 
@@ -18,151 +18,58 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-11)
+See: .planning/PROJECT.md (updated 2026-04-14 after v1.0 milestone close)
 
-**Core value:** The simulation engine reliably interprets agent actions, generates coherent mechanics as executable Python code, and maintains a consistent knowledge graph
-**Current focus:** Milestone v1.0 complete — ready for /gsd-complete-milestone
+**Core value:** The simulation engine reliably interprets agent actions, yields to the operator for novel situations, and maintains a consistent knowledge graph — so from a resident agent's perspective, the world feels fully real and its rules emerge coherently.
+**Current focus:** v1.0 archived — ready for v1.1 milestone definition (run `/gsd-new-milestone`)
 
 ## Current Position
 
-Phase: 07 (attention-and-consciousness) — COMPLETE
-Plans: 7 of 7 merged (01 + 02 + 03 + 04 keystone + 05 sleep + 06 autopilot + 07 drunk)
-Status: Phase 07 complete; verification human_needed (1 trivial item: drunk vs daydreaming substitution)
-Last activity: 2026-04-13 -- Phase 07 + milestone v1.0 complete
+Milestone: v1.0 — SHIPPED 2026-04-14
+Phases: 10/10 complete (0, 1, 2, 3, 4, 04.1, 5, 6, 7, 07.1)
+Plans: 65/65 complete
+Tests: 1687 passing, 14 skipped (integration), 36 deselected (integration-marked)
+Git tag: v1.0 (pushed to origin)
 
-Progress: [██████████] 100% (9 of 9 phases complete — milestone v1.0 feature-complete)
+Progress: [██████████] 100% — v1.0 feature-complete and archived
 
 ## Performance Metrics
 
-**Velocity:**
+v1.0 milestone summary (see MILESTONES.md and milestones/v1.0-ROADMAP.md for full detail):
 
-- Total plans completed: 20
-- Average duration: -
-- Total execution time: 0 hours
+- 10 phases, 65 plans
+- 18,736 LOC Python (src) + 31,078 LOC tests
+- 34 seed mechanics shipped
+- 434 commits across 3 calendar days
 
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 00 | 2 | - | - |
-| 01 | 3 | - | - |
-| 02 | 3 | - | - |
-| 03 | 12 | - | - |
-
-**Recent Trend:**
-
-- Last 5 plans: none
-- Trend: N/A
-
-*Updated after each plan completion*
-| Phase 03-design-validation P02 | 4 | 2 tasks | 4 files |
-| Phase 03 P03 | 4min | 3 tasks | 5 files |
-| Phase 03 P04 | 5min | 3 tasks | 7 files |
-| Phase 03 P03-05 | 6min | 2 tasks | 7 files |
-| Phase 03 P11 | 30min | 1 tasks | 40 files |
-| Phase 03 P12 | 25min | 3 tasks | 4 files |
-| Phase 05-simulation-engine P02 | 35 | 2 tasks | 6 files |
-| Phase 05-simulation-engine P03 | 6 | 3 tasks | 7 files |
-| Phase 05-simulation-engine P04 | 5 | 4 tasks | 2 files |
-| Phase 05-simulation-engine P05 | 25 | 1 tasks | 3 files |
-| Phase 05-simulation-engine P6 | 62 | 2 tasks | 6 files |
-| Phase 05-simulation-engine P07 | 4 | 1 tasks | 3 files |
-| Phase 05-simulation-engine P08 | 130 | 2 tasks | 4 files |
-| Phase 05-simulation-engine P09 | 5 | 1 tasks | 3 files |
-| Phase 06-resident-agent P00 | 18 | 1 tasks | 2 files |
-| Phase 06-resident-agent P01 | 75 | 5 tasks | 13 files |
-| Phase 06-resident-agent-end-to-end-loop P03 | 25 | 2 tasks | 6 files |
-| Phase 06 P02 | 25 | 3 tasks | 7 files |
-| Phase 06 P05 | 40 | 4 tasks | 9 files |
-| Phase 06 P06 | 22 | 2 tasks | 12 files |
-| Phase 07-attention-and-consciousness P01 | 18 | 3 tasks | 3 files |
-| Phase 07-attention-and-consciousness P02 | 15 | 2 tasks | 2 files |
-| Phase 07-attention-and-consciousness P03 | 15 | 2 tasks | 3 files |
-| Phase 07-attention-and-consciousness P04 | 45 | 3 tasks | 10 files |
-| Phase 07-attention-and-consciousness P05 | 6 | 2 tasks | 4 files |
-| Phase 07-attention-and-consciousness P06 | 647 | 3 tasks | 5 files |
-| Phase 07-attention-and-consciousness P07 | 30 | 3 tasks | 6 files |
+*Per-plan velocity and trend tracking will reset for v1.1.*
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
+Decisions are logged in PROJECT.md Key Decisions table. v1.0 cross-phase decisions captured in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) § Key Decisions.
 
-- Hybrid SDK: Agent SDK orchestrates, raw Anthropic API powers deterministic pipeline inside tools (Phase 6 -- AGENT-03, AGENT-04)
-- Universe instance as self-contained agent workspace (CLAUDE.md, .mcp.json, universe.db, mechanics/, agents/)
-- Mechanics versioned as part of universe git repo (not separate)
-- No sandboxing for v1 (hobby project; RestrictedPython deferred per research recommendation)
-- Opus for mechanic generation, Sonnet/Haiku for engine classification (model routing)
-- Use case library comes BEFORE simulation engine (Phase 3) so gap analysis informs engine design
-- [Phase 03-design-validation]: Full rtree replacement on rebuild() instead of per-id deletions — simpler code, <50ms @ 10k nodes
-- [Phase 03-design-validation]: Deferred rtree import via TYPE_CHECKING + in-property import — mechanics that never use ctx.spatial never import rtree
-- [Phase 03-design-validation]: ValueError on intersects(positionless_node) — loud failure surfaces author bugs instead of silent empty list
-- [Phase 03]: TemporalIndex mem+disk merge with dedup on (tick, type, target, property, new_value) — reads session EventStore plus graph_events SQLite, works uniformly across save/load boundaries
-- [Phase 03]: TemporalIndex treats sqlite3.OperationalError (missing table) as empty-disk — supports in-memory-only graphs where save() has never run
-- [Phase 03]: Lazy @property pattern established for ctx.spatial + ctx.temporal — composable zero-cost DSL extensions on MechanicContext
-- [Phase 03]: viz-graph CLI: anchors always preserved through downstream filters; whole-graph rendering explicitly unsupported (must --node/--seed-query/--all-agents)
-- [Phase 03]: Mermaid ID sanitization appends sha256[:6] suffix on substitution -- distinct dangerous inputs (x", x|) produce distinct sanitized IDs
-- [Phase 03]: Use-case library skeleton: 35 UC IDs pre-assigned in per-category MANIFEST.md files (7/8/7/7/6) — Wave 2 authors claim rows rather than invent IDs, making 35 parallel writes collision-free by construction
-- [Phase 03]: [Phase 03]: validator_exception: target_may_not_exist canonicalized for UCs whose missing-target/actor IS the test condition (UC-E01, UC-O05); engine sentinel actor recognized by audit tooling for tick-driven passive mechanics (UC-V01..V04)
-- [Phase 03]: [Phase 03]: Category-scoped gap IDs (S-/O-/R-/V-/E- prefix + G/M/E layer letter + NN) serve Wave-3 dedup; Wave 4 renumbers to canonical GAP-<layer><NN> and collapses 6 flagged cross-category overlap clusters
-- [Phase 03]: [Phase 03]: 68 canonical GAP IDs (GAP-GRAPH/MECH/ENG/CROSS) synthesised from 80 Wave-3 category-scoped gaps; 6 cross-category overlap clusters merged (observation projection, graceful refusal, terrain vocab, fungibility, passive-tick sweep, blocked movement); three-way dispositions 52 address-now / 16 defer / 0 out-of-scope
-- [Phase 03]: [Phase 03]: GAP-X01 shadow alias in Cross-Cutting Rationale (no standalone OOS row) — preserves schema regex [GMEX] coverage without breaking frontmatter layer-sum reconciliation
-- [Phase 05-simulation-engine]: _node_type_matches checks type and subtype independently to avoid shadowing subtype='container' with built-in type='entity'
-- [Phase 05-simulation-engine]: CheckResult uses reasons: list[str] not narrative: str — refuse() returns CheckResult(passed=False, reasons=[narrative])
-- [Phase 05-simulation-engine]: Used ego_subgraph() public API to access edge types in VisibilityProjector — no private NetworkX access
-- [Phase 05]: Observer client injected via constructor (not module-level) so test mocking works without patching
-- [Phase 05-simulation-engine]: D-16: ConservationChecker verify-only (no rollback); empty conserved_properties = O(1) opt-out; rollback is orchestrator responsibility (Plan 05-08)
-- [Phase 05-07]: Reused Phase 4 _atomic_write_json for T-05-SUMMARY-PARTIAL-WRITE mitigation; json.loads(model_dump_json()) for strict-JSON dict guarantee
-- [Phase 05-simulation-engine]: cast(VerdictOk, verdict) at ExecuteDecision/YieldDecision branch points — mypy cannot narrow ClassifierVerdict through decide() semantics
-- [Phase 05-simulation-engine]: WorldPropertyMatcher.match() called directly in sweep (Phase 2 matches() helper doesn't dispatch Phase 5 matchers)
-- [Phase 05-simulation-engine]: _ClassifierDiagnosticsAdapter bridges Wave 1 classifier.py write_prompt/response/parsed API to Phase 4 TickDiagnostics.write_classification
-- [Phase 05-simulation-engine]: Lazy imports inside _tool_* functions keep mcp_server module import cost minimal
-- [Phase 05-simulation-engine]: _anthropic_factory module-level monkeypatch surface; rollback missing db is -32602 not -32603
-- [Phase 06-00]: TickResult.projected_state reuses the projection dict already computed for Observer.synthesize — no extra projector call, no drift; None on yield/refuse paths (scorer must handle None as groundedness=0.5 per 06-RESEARCH)
-- [Phase 06-01]: ResidentAgent uses raw Anthropic SDK (not Agent SDK); default model claude-haiku-4-5 per D-02; system prompt is hash-stable (world_rules + personality block, NO history)
-- [Phase 06-01]: Session forking via KnowledgeGraph.snapshot/restore — no DB copy, no git branch per D-08
-- [Phase 06-01]: ensure_memory_tables(conn) shared DDL helper imported by both AgentMemory and SessionManager (no DDL duplication)
-- [Phase 06-01]: CLI module-level imports required for monkeypatching (deferred imports break patch("token_world.cli.X"))
-- [Phase 06-resident-agent-end-to-end-loop]: D-16: 35 Phase-3 UC manifests reused as E2E regression tests
-- [Phase 06-resident-agent-end-to-end-loop]: D-25: FakeClassifier + FakeObserver bypass LLM cost — 35 x 2 calls per CI avoided
-- [Phase 06]: agent_id stubbed to 'unknown' in BatchSummary v1 — TickSummary has no actor field; resolve in Phase 7
-- [Phase 06]: TickCompressor._BATCH_PROMPT_TEMPLATE set post-class-definition due to slots=True dataclass restriction
-- [Phase 06]: pytest summary regex uses three independent patterns (passed/failed/duration) for correct parsing regardless of ordering
-- [Phase 06]: judge_evaluate imported at cli.py module level so patch('token_world.cli.judge_evaluate') works in tests without deferred import
-- [Phase 06]: AdversarialBank uses ClassVar frozen dataclasses — stateless, deterministic via caller-supplied RNG
-- [Phase 07-attention-and-consciousness]: D-23: frozen dataclasses for ThresholdSpec/LongRunningAction (not Pydantic) — consistent with YieldSignal, Mutation pattern
-- [Phase 07-attention-and-consciousness]: D-16: turns_total=None = indefinite duration; JSON null roundtrips correctly through to_dict/from_dict
-- [Phase 07-attention-and-consciousness]: Serialization boundary: tuple[ThresholdSpec,...] in-memory; list[dict] in to_dict() to satisfy ALLOWED_PROPERTY_TYPES
-- [Phase 07-02]: attention_state suppress-then-boost order: boosting a suppressed key yields no attention_boosted entry; attention_boosted is a separate top-level key (not inside properties) so Observer can reference property AND prominence marker independently
-- [Phase 07-03]: begin_long_action returns Mutation (not LongRunningAction) — stays within list[Mutation] protocol (D-05); no engine changes needed; no import of long_running from context.py (loose coupling, D-15)
-- [Phase 07-04]: LongRunningHook only invoked on _handle_long_running_tick path (never on _handle_execute) — Pitfall 1 insta-cancel mitigated by routing design, not hook-internal logic
-- [Phase 07-04]: run_tick(str | None) — None routes to synthetic continuation; real string + active LRA = D-11 implicit cancellation (clear before classify); None + no LRA = ValueError
-- [Phase 07-04]: PlaytestRunner uses `_lra_check(agent_id) is True` (not truthy) — MagicMock-safe; existing test fakes unaffected
-- [Phase 07-04]: TickSummary.long_running_action optional field; schema_version stays 1 (additive D-17)
-- [Phase 07-04]: "Time passes. You continue {action_text}." static template for continuing case (D-22, no LLM call)
-- [Phase 07-attention-and-consciousness]: SleepMechanic uses location property (not edge) for threshold construction; integration tests need both property + type=location edge for projector inclusion
-- [Phase 07-attention-and-consciousness]: Location-edge update alongside location-property in autopilot_advance: VisibilityProjector follows type=location edges not the property value, so both must be updated for threshold evaluation to see the new room
-- [Phase 07-attention-and-consciousness]: 2-step begin-then-augment pattern for payload extension: ctx.begin_long_action then ctx.set adds route/next_index to payload without modifying Plan 03 helper API
-- [Phase 07-attention-and-consciousness]: turns_total=None (D-16): indefinite drunk LRA — only threshold or D-11 cancellation ends it
-- [Phase 07-attention-and-consciousness]: RECOVERY_RATE=0.1: SoberUpMechanic gives deterministic 8-tick sober-up for 0.5-alcohol drink
+### Roadmap Evolution (v1.0)
 
-### Roadmap Evolution
-
-- Phase 4.1 inserted after Phase 4: Operator Agent Harness (URGENT) — Agent SDK driver required to verify Phase 5's yield→author→resume loop end-to-end; existing roadmap had no phase for the operator-side orchestration that Phase 5 depends on
+- Phase 04.1 inserted after Phase 4: Operator Agent Harness — Agent SDK driver required to verify Phase 5's yield→author→resume loop end-to-end
+- Phase 07.1 inserted after Phase 7: claude-cli LLM backend — enabled zero-cost live UAT via user's Claude subscription; unblocked Phase 6 live-API verification
 
 ### Pending Todos
 
-None yet.
+None. v1.1 milestone definition is the next user action.
 
-### Blockers/Concerns
+### Blockers/Concerns (carried from v1.0)
 
-- RestrictedPython CVE-2025-22153: needs review during Phase 4 planning to confirm controlled namespace workaround sufficiency
-- Research docs (STACK.md, ARCHITECTURE.md, SUMMARY.md) recommend Sonnet for mechanic generation — this was overridden to Opus per user decision. Research docs are stale on this point; authoritative docs (CLAUDE.md, PROJECT.md) correctly say Opus. Update research docs before Phase 4.
+- **RestrictedPython CVE-2025-22153:** Revisit if/when sandboxing enters scope in v2
+- **Research docs stale on model routing:** STACK.md, ARCHITECTURE.md, SUMMARY.md recommend Sonnet for mechanic generation; authoritative docs (CLAUDE.md, PROJECT.md) correctly say Opus. Refresh during v1.1.
+- **Phase 04.1 SC-2 interactive smoke test:** Marked `human_needed` at milestone close. Programmatic path verified. Trivially runnable now that `ClaudeCLIBackend` is available; recommended for v1.1 kickoff audit.
+- **`agent_id` stubbed to `'unknown'` in BatchSummary v1:** Carry to v1.1 planning.
 
 ## Session Continuity
 
-Last session: 2026-04-13T19:50:17.911Z
-Stopped at: Completed 07-attention-and-consciousness 07-07-PLAN.md
+Last session: 2026-04-14 (v1.0 milestone archival)
+Stopped at: v1.0 milestone closed; archives created; git tag v1.0 pushed
 Resume file: None
+
+**Next user action:** `/gsd-new-milestone` to scope v1.1.
