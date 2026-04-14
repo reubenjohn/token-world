@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import pytest
-
 from token_world.graph import KnowledgeGraph
 from token_world.mechanic.context import MechanicContext
 from token_world.mechanic.engine import ChainExecutionEngine
 from token_world.mechanic.matchers import EdgeMatcher
 from token_world.mechanic.seeds.passage_move import PassageMoveMechanic
 from token_world.mechanic.seeds.position_sync import PositionSyncMechanic
-
 
 # ---------------------------------------------------------------------------
 # Metadata + matcher contract
@@ -34,8 +31,7 @@ class TestPositionSyncMetadata:
         assert len(watchers) >= 1
         edge_watchers = [w for w in watchers if isinstance(w, EdgeMatcher)]
         assert any(
-            w.event_type == "add_edge" and w.edge_label == "located_in"
-            for w in edge_watchers
+            w.event_type == "add_edge" and w.edge_label == "located_in" for w in edge_watchers
         )
 
 
@@ -109,7 +105,7 @@ class TestPositionSyncApply:
 
 class TestPositionSyncChainIntegration:
     def test_chain_fires_after_passage_move(self) -> None:
-        """End-to-end: passage_move adds located_in edge → position_sync fires → alice.position updated."""
+        """End-to-end: passage_move adds located_in edge → position_sync fires → alice.position updated."""  # noqa: E501
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent", position=[0, 0])
         kg.add_node(
@@ -128,9 +124,7 @@ class TestPositionSyncChainIntegration:
         )
         kg.add_edge("alice", "room_a", relation="located_in")
         kg.add_edge("room_a", "room_b", relation="connects")
-        engine = ChainExecutionEngine(
-            involuntary_mechanics=[PositionSyncMechanic()], max_depth=10
-        )
+        engine = ChainExecutionEngine(involuntary_mechanics=[PositionSyncMechanic()], max_depth=10)
         ctx = MechanicContext(kg, actor="alice", target="room_b")
         trace = engine.execute(PassageMoveMechanic(), ctx)
         assert trace.root.check_result.passed is True

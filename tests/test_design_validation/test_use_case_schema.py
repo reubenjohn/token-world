@@ -72,7 +72,7 @@ def test_load_use_case_accepts_crlf_frontmatter(tmp_path: Path) -> None:
         "title: test\n"
         "status: draft\n"
         "setup:\n"
-        "  graph_builder: \"\"\n"
+        '  graph_builder: ""\n'
         "actions: []\n"
         "expected_observations: []\n"
         "gaps: []\n"
@@ -96,7 +96,7 @@ def test_load_use_case_accepts_legacy_mac_cr_frontmatter(tmp_path: Path) -> None
         "title: test\n"
         "status: draft\n"
         "setup:\n"
-        "  graph_builder: \"\"\n"
+        '  graph_builder: ""\n'
         "actions: []\n"
         "expected_observations: []\n"
         "gaps: []\n"

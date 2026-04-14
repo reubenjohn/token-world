@@ -108,9 +108,7 @@ def git_diff_fallback(phase_arg: str) -> list[str]:
         return []
     base = commits[-1] + "^"
     # Verify base exists; fall back to first commit itself if root.
-    rev = subprocess.run(
-        ["git", "rev-parse", base], capture_output=True, text=True, check=False
-    )
+    rev = subprocess.run(["git", "rev-parse", base], capture_output=True, text=True, check=False)
     if rev.returncode != 0:
         base = commits[-1]
     diff = subprocess.run(

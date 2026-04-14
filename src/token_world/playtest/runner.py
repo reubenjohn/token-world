@@ -25,13 +25,17 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from token_world.playtest.report import AggregateScores, PlaytestReport, TurnRecord
 from token_world.playtest.scenarios import InjectionSampler, Scenario
 from token_world.playtest.scorer import TurnScore, TurnScorer
 
+if TYPE_CHECKING:
+    from token_world.operator.harness import OperatorHarness
 
-def _default_harness_factory(universe_dir: Path):
+
+def _default_harness_factory(universe_dir: Path) -> OperatorHarness:
     """Default factory: create OperatorHarness for the given universe directory."""
     from token_world.operator.harness import OperatorHarness
 
@@ -236,4 +240,5 @@ class PlaytestRunner:
             # kind == "agent" or action with None payload -> fall through to agent
 
         # Agent decides
-        return self.agent.run_turn()  # type: ignore[attr-defined]
+        result: str = self.agent.run_turn()  # type: ignore[attr-defined]
+        return result

@@ -1157,6 +1157,7 @@ def agent_turn(slug: str, agent_id: str | None, no_operator: bool) -> None:
 
     # (n) Handle yield via OperatorHarness
     if result.kind == "yielded" and not no_operator:
+        assert result.yield_signal is not None, "yielded tick must carry a YieldSignal"
         harness = OperatorHarness(universe_dir)
         asyncio.run(harness.handle_yield(result.yield_signal))
         # Resume tick after mechanic was authored

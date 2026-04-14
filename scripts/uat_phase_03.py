@@ -27,11 +27,15 @@ DATA = SCRATCH / "data"
 SLUG = "uat-demo"
 
 
-def run(cmd: list[str], env: dict[str, str] | None = None, check: bool = True) -> subprocess.CompletedProcess[str]:
+def run(
+    cmd: list[str], env: dict[str, str] | None = None, check: bool = True
+) -> subprocess.CompletedProcess[str]:
     full_env = {**os.environ, **(env or {})}
     result = subprocess.run(cmd, cwd=ROOT, env=full_env, capture_output=True, text=True)
     if check and result.returncode != 0:
-        sys.stderr.write(f"CMD failed: {' '.join(cmd)}\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}\n")
+        sys.stderr.write(
+            f"CMD failed: {' '.join(cmd)}\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}\n"
+        )
         raise SystemExit(1)
     return result
 
@@ -73,7 +77,10 @@ def seed_graph() -> Path:
 def check_viz_graph_cli() -> tuple[bool, str]:
     """Test 6: viz-graph CLI emits well-formed flowchart."""
     env = {"XDG_DATA_HOME": str(DATA)}
-    out = run(["uv", "run", "token-world", "viz-graph", SLUG, "--node", "alice", "--depth", "2"], env=env).stdout
+    out = run(
+        ["uv", "run", "token-world", "viz-graph", SLUG, "--node", "alice", "--depth", "2"],
+        env=env,
+    ).stdout
     required_tokens = [
         "flowchart LR",
         "alice",
@@ -224,7 +231,7 @@ def main() -> int:
 
     banner("Summary")
     failed = [r for r in results if not r[1]]
-    for name, ok, msg in results:
+    for name, ok, _msg in results:
         print(f"  {'PASS' if ok else 'FAIL'}  {name}")
     return 0 if not failed else 3
 

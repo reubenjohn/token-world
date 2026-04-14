@@ -56,17 +56,13 @@ class TestLoadMechanicClasses:
         assert len(classes) == 1
         assert classes[0].id == "test_mech"
 
-    def test_load_mechanic_classes_empty_module_returns_empty_list(
-        self, tmp_path: Path
-    ) -> None:
+    def test_load_mechanic_classes_empty_module_returns_empty_list(self, tmp_path: Path) -> None:
         """Module without Mechanic subclass returns [] (not an error)."""
         module_path = tmp_path / "empty.py"
         module_path.write_text("# No Mechanic subclass here\nx = 1\n")
         assert load_mechanic_classes(module_path) == []
 
-    def test_load_mechanic_classes_missing_file_raises_filenotfound(
-        self, tmp_path: Path
-    ) -> None:
+    def test_load_mechanic_classes_missing_file_raises_filenotfound(self, tmp_path: Path) -> None:
         """Non-existent module path -> FileNotFoundError."""
         with pytest.raises(FileNotFoundError):
             load_mechanic_classes(tmp_path / "does_not_exist.py")
@@ -127,9 +123,7 @@ class TestLoadMechanicClasses:
 
 
 class TestDiscoverMechanicModules:
-    def test_discover_mechanic_modules_filters_underscore_and_init(
-        self, tmp_path: Path
-    ) -> None:
+    def test_discover_mechanic_modules_filters_underscore_and_init(self, tmp_path: Path) -> None:
         """Directory with .py + _helpers.py + __init__.py returns only .py modules."""
         (tmp_path / "movement.py").write_text("# ok\n")
         (tmp_path / "_helpers.py").write_text("# skip\n")
@@ -145,9 +139,7 @@ class TestDiscoverMechanicModules:
         modules = discover_mechanic_modules(tmp_path)
         assert [m.name for m in modules] == ["alpha.py", "mu.py", "zeta.py"]
 
-    def test_discover_mechanic_modules_missing_dir_returns_empty(
-        self, tmp_path: Path
-    ) -> None:
+    def test_discover_mechanic_modules_missing_dir_returns_empty(self, tmp_path: Path) -> None:
         """A non-existent directory returns [] rather than raising."""
         assert discover_mechanic_modules(tmp_path / "does_not_exist") == []
 

@@ -104,7 +104,8 @@ def _parse_haiku_json(text: str) -> dict[str, Any]:
         m = re.search(r"\{.*\}", candidate, re.DOTALL)
         if m:
             try:
-                return json.loads(m.group(0))  # type: ignore[return-value]
+                result: dict[str, Any] = json.loads(m.group(0))
+                return result
             except json.JSONDecodeError:
                 pass
         if attempt == 1:

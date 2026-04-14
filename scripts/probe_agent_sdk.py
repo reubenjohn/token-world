@@ -59,11 +59,11 @@ def main() -> None:
         return {"content": [{"type": "text", "text": "ok"}]}
 
     server = create_sdk_mcp_server(name="probe", tools=[_dummy])
-    print(f"\n=== create_sdk_mcp_server() return shape ===")
+    print("\n=== create_sdk_mcp_server() return shape ===")
     print(f"type: {type(server).__name__}")
     print(f"value: {server!r}")
 
-    print(f"\n=== SdkMcpTool dummy attributes ===")
+    print("\n=== SdkMcpTool dummy attributes ===")
     print(f"type: {type(_dummy).__name__}")
     public = [a for a in dir(_dummy) if not a.startswith("_")]
     for a in public:

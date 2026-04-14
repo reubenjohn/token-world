@@ -497,9 +497,8 @@ def test_use_case(
                 )
             # else fall through to assertions; a firing mechanic means
             # the UC is ready to flip from yield to pass.
-        elif outcome == "pass":
-            if not any_mechanic_fired:
-                pytest.fail(f"{uc_id}: expected mechanic to match but none did")
+        elif outcome == "pass" and not any_mechanic_fired:
+            pytest.fail(f"{uc_id}: expected mechanic to match but none did")
             # fall through to assertions
 
         # 6. Assert graph expectations for any case that reached here.

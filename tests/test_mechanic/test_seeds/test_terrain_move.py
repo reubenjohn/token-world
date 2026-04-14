@@ -8,7 +8,6 @@ from token_world.graph import KnowledgeGraph
 from token_world.mechanic.context import MechanicContext
 from token_world.mechanic.seeds.terrain_move import TerrainMoveMechanic
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -86,9 +85,7 @@ class TestTerrainMoveCheck:
         result = mechanic.check(ctx)
         assert result.passed is True, f"expected pass, got {result.reasons}"
 
-    def test_fails_when_actor_missing_stamina(
-        self, mechanic: TerrainMoveMechanic
-    ) -> None:
+    def test_fails_when_actor_missing_stamina(self, mechanic: TerrainMoveMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")  # no stamina
         kg.add_node(
@@ -105,9 +102,7 @@ class TestTerrainMoveCheck:
         assert result.passed is False
         assert any("stamina" in r.lower() for r in result.reasons)
 
-    def test_fails_when_target_has_no_terrain(
-        self, mechanic: TerrainMoveMechanic
-    ) -> None:
+    def test_fails_when_target_has_no_terrain(self, mechanic: TerrainMoveMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent", stamina=10)
         kg.add_node("room_a", node_type="entity")
@@ -142,9 +137,7 @@ class TestTerrainMoveCheck:
         ctx = MechanicContext(kg, actor="alice", target="wall")
         result = mechanic.check(ctx)
         assert result.passed is False
-        assert any(
-            "impassable" in r.lower() or "wall" in r.lower() for r in result.reasons
-        )
+        assert any("impassable" in r.lower() or "wall" in r.lower() for r in result.reasons)
 
     def test_fails_when_no_edge_to_target(self, mechanic: TerrainMoveMechanic) -> None:
         kg = KnowledgeGraph()

@@ -9,7 +9,6 @@ from token_world.mechanic.context import MechanicContext
 from token_world.mechanic.seeds._helpers import _find_open_passage
 from token_world.mechanic.seeds.passage_move import PassageMoveMechanic
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -136,9 +135,7 @@ class TestPassageMoveCheck:
         assert result.passed is False
         assert any("passage" in r.lower() for r in result.reasons)
 
-    def test_check_fails_when_actor_missing_location(
-        self, mechanic: PassageMoveMechanic
-    ) -> None:
+    def test_check_fails_when_actor_missing_location(self, mechanic: PassageMoveMechanic) -> None:
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent")
         kg.add_node("room_b", node_type="entity")
@@ -162,9 +159,7 @@ class TestPassageMoveCheck:
         result = mechanic.check(ctx)
         assert result.passed is False
 
-    def test_check_succeeds_for_direct_connects(
-        self, mechanic: PassageMoveMechanic
-    ) -> None:
+    def test_check_succeeds_for_direct_connects(self, mechanic: PassageMoveMechanic) -> None:
         """UC-S07 shape: direct connects edge, no intermediate passage entity."""
         kg = KnowledgeGraph()
         kg.add_node("alice", node_type="agent", position=[0, 0])

@@ -3,19 +3,19 @@
 Covers ClassifiedAction, ClassifierVerdict discriminated union,
 MatchResult, Decision, and TickSummary.
 """
+
 from __future__ import annotations
 
 import json
 
-import pytest
 from pydantic import TypeAdapter
 
 from token_world.engine.models import (
     ClassifiedAction,
     ClassifierVerdict,
     ExecuteDecision,
-    MatchResult,
     MatchedResult,
+    MatchResult,
     NoMatchResult,
     RefuseDecision,
     TickSummary,
@@ -25,7 +25,6 @@ from token_world.engine.models import (
     VerdictOk,
     YieldDecision,
 )
-
 
 # ---------------------------------------------------------------------------
 # ClassifiedAction
@@ -55,7 +54,13 @@ def test_classified_action_ignores_extras() -> None:
         "extra_haiku_field": "should be ignored",
         "another_extra": 42,
     }
-    ca = ClassifiedAction(**{k: v for k, v in data.items() if k in ClassifiedAction.model_fields or k == "extra_haiku_field"})
+    _ca = ClassifiedAction(
+        **{
+            k: v
+            for k, v in data.items()
+            if k in ClassifiedAction.model_fields or k == "extra_haiku_field"
+        }
+    )
     # Must succeed without raising ValidationError
     ca2 = ClassifiedAction.model_validate(data)
     assert ca2.verb == "jump"
@@ -82,11 +87,13 @@ _ta = TypeAdapter(ClassifierVerdict)
 
 def test_verdict_ok_parse_from_json() -> None:
     """kind=ok parses to VerdictOk."""
-    raw = json.dumps({
-        "kind": "ok",
-        "classified": {"verb": "pickup", "actor": "alice"},
-        "confidence": 0.9,
-    })
+    raw = json.dumps(
+        {
+            "kind": "ok",
+            "classified": {"verb": "pickup", "actor": "alice"},
+            "confidence": 0.9,
+        }
+    )
     verdict = _ta.validate_json(raw)
     assert isinstance(verdict, VerdictOk)
     assert verdict.kind == "ok"
@@ -111,11 +118,13 @@ def test_verdict_no_such_target_parse_from_json() -> None:
 
 def test_verdict_low_confidence_parse_from_json() -> None:
     """kind=low_confidence parses to VerdictLowConfidence."""
-    raw = json.dumps({
-        "kind": "low_confidence",
-        "reason": "ambiguous",
-        "confidence": 0.4,
-    })
+    raw = json.dumps(
+        {
+            "kind": "low_confidence",
+            "reason": "ambiguous",
+            "confidence": 0.4,
+        }
+    )
     verdict = _ta.validate_json(raw)
     assert isinstance(verdict, VerdictLowConfidence)
     assert verdict.reason == "ambiguous"
@@ -124,8 +133,12 @@ def test_verdict_low_confidence_parse_from_json() -> None:
 def test_match_result_discriminator() -> None:
     """MatchResult discriminates matched vs no_match correctly."""
     ta = TypeAdapter(MatchResult)
-    matched = ta.validate_python({"kind": "matched", "mechanic_id": "pickup", "score": 10, "reasoning": "exact"})
-    no_match = ta.validate_python({"kind": "no_match", "classified": {"verb": "pickup", "actor": "alice"}})
+    matched = ta.validate_python(
+        {"kind": "matched", "mechanic_id": "pickup", "score": 10, "reasoning": "exact"}
+    )
+    no_match = ta.validate_python(
+        {"kind": "no_match", "classified": {"verb": "pickup", "actor": "alice"}}
+    )
     assert isinstance(matched, MatchedResult)
     assert isinstance(no_match, NoMatchResult)
 
@@ -152,12 +165,14 @@ def test_tick_summary_schema_version_is_1() -> None:
 
 def test_verdict_ok_extra_fields_ignored() -> None:
     """Extra Haiku fields on ok verdict are silently dropped."""
-    raw = json.dumps({
-        "kind": "ok",
-        "classified": {"verb": "speak", "actor": "alice", "extra_llm_field": "ignored"},
-        "confidence": 0.85,
-        "some_extra_reasoning": "...",
-    })
+    raw = json.dumps(
+        {
+            "kind": "ok",
+            "classified": {"verb": "speak", "actor": "alice", "extra_llm_field": "ignored"},
+            "confidence": 0.85,
+            "some_extra_reasoning": "...",
+        }
+    )
     verdict = _ta.validate_json(raw)
     assert isinstance(verdict, VerdictOk)
     assert verdict.confidence == 0.85
@@ -166,7 +181,9 @@ def test_verdict_ok_extra_fields_ignored() -> None:
 def test_decision_variants() -> None:
     """Decision union covers execute, yield, and refuse variants."""
     from pydantic import TypeAdapter as TA
+
     from token_world.engine.models import Decision
+
     ta = TA(Decision)
     exec_d = ta.validate_python({"kind": "execute", "mechanic_id": "pickup"})
     yield_d = ta.validate_python({"kind": "yield", "classified": {"verb": "x", "actor": "a"}})

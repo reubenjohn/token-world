@@ -266,7 +266,7 @@ class LongRunningHook:
             },
             "long_action": action_text,
         }
-        return observer.synthesize(
+        observation: str = observer.synthesize(
             projection=projection,
             trace=trace,
             refusal_narrative=None,
@@ -275,6 +275,7 @@ class LongRunningHook:
             tick_diag_ctx=tick_diag_ctx,
             interruption_context=interruption_context,
         )
+        return observation
 
     def _synthesise_completion(
         self,
@@ -302,7 +303,7 @@ class LongRunningHook:
             max_depth_reached=0,
         )
         interruption_context = {"completed": True, "long_action": action_text}
-        return observer.synthesize(
+        observation: str = observer.synthesize(
             projection=projection,
             trace=trace,
             refusal_narrative=None,
@@ -311,3 +312,4 @@ class LongRunningHook:
             tick_diag_ctx=tick_diag_ctx,
             interruption_context=interruption_context,
         )
+        return observation

@@ -109,7 +109,7 @@ class PromptHashRegistry:
         return {
             "classifier_system_prompt": self._sha256(Classifier.system_prompt_text()),
             "observer_system_prompt": self._sha256(Observer.system_prompt_text()),
-            "agent_system_prompt": self._sha256(agent.system_prompt_text()),  # type: ignore[union-attr]
+            "agent_system_prompt": self._sha256(agent.system_prompt_text()),  # type: ignore[attr-defined]
         }
 
     def load(self, universe_dir: Path) -> dict[str, str]:

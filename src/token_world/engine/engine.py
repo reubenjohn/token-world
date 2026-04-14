@@ -725,11 +725,11 @@ class SimulationEngine:
                 "_handle_long_running_tick for actor=%s",
                 actor,
             )
-        payload = lra.get("payload") if isinstance(lra.get("payload"), dict) else {}
-        attention_state_pre = (
-            payload.get("attention_state")
-            if isinstance(payload.get("attention_state"), dict)
-            else None
+        raw_payload = lra.get("payload") if isinstance(lra, dict) else None
+        payload: dict = raw_payload if isinstance(raw_payload, dict) else {}
+        raw_attention = payload.get("attention_state")
+        attention_state_pre: dict | None = (
+            raw_attention if isinstance(raw_attention, dict) else None
         )
 
         # 2. Single projection call — reused for hook threshold evaluation (D-09)
