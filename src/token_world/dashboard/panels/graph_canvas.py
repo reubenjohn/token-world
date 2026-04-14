@@ -15,6 +15,16 @@ Implementation notes:
   only the first N by id-sort and surface the remainder count.
 - Uses :meth:`KnowledgeGraph.ego_subgraph` for subgraph extraction when an
   anchor is supplied, else lists everything.
+- Property-valued references: some mechanics express spatial/containment
+  relationships as a node property whose value happens to be another
+  node's id (e.g. ``mira.located_in = "cottage_interior"``) rather than a
+  real edge. :func:`synthesise_property_edges` detects these and emits
+  dashed pseudo-edges in the Mermaid output ONLY — the graph itself is
+  never mutated (§A4).
+- Poll rebuild is gated on a ``(node_count, edge_count, db_mtime)``
+  signature. The chart DOM is only rebuilt when that tuple changes, and
+  the property drawer never rebuilds on poll (it is user state — they
+  clicked a node and may be reading). See §A7.
 """
 
 from __future__ import annotations
@@ -56,6 +66,7 @@ def load_graph_snapshot(universe_dir: Path) -> dict[str, Any]:
           "node_count": int,
           "edge_count": int,
           "truncated": bool,  # True if node_count > MAX_NODES
+          "db_mtime": float,  # universe.db st_mtime, 0.0 if missing
         }
 
     Swallows load errors and returns an empty snapshot with ``loaded=False``.
@@ -70,7 +81,9 @@ def load_graph_snapshot(universe_dir: Path) -> dict[str, Any]:
             "node_count": 0,
             "edge_count": 0,
             "truncated": False,
+            "db_mtime": 0.0,
         }
+    db_mtime = float(db_path.stat().st_mtime)
     kg = KnowledgeGraph(db_path=db_path)
     try:
         kg.load()
@@ -83,6 +96,7 @@ def load_graph_snapshot(universe_dir: Path) -> dict[str, Any]:
             "node_count": 0,
             "edge_count": 0,
             "truncated": False,
+            "db_mtime": db_mtime,
         }
 
     all_nodes = sorted(kg.nodes())
@@ -131,7 +145,78 @@ def load_graph_snapshot(universe_dir: Path) -> dict[str, Any]:
         "node_count": node_count,
         "edge_count": edge_count,
         "truncated": truncated,
+        "db_mtime": db_mtime,
     }
+
+
+# Property names that are never resolved as pseudo-edges even if their value
+# happens to collide with a node id — these are intrinsic scalars.
+_PSEUDO_EDGE_PROP_BLOCKLIST = frozenset(
+    {
+        "id",
+        "type",
+        "subtype",
+        "name",
+        "label",
+        "label_group",
+        "description",
+        "text",
+        "status",
+        "state",
+    }
+)
+
+
+def synthesise_property_edges(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return dashed pseudo-edges for properties whose value names a node.
+
+    Spec §A4: some mechanics encode relationships as properties rather than
+    edges. For example, ``mira.located_in = "cottage_interior"`` is a
+    string property whose value happens to be an existing node id. Without
+    edge synthesis, Mira renders as a dangling node in the Mermaid flow.
+
+    This function does NOT mutate the graph — it only produces extra edge
+    dicts that are fed to :func:`build_mermaid`. Returned edges have the
+    shape ``{"src", "dst", "relation", "pseudo": True}``; the renderer
+    uses the ``pseudo`` flag to emit dashed-arrow syntax.
+
+    Gating:
+
+    - Property value must be a :class:`str` that equals a known node id.
+    - Property name must not be in :data:`_PSEUDO_EDGE_PROP_BLOCKLIST` (so
+      ``type="agent"`` doesn't try to edge-ify a node to a (nonexistent)
+      ``agent`` node).
+    - We do not emit a pseudo-edge if a real edge ``src -> dst`` already
+      exists (the real edge always wins).
+    """
+    if not snapshot.get("nodes"):
+        return []
+    node_ids = {n["id"] for n in snapshot["nodes"]}
+    real_edges = {(e["src"], e["dst"]) for e in snapshot.get("edges") or []}
+    pseudo: list[dict[str, Any]] = []
+    for node in snapshot["nodes"]:
+        src = node["id"]
+        props = node.get("properties") or {}
+        for key, value in props.items():
+            if key in _PSEUDO_EDGE_PROP_BLOCKLIST:
+                continue
+            if not isinstance(value, str):
+                continue
+            if value == src:
+                continue  # self-reference — silently skip
+            if value not in node_ids:
+                continue
+            if (src, value) in real_edges:
+                continue
+            pseudo.append(
+                {
+                    "src": src,
+                    "dst": value,
+                    "relation": key,
+                    "pseudo": True,
+                }
+            )
+    return pseudo
 
 
 def build_mermaid(snapshot: dict[str, Any]) -> str:
@@ -142,17 +227,22 @@ def build_mermaid(snapshot: dict[str, Any]) -> str:
     lines: list[str] = ["flowchart LR"]
 
     # Node declarations with class tags.
+    #
+    # §A3 label form: use a colon-delimited ``id : type|subtype`` label to
+    # avoid wrapping the annotation in ``[...]`` — entity-escaping those
+    # brackets via ``escape_label`` leaves ``&#91;`` / ``&#93;`` visible in
+    # the rendered Mermaid output (the element does not re-decode them).
     for node in snapshot["nodes"]:
         safe_id = _safe_mermaid_id(node["id"])
-        label_parts = [node["id"]]
-        if node.get("subtype"):
-            label_parts.append(f"({node['subtype']})")
-        elif node.get("type"):
-            label_parts.append(f"[{node['type']}]")
-        label = escape_label(" ".join(label_parts), max_len=40)
+        annotation = node.get("subtype") or node.get("type") or ""
+        if annotation and annotation != "unknown":
+            raw_label = f"{node['id']} : {annotation}"
+        else:
+            raw_label = node["id"]
+        label = escape_label(raw_label, max_len=40)
         lines.append(f'    {safe_id}["{label}"]:::{node["label_group"]}')
 
-    # Edges.
+    # Real edges (solid arrows).
     for edge in snapshot["edges"]:
         src = _safe_mermaid_id(edge["src"])
         dst = _safe_mermaid_id(edge["dst"])
@@ -161,6 +251,18 @@ def build_mermaid(snapshot: dict[str, Any]) -> str:
             lines.append(f"    {src} -- {relation} --> {dst}")
         else:
             lines.append(f"    {src} --> {dst}")
+
+    # Synthesised property pseudo-edges (dashed arrows, §A4).
+    # Mermaid syntax: ``A -. label .-> B`` draws a dashed arrow with a
+    # floating label. We keep the label short; it's the property name.
+    for pseudo in synthesise_property_edges(snapshot):
+        src = _safe_mermaid_id(pseudo["src"])
+        dst = _safe_mermaid_id(pseudo["dst"])
+        relation = escape_label(pseudo.get("relation") or "", max_len=20)
+        if relation:
+            lines.append(f"    {src} -.{relation}.-> {dst}")
+        else:
+            lines.append(f"    {src} -.-> {dst}")
 
     # Class definitions (colors).
     lines.append("    classDef agent fill:#1e3a8a,stroke:#60a5fa,color:#f1f5f9")
@@ -181,12 +283,34 @@ def _safe_mermaid_id(raw: str) -> str:
     return safe
 
 
+def compute_graph_signature(snapshot: dict[str, Any]) -> tuple[int, int, float]:
+    """Cheap change-detection signature for the graph panel (§A7).
+
+    Returns a ``(node_count, edge_count, db_mtime)`` tuple. Equal tuples
+    imply the chart DOM can be skipped on poll; differing tuples mean the
+    graph changed and we must re-emit ``ui.mermaid()``.
+
+    ``db_mtime`` is the underlying ``universe.db`` file's modification
+    time. It updates on every :meth:`KnowledgeGraph.save` call, so a
+    mutation between polls will always bump the tuple even if node and
+    edge counts remain equal (e.g. a property-only change).
+    """
+    return (
+        int(snapshot.get("node_count", 0) or 0),
+        int(snapshot.get("edge_count", 0) or 0),
+        float(snapshot.get("db_mtime", 0.0) or 0.0),
+    )
+
+
 def mount_graph_panel(universe_dir: Path, slug: str) -> Any:  # noqa: ARG001 — slug for future label.
     """Mount the graph canvas + clickable node list + drawer."""
     from nicegui import ui
 
     container = ui.column().classes("w-full gap-2")
     selected: dict[str, Any] = {"node_id": None, "properties": None}
+    # §A7: cache last-rendered snapshot signature so poll cycles can be a
+    # no-op when the graph hasn't changed. ``None`` = "never rendered".
+    chart_state: dict[str, Any] = {"signature": None}
 
     def _rebuild_drawer(drawer_column: Any) -> None:
         drawer_column.clear()
@@ -217,6 +341,9 @@ def mount_graph_panel(universe_dir: Path, slug: str) -> Any:  # noqa: ARG001 —
     def _on_node_click(nid: str, properties: dict[str, Any]) -> None:
         selected["node_id"] = nid
         selected["properties"] = properties
+        # §A7: drawer rebuild is USER-driven — it only ever happens here,
+        # never inside the poll handler, so scroll position + open state
+        # survive graph updates.
         _rebuild_drawer(drawer_col)
 
     def _rebuild() -> None:
@@ -233,6 +360,15 @@ def mount_graph_panel(universe_dir: Path, slug: str) -> Any:  # noqa: ARG001 —
             status_label.text = (
                 f"Graph: {snapshot['node_count']} nodes, {snapshot['edge_count']} edges"
             )
+
+        # §A7: skip DOM rebuild when nothing meaningful changed. We still
+        # refresh the status_label above every tick so the counts stay
+        # fresh, but the mermaid chart + button list only re-emit on
+        # signature change.
+        signature = compute_graph_signature(snapshot)
+        if signature == chart_state["signature"]:
+            return
+        chart_state["signature"] = signature
 
         chart_col.clear()
         mermaid_src = build_mermaid(snapshot)
@@ -251,8 +387,9 @@ def mount_graph_panel(universe_dir: Path, slug: str) -> Any:  # noqa: ARG001 —
                         ),
                     ).classes("text-xs").props("size=sm dense")
 
-        _rebuild_drawer(drawer_col)
-
+    # Initial render: drawer has its "click a node" placeholder exactly once,
+    # and the chart fills in once the signature is computed.
+    _rebuild_drawer(drawer_col)
     _rebuild()
     ui.timer(5.0, _rebuild)  # Graph changes slowly vs ticks; poll every 5s.
     return container
