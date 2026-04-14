@@ -884,27 +884,27 @@ owned by the v2+ backlog.)
 | REQ-V12-QUALITY-01 | TBD | done | `890b464` |
 | REQ-V12-DOCS-01 | TBD | done | `3eec1c5` |
 | REQ-V12-TOOLING-01 | TBD | done | `958a28b` |
-| REQ-V12-ENGINE-03 | TBD | active | — |
-| REQ-V12-ENGINE-04 | TBD | active | — |
-| REQ-V12-ENGINE-05 | TBD | active | — |
-| REQ-V12-DASHBOARD-05 | TBD | active | — |
-| REQ-V12-DASHBOARD-06 | TBD | active | — |
-| REQ-V12-DASHBOARD-07 | TBD | active | — |
-| REQ-V12-DASHBOARD-08 | TBD | active | — |
-| REQ-V12-DASHBOARD-09 | TBD | active | — |
-| REQ-V12-CLI-03 | TBD | active | — |
-| REQ-V12-CLI-04 | TBD | active | — |
-| REQ-V12-QUALITY-02 | TBD | active | — |
-| REQ-V12-SEEDS-01 | TBD | active | — |
-| REQ-V12-EMERGE-01 | TBD | active | — |
-| REQ-V12-EMERGE-02 | TBD | active | — |
-| REQ-V12-OPS-01 | TBD | active | — |
-| REQ-V12-OPS-02 | TBD | active | — (optional) |
-| REQ-V12-TOOLING-02 | TBD | active | — |
-| REQ-V12-GRAPH-01 | TBD | active | — |
-| REQ-V12-GRAPH-02 | TBD | active | — |
-| REQ-V12-GRAPH-03 | TBD | active | — |
-| REQ-V12-GRAPH-04 | TBD | active | — |
+| REQ-V12-ENGINE-03 | Phase 18 | active | — |
+| REQ-V12-ENGINE-04 | Phase 16 | active | — |
+| REQ-V12-ENGINE-05 | Phase 14 | active | — |
+| REQ-V12-DASHBOARD-05 | Phase 15 | active | — |
+| REQ-V12-DASHBOARD-06 | Phase 18 | active | — |
+| REQ-V12-DASHBOARD-07 | Phase 17 | active | — |
+| REQ-V12-DASHBOARD-08 | Phase 17 | active | — |
+| REQ-V12-DASHBOARD-09 | Phase 17 | active | — |
+| REQ-V12-CLI-03 | Phase 17 | active | — |
+| REQ-V12-CLI-04 | Phase 17 | active | — |
+| REQ-V12-QUALITY-02 | Phase 13 | active | — |
+| REQ-V12-SEEDS-01 | Phase 14 | active | — |
+| REQ-V12-EMERGE-01 | Phase 17 | active | — |
+| REQ-V12-EMERGE-02 | Phase 17 | active | — |
+| REQ-V12-OPS-01 | Phase 17 | active | — |
+| REQ-V12-OPS-02 | Phase 19 | active | — (optional) |
+| REQ-V12-TOOLING-02 | Phase 14 | active | — |
+| REQ-V12-GRAPH-01 | Phase 18 | active | — |
+| REQ-V12-GRAPH-02 | Phase 18 | active | — |
+| REQ-V12-GRAPH-03 | Phase 18 | active | — |
+| REQ-V12-GRAPH-04 | Phase 18 | active | — |
 
 ---
 
