@@ -337,6 +337,54 @@ Full brainstorm of what needs to exist for universes to *reliably emerge from pl
 
 ---
 
+## Friction Reduction + Backlog Cleanup (Good Warm-Up For Session 4)
+
+Tonight — before you start on Tracks A/B/C — is a great opportunity to burn down accumulated paper cuts and dangling deferrals. Closing these first makes everything downstream smoother. Budget ~1-2 hours; parallelize via subagents where possible.
+
+### Known Dangling Items (from `.planning/RETROSPECTIVE.md`)
+
+| Item | Root cause | Fix | Priority |
+|---|---|---|---|
+| **Phase 04.1 SC-2 interactive smoke test** left `human_needed` | Needed live-API session at v1.0 close time; now zero-cost via `ClaudeCLIBackend` | Run the interactive smoke via `TOKEN_WORLD_BACKEND=claude-cli`, flip verification to `passed`, commit | **P0** — 20 min |
+| **REQUIREMENTS.md traceability drift** (during v1.0) | Manual checkboxes diverged from phase completion | Build `scripts/check_requirements_traceability.py` (parses REQUIREMENTS + phase summaries, diffs status) + wire into CI | **P0** — ~1 h |
+| **ROADMAP.md Progress table stale** (during v1.0) | Same root cause — manual updates drift | Build `scripts/check_roadmap_progress.py` (diffs PLAN/SUMMARY pairs vs Progress table) + wire into CI | **P0** — ~1 h |
+| **Research docs drift** (`STACK.md`, `ARCHITECTURE.md`, `SUMMARY.md` under `.planning/research/`) — Opus-vs-Sonnet model routing is stale; more are probably stale | No timestamp or drift-detection | Add archival-timestamp header to each; refresh the canonically-stale claims (Opus is the mechanic generator, not Sonnet) | P1 — 30 min |
+| **`agent_id` stub in `BatchSummary`** (`"unknown"` — P6 known gap) | Phase 6 shipped pre-multi-agent; `TickSummary` has no actor field | Add `actor_id` to `TickSummary` schema bump OR populate from first mutation's actor in `BatchSummary.maybe_compress` | P1 — 30 min |
+| **`.planning/research/` docs** not scanned for obsolete Phase 2 D-15 folder-per-mechanic references | Supersession from Phase 4 | Grep + flag + rewrite the still-referring-to-folders passages | P2 — 20 min |
+| **REQUIREMENTS.md was deleted at v1.0 close**, needs recreation for v1.1 | Expected on `/gsd-new-milestone` but there's no scaffold | When `/gsd-new-milestone` fires, confirm the new REQUIREMENTS.md is templated from v1.0 carry-forward + v1.1 new requirements | P1 — will happen naturally |
+
+### Agent-Workflow Friction Observed Tonight (Candidates For Automation)
+
+These are process nits that slow every session down. Fix them once, every future session is faster.
+
+| Friction | Root cause | Proposed fix |
+|---|---|---|
+| `git commit` with heredoc messages blocked by `deny-ad-hoc-bash` hook | 300+ char bash commands blocked to prevent opaque pipelines | `scripts/commit.sh <message-file>` — a 3-line wrapper (`git commit -F "$1" && git push origin master`). Document in CLAUDE.md Bash Hygiene. Removes the "write to /tmp first" dance. |
+| `/tmp/commit_msg.txt` reuse across sessions (Write tool refuses overwrite pre-Read) | `Write` safety — won't overwrite unseen file | Always use UNIQUE tmp paths (`/tmp/commit_wave1.txt`); OR wrapper that always starts clean; OR let the wrapper take the message inline as an arg |
+| UAT 3-item flow is error-prone manually (create universe, run, edit prompt, run again, revert prompt, run --judge, inspect reports) | No encapsulation | `scripts/run_uat.py <slug>` — creates a test universe if needed, runs all 3 UAT items in sequence, edits+reverts the classifier prompt, asserts all 3 pass, prints verdict. Rerunning UAT becomes one command. |
+| Finding files across `.planning/phases/` + reading CONTEXT/PLAN/SUMMARY for each | Manual directory hopping | `scripts/phase_show.py <N>` — prints a phase's CONTEXT + all PLAN titles + all SUMMARY headlines + VERIFICATION status in one scrollable block |
+| CLAUDE.md Script Catalog drifts when scripts land but nobody updates it | Manual table maintenance | Either: (a) `scripts/check_catalog.py` CI check that parses `scripts/` dir and diffs against Catalog table, OR (b) convention that every `scripts/*.py` has a docstring-parseable header and Catalog is regenerated |
+| Subagent prompts keep restating `CRITICAL_FILE_SCOPE_GUARDRAIL`, no-worktree mode, prev-session anti-patterns | Copy-paste every time | Extract reusable prompt fragments to `.planning/agent-prompts/` (e.g., `executor-preamble.md`) — each subagent spawn includes via `@.planning/agent-prompts/executor-preamble.md` — DRY for agent briefings |
+| Reading CI status across many commits is tedious | `gh run list` returns raw table | `scripts/ci_status.py [--since SHA]` — since last deploy, show green/red per commit with links to failing jobs |
+| Every new overnight session re-reads 6+ handoff files to get oriented | Handoff-file sprawl | Consolidate onboarding into a single `.planning/ONBOARDING.md` that links + excerpts the 6 files rather than forcing re-read. Keep MORNING-HANDOFF as the session-specific addendum. |
+
+### Proposed Execution
+
+**Session 4 warm-up (~2 h)**:
+
+1. Spawn one subagent to close the 5 P0/P1 backlog items above (04.1 SC-2, 2 CI checker scripts, research doc refresh, `agent_id` fix).
+2. Spawn a second subagent to build the automation artifacts (`scripts/commit.sh`, `scripts/run_uat.py`, `scripts/phase_show.py`, extract agent-prompt fragments).
+3. Once both land, update CLAUDE.md Script Catalog with the new tools.
+4. Then proceed with Track A/B/C from §Starter Moves.
+
+**Low-risk. High leverage.** Every subsequent session benefits.
+
+### Future-Self Note
+
+After this cleanup sweep, the project should be close to the state where *the work an agent does that isn't "building emergence tooling" feels like it's literally zero friction.* If future sessions find NEW friction, add to this section and close in the next warm-up.
+
+---
+
 ## Session 3 Summary (What Just Shipped)
 
 17 commits (`75fa563..c19fb8b`). 1645 → 1743 tests (+98). Milestone v1.0 tagged, archived, retrospective written.
