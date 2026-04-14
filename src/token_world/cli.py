@@ -1635,3 +1635,38 @@ def trace_property(slug: str, node_id: str, property: str, hop_limit: int, fmt: 
         click.echo(render_trace_json(report), nl=False)
     else:
         click.echo(render_trace_table(report), nl=False)
+
+
+@cli.command("watch")
+@click.argument("slug")
+@click.option(
+    "--interval",
+    type=float,
+    default=1.0,
+    show_default=True,
+    help="Polling interval in seconds.",
+)
+def watch_universe(slug: str, interval: float) -> None:
+    """Live tail of newly-written tick summaries (one line per tick).
+
+    Polls ``<universe>/tick_summaries/ticks/`` for new files and emits
+    each as ``[tick_id] timestamp status (N mut) observation_excerpt``.
+    Existing files at startup are NOT re-emitted. Ctrl-C to exit.
+    """
+    from token_world.inspect.watch import watch_loop
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(slug)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    click.echo(
+        f"Watching {universe_dir / 'tick_summaries' / 'ticks'} (Ctrl-C to exit)",
+        err=True,
+    )
+    try:
+        watch_loop(universe_dir, out=sys.stdout, poll_interval=interval)
+    except KeyboardInterrupt:
+        click.echo("\nStopped.", err=True)
