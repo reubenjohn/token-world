@@ -1755,3 +1755,105 @@ def stats_universe(slug: str, since: int | None, stream: bool, interval: float, 
             time.sleep(interval)
     except KeyboardInterrupt:
         click.echo("\nStopped.", err=True)
+
+
+@cli.command("agents")
+@click.argument("slug")
+@click.option(
+    "--id",
+    "agent_id",
+    default=None,
+    help="Show only the agent with this id (default: list all agents).",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["table", "json"]),
+    default="table",
+    show_default=True,
+    help="Output format.",
+)
+def agents_inspector(slug: str, agent_id: str | None, fmt: str) -> None:
+    """Inspect agent-typed nodes: personality, memory, active LRA, attention.
+
+    Without ``--id``, summarises every agent. With ``--id alice`` returns
+    the full property bundle for that single agent. Properties are
+    bucketed into well-known groups (personality, persona, memory, LRA,
+    attention) plus an ``other_properties`` dump for everything else.
+    """
+    from token_world.inspect.agents import (
+        aggregate as aggregate_agents,
+    )
+    from token_world.inspect.agents import (
+        render_json as render_agents_json,
+    )
+    from token_world.inspect.agents import (
+        render_table as render_agents_table,
+    )
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(slug)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    report = aggregate_agents(universe_dir, slug=slug, agent_id=agent_id)
+    if report.not_found_id is not None:
+        # Soft-fail: still emit the JSON/table so consumers see the
+        # not_found_id field. Exit code 4 to distinguish from "no universe".
+        if fmt == "json":
+            click.echo(render_agents_json(report), nl=False)
+        else:
+            click.echo(render_agents_table(report), nl=False)
+        raise SystemExit(4)
+
+    if fmt == "json":
+        click.echo(render_agents_json(report), nl=False)
+    else:
+        click.echo(render_agents_table(report), nl=False)
+
+
+@cli.command("diff")
+@click.argument("slug")
+@click.argument("tick_a")
+@click.argument("tick_b")
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["table", "json"]),
+    default="table",
+    show_default=True,
+    help="Output format.",
+)
+def diff_ticks(slug: str, tick_a: str, tick_b: str, fmt: str) -> None:
+    """Show graph changes between two ticks (event replay).
+
+    Walks `graph_events` for the half-open interval (tick_a, tick_b]
+    and reports added/removed nodes & edges plus property changes
+    (showing old -> new). When the same property is mutated multiple
+    times in the window, the change is marked ``(multi)`` to indicate
+    intermediate values were elided.
+    """
+    from token_world.inspect.diff import (
+        diff as compute_diff,
+    )
+    from token_world.inspect.diff import (
+        render_json as render_diff_json,
+    )
+    from token_world.inspect.diff import (
+        render_table as render_diff_table,
+    )
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(slug)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    report = compute_diff(universe_dir, slug=slug, tick_a=tick_a, tick_b=tick_b)
+    if fmt == "json":
+        click.echo(render_diff_json(report), nl=False)
+    else:
+        click.echo(render_diff_table(report), nl=False)
