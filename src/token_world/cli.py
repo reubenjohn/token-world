@@ -1529,3 +1529,50 @@ def tick_detail(slug: str, tick_id: str, fmt: str) -> None:
         click.echo(render_tick_json(payload), nl=False)
     else:
         click.echo(render_tree(payload), nl=False)
+
+
+@cli.command("mechanics")
+@click.argument("slug")
+@click.option(
+    "--author",
+    type=click.Choice(["seed", "operator"]),
+    default=None,
+    help="Filter by author classification (default: show all).",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["table", "json"]),
+    default="table",
+    show_default=True,
+    help="Output format.",
+)
+def mechanics_browser(slug: str, author: str | None, fmt: str) -> None:
+    """Registry browser: list mechanics with call counts and metadata.
+
+    Each row shows id, voluntary flag, author classification (seed/operator),
+    invocation count across all ticks, last-invoked tick id, tags and the
+    declared description. Source path is included in JSON output.
+    """
+    from token_world.inspect.mechanics import (
+        aggregate as aggregate_mechanics,
+    )
+    from token_world.inspect.mechanics import (
+        render_json as render_mechanics_json,
+    )
+    from token_world.inspect.mechanics import (
+        render_table as render_mechanics_table,
+    )
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(slug)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    report = aggregate_mechanics(universe_dir, slug=slug, author_filter=author)
+    if fmt == "json":
+        click.echo(render_mechanics_json(report), nl=False)
+    else:
+        click.echo(render_mechanics_table(report), nl=False)
