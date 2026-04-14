@@ -150,7 +150,7 @@ Run quick test after every change. Run full suite before commits.
 | `uv run python scripts/phase_waves.py <phase>` | Report wave structure + files_modified overlap for a phase (pre-execution safety check) |
 | `uv run python scripts/inspect_playtest_report.py <path>` | Pretty-print a playtest report JSON: turns, aggregate scores, judge block |
 | `uv run python scripts/update_prompt_hashes.py <universe_slug>` | Refresh `<universe>/prompts.sha256.json` baseline after reverting experimental prompt edits (preserves personality-bound `agent_system_prompt` hash) |
-| `scripts/commit.sh <msg-file>` | 3-line wrapper for `git add -A && git commit -F <msg> && git push origin master` — sidesteps the `deny-ad-hoc-bash` 300-char heredoc block |
+| `scripts/commit.sh <msg-file> [paths...]` | Wraps `git add (-A or paths) && git commit -F <msg> && git push origin master` — sidesteps the `deny-ad-hoc-bash` 300-char heredoc block. Pass explicit paths in parallel-subagent sessions to avoid sweeping another agent's WIP. |
 | `uv run python scripts/check_requirements_traceability.py [--milestone v1.0\|active]` | Diff REQUIREMENTS.md status against ROADMAP/Traceability table; non-zero on drift; pytest-wired in `tests/test_meta/` |
 | `uv run python scripts/check_roadmap_progress.py [--milestone v1.0\|active]` | Diff ROADMAP Progress table against actual phase PLAN/SUMMARY counts; non-zero on drift; pytest-wired in `tests/test_meta/` |
 | `uv run python scripts/run_uat.py <slug> [--turns N]` | Phase 6 UAT in one command — runs all 3 items end-to-end via claude-cli backend; prints verdict |
@@ -164,7 +164,7 @@ A few rough edges worth knowing:
 - **Use absolute paths, not `$HOME`** — a Claude Code permission-prompt bug mis-handles `$HOME` in commands, rejecting tool uses that would otherwise auto-approve. Write `/home/reuben/.claude/...` explicitly. Same applies to `~/`.
 - **Avoid inline `python3 -c` / heredoc pipelines** — they look opaque in permission prompts and aren't reviewable after the fact. If you need to parse JSON, pipe to `jq`. If the logic is more than a one-liner, promote it to a script in `scripts/` (see `phase_waves.py` for the pattern).
 - **Avoid long chained pipelines that assert invariants** — if bash is computing something you'll want to re-run later, it belongs in a committed `scripts/` file (grounding rule #4, "ad-hoc bash is a missing-tool signal").
-- **Use `scripts/commit.sh <msg-file>` for commits** — 3-line wrapper for `git add -A && git commit -F <msg-file> && git push origin master`. Avoids the `deny-ad-hoc-bash.js` hook that blocks 300+ char bash commands with inline heredocs. Write the commit body to a unique path under `/tmp/commit_<topic>.txt` (the `Write` tool refuses to overwrite unread files, so reusing `/tmp/commit_msg.txt` across sessions fails).
+- **Use `scripts/commit.sh <msg-file> [paths...]` for commits** — wraps `git add (-A or explicit paths) && git commit -F <msg-file> && git push origin master`. Avoids the `deny-ad-hoc-bash.js` hook that blocks 300+ char bash commands with inline heredocs. Write the commit body to a unique path under `/tmp/commit_<topic>.txt` (the `Write` tool refuses to overwrite unread files, so reusing `/tmp/commit_msg.txt` across sessions fails). **In parallel-subagent sessions, always pass explicit paths** so you don't sweep another agent's WIP into your commit.
 
 ## Critical Constraints
 
