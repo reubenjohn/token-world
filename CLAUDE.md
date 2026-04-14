@@ -130,12 +130,19 @@ Run quick test after every change. Run full suite before commits.
 | `token-world delete slug` | Delete a universe |
 | `token-world playtest <slug> [--turns N] [--judge]` | Run N-turn simulation, write JSON report; add `--judge` for Sonnet rubric |
 | `token-world cost <slug> [--since N] [--format table\|json]` | Aggregate per-universe LLM cost + token counts from `tick_summaries/`; auto-detects backend (anthropic-sdk / claude-cli / mixed) |
+| `token-world inspect <slug> [--last N] [--format table\|json]` | Universe-at-a-glance: graph shape, mechanic count by author, recent ticks, active LRAs, recent yields. See `docs/guides/operator-cli.md` |
+| `token-world tick <slug> <tick_id> [--format table\|json]` | Pretty-print a single tick's full action -> classification -> mechanic -> mutations -> observation tree |
+| `token-world trace <slug> <node_id> <property> [--hops N] [--format table\|json]` | Causal-chain walker: walk `graph_events` backward, enrich each hop with surrounding tick context |
+| `token-world mechanics <slug> [--author seed\|operator] [--format table\|json]` | Registry browser with call counts + last-invoked tick |
+| `token-world stats <slug> [--since N] [--stream] [--format table\|json]` | Aggregate metrics: throughput, yield rate, novel-mechanic rate, conservation violations, cost (composes with `cost`) |
+| `token-world watch <slug> [--interval S]` | Live tail of new tick summaries, one line per tick (Ctrl-C to exit) |
 | `TOKEN_WORLD_BACKEND=claude-cli token-world playtest ...` | Route LLM calls through `claude -p` subprocess (zero marginal cost via Claude subscription) — see `docs/guides/claude-cli-backend.md` |
 | `uv run pytest -x -q` | Quick test run |
 | `uv run pytest -v` | Full verbose test run |
 | `uv run ruff check src/` | Lint check |
 | `uv run ruff format src/` | Auto-format |
 | `uv run mypy src/token_world/graph/` | Type check graph module |
+| `uv run mypy src/token_world/inspect/` | Type check inspect (operator CLI) module |
 | `uv run python scripts/phase_waves.py <phase>` | Report wave structure + files_modified overlap for a phase (pre-execution safety check) |
 | `uv run python scripts/inspect_playtest_report.py <path>` | Pretty-print a playtest report JSON: turns, aggregate scores, judge block |
 | `uv run python scripts/update_prompt_hashes.py <universe_slug>` | Refresh `<universe>/prompts.sha256.json` baseline after reverting experimental prompt edits (preserves personality-bound `agent_system_prompt` hash) |
