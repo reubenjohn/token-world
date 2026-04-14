@@ -161,6 +161,13 @@ Both are pay-for-what-you-use: `ctx._spatial` / `ctx._temporal` stay `None` unti
 - **`token-world list`** -- enumerate known universes.
 - **`token-world viz-graph <slug>`** -- render the knowledge graph as a Mermaid `flowchart LR` with category styling, label/ID sanitisation, and filters (`--node`, `--depth`, `--type`, `--has-property`, `--exclude-property`, `--max-nodes`). See the [viz-graph guide](../guides/viz-graph.md).
 
+## Quality
+
+Two canonical discipline docs gate merges and overnight runs:
+
+- **[dashboard-qa-checklist.md](../quality/dashboard-qa-checklist.md)** -- required PR pass for any `src/token_world/dashboard/` change (nine interactive checks + Playwright routine + user-mode cooldown).
+- **[sim-quality-rubric.md](../quality/sim-quality-rubric.md)** -- seven-dimension scorecard for "is the run healthy?" CI gate on release-tier overnight runs.
+
 ## Phase 4.1: Operator Harness
 
 The operator harness catches simulation yields and drives mechanic authoring via the Claude Agent SDK. Two entry points share the same universe MCP surface and the same mechanic-author subagent definition:
