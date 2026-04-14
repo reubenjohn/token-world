@@ -75,3 +75,7 @@ Stopped at: 11 mechanics emerged in Willowbrook overnight run; dashboard demoabl
 Resume file: MORNING-HANDOFF.md + `.planning/OVERNIGHT-REPORT-20260415.md`
 
 **Next action:** Demo the dashboard (`uv run token-world dashboard willowbrook`), review the 11 authored mechanics, decide on Phase 12 (mechanic overlap detector, operator-log enrichment) or v1.2 multi-agent re-scope.
+
+### v1.2 REQUIREMENTS assembled (2026-04-14)
+
+v1.2 REQUIREMENTS.md assembled from MORNING-HANDOFF §I (deferred sweep) + §J (prioritised backlog): **12 active**, **11 shipped pre-milestone**, **12 items retained as v2+ deferred** with rationale. `check_requirements_traceability.py --milestone active` passes; meta tests green.

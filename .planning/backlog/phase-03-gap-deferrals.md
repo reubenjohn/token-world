@@ -29,3 +29,20 @@ These gaps were surfaced in Phase 3 gap analysis but deferred to a later milesto
 
 ---
 *Backlog derived deterministically from `.planning/GAP-ANALYSIS.md` — 2026-04-12*
+
+## Disposition update — 2026-04-14 (v1.2 REQUIREMENTS assembly)
+
+Per MORNING-HANDOFF §I, **four** of the 16 items gained Willowbrook traction
+in session 4 and are promoted to **v1.2.0 Graph Conventions** in
+`.planning/REQUIREMENTS.md`:
+
+- GAP-GRAPH06 → REQ-V12-GRAPH-03 (portal / passage vocabulary)
+- GAP-GRAPH10 → REQ-V12-GRAPH-04 (fungible amount representation)
+- GAP-GRAPH14 → REQ-V12-GRAPH-02 (container subtype + capacity)
+- GAP-GRAPH18 → REQ-V12-GRAPH-01 (door state canonical representation)
+
+The remaining **12 items stay deferred to v2.0+** — listed under the
+`## v2.0+ Deferred` section of `.planning/REQUIREMENTS.md` as bullet
+points (renamed from `GAP-*` to lowercase kebab-case so the traceability
+script doesn't flag them as v1.2 orphan requirements; their original
+GAP-IDs are preserved in parenthetical notes for cross-reference).
