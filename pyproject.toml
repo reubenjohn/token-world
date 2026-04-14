@@ -19,6 +19,9 @@ dependencies = [
     "claude-agent-sdk>=0.1.58",
 ]
 
+[project.optional-dependencies]
+dashboard = ["nicegui>=2.24"]
+
 [project.scripts]
 token-world = "token_world.cli:cli"
 token-world-mcp = "token_world.mcp_server:main"
