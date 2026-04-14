@@ -79,11 +79,40 @@ dashed "located_in" pseudo-edges from every agent node whose properties
 name a room. Similar treatment for any property that references a known
 node id (this is a small refactor — see A8 below for a richer version).
 
-**A5. Tick-card expansion should show the mechanic side-effect chain.**
-Mutations list is flat today. When a mechanic triggers downstream mechanics
-(via `ChainExecutionEngine` children), the tree should be rendered as a
-tree — "force_lock triggered: unlock_chest → set locked=False → observe(chest)".
-Related to backlog §E mutation-chain visibility.
+**A5. Tick-card expansion should show the side-effect chain tree (per
+tick, forward propagation).** Mutations list is flat today. When a
+mechanic triggers downstream mechanics (via `ChainExecutionEngine`
+children), the tree should be rendered as a tree —
+`force_lock(check_pass) → mutates(old_chest.locked=False) → triggered
+unlock_chest → mutates(...) → triggered observe_chest`. The
+`ExecutionTrace` already carries this; the panel just needs a tree
+renderer.
+
+**A5a. Naming clarification — distinguish "side-effect chain" from
+"property history".** Today the dashboard has a panel labelled "Causal
+chain" — that's `token-world trace <slug> <node> <prop>`, which walks
+**backward** through mutations on a single property on a single node:
+"why does `mira.energy = 0.72`? Because tick 35 force decremented from
+0.75. Because tick 21 water decremented from … " etc. That's a property
+history walker.
+
+The new view A5 wants is **forward** propagation **within a single
+tick** — which mechanics fired, which mutations they emitted, which
+mechanics they in turn triggered. That's a side-effect chain.
+
+These are two distinct surfaces. Recommend renaming:
+
+| Surface | Today's name | Better name | Direction | Scope |
+|---|---|---|---|---|
+| `token-world trace` + dashboard panel | "Causal chain" | **"Property history"** | backward in time | single property on a single node, all-time |
+| Tick expansion side-effect tree (A5) | (does not exist yet) | **"Side-effect chain"** or **"Mechanic chain (this tick)"** | forward within a tick | one tick's full execution tree |
+
+Action: rename `panels/causal_chain.py` → `panels/property_history.py`
+(or keep filename, change UI label) and add a new
+`panels/side_effect_chain.py` mounted inside the tick-card expansion
+(A5). The `token-world trace` CLI may also benefit from a rename to
+`token-world history`, but that's a public-API change — flag it but
+don't auto-rename without user sign-off.
 
 **A6. `token-world inspect` table is missing column headers.** Rows show up
 as `17 refuse - (0 mut) ...` with no `TICK STATUS MECHANIC MUT OBSERVATION`
@@ -515,6 +544,7 @@ longer than 2 seconds.**
    away DOM in tick stream + graph canvas. Drawer never rebuilds on poll.
 3. **A6 inspect headers** — 5 min, trivial polish.
 4. **A1 + A2 tick-expansion full text + structured sections** — 45 min.
+4a. **A5 + A5a side-effect chain tree in tick expansion + rename "causal chain" → "property history"** — 60 min. Renaming is mostly mechanical (panel file + UI label, leave CLI alone for now); side-effect tree renders the existing `ExecutionTrace`.
 4. **A3 + A4 graph canvas bracket fix + located_in pseudo-edges** — 30 min.
 5. **F row 1 — `token-world yield` CLI + dashboard "Active Yield" panel** — 45 min.
 6. **C Mira-character-break mitigation (prompt tighten OR auto-halt)** — 30 min.
