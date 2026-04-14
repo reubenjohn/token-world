@@ -1,0 +1,135 @@
+"""NiceGUI application factory for the read-only dashboard.
+
+The module exposes two entry points:
+
+- :func:`create_app` wires all panels into the NiceGUI page decorator and
+  returns the ``ui`` module for chaining. This is the testable seam — it
+  touches NiceGUI but does not start a server.
+- :func:`run_app` is the CLI entry point: calls :func:`create_app`, then
+  ``ui.run``.
+
+The dashboard is entirely read-only (D-01 constraint). It never writes to
+the graph, mechanics dir, or tick summaries.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from token_world.universe.manager import UniverseManager
+
+
+def _resolve_universe(slug: str) -> Path:
+    """Resolve a slug to a universe directory, raising on missing."""
+    manager = UniverseManager()
+    return manager.load(slug)
+
+
+def create_app(slug: str, *, dark: bool = True) -> Any:
+    """Build the NiceGUI page for ``slug``.
+
+    Called by :func:`run_app` and by tests. Tests may pass a slug for
+    a non-existent universe — the dashboard displays an error banner
+    instead of crashing.
+    """
+    from nicegui import ui
+
+    # Resolve once; panels downstream take a Path, not a slug.
+    universe_dir: Path | None
+    error: str | None
+    try:
+        universe_dir = _resolve_universe(slug)
+        error = None
+    except FileNotFoundError as exc:
+        universe_dir = None
+        error = str(exc)
+
+    if dark:
+        ui.dark_mode().enable()
+
+    @ui.page("/")
+    def index() -> None:  # noqa: D401 — NiceGUI page handler, not a docstring prop.
+        ui.add_head_html(
+            "<style>.token-world-main{max-width:1600px;margin:0 auto;padding:16px;}</style>"
+        )
+        with ui.column().classes("token-world-main gap-4 w-full"):
+            ui.label(f"Token World Dashboard — {slug}").classes(
+                "text-2xl font-semibold text-slate-200"
+            )
+            if error is not None or universe_dir is None:
+                with ui.card().classes("w-full bg-red-900 text-slate-100"):
+                    ui.label("Universe not found").classes("text-lg font-semibold")
+                    ui.label(error or "(unknown error)").classes("text-sm font-mono")
+                    ui.label(
+                        "Check `token-world list` for available slugs, or "
+                        "`token-world create <name>` to scaffold one."
+                    ).classes("text-xs text-slate-300")
+                return
+
+            # --- Header strip -------------------------------------------------
+            from token_world.dashboard.panels.stats import mount_stats_strip
+
+            mount_stats_strip(universe_dir, slug)
+
+            # --- Main body (tick stream | graph | causal chain) --------------
+            _mount_main_body(ui, universe_dir, slug)
+
+    return ui
+
+
+def _mount_main_body(ui: Any, universe_dir: Path, slug: str) -> None:
+    """Mount the main split pane (tick stream / graph / causal chain).
+
+    Each panel module is imported lazily so earlier plans (11-01) can ship
+    with just the stats strip; later plans (11-02+) drop in the remaining
+    modules without changing this seam.
+    """
+    try:
+        from token_world.dashboard.panels.tick_stream import mount_tick_stream_panel
+    except ImportError:
+        mount_tick_stream_panel = None  # type: ignore[assignment]
+    try:
+        from token_world.dashboard.panels.graph_canvas import mount_graph_panel
+    except ImportError:
+        mount_graph_panel = None  # type: ignore[assignment]
+    try:
+        from token_world.dashboard.panels.causal_chain import mount_causal_chain_panel
+    except ImportError:
+        mount_causal_chain_panel = None  # type: ignore[assignment]
+
+    with ui.row().classes("w-full gap-4 items-stretch flex-wrap"):
+        with ui.column().classes("flex-1 min-w-[360px] max-w-[560px] gap-2"):
+            ui.label("Tick stream").classes("text-lg font-semibold text-slate-200")
+            if mount_tick_stream_panel is not None:
+                mount_tick_stream_panel(universe_dir, slug)
+            else:
+                ui.label("(tick stream panel ships in Plan 11-02)").classes(
+                    "text-xs text-slate-400"
+                )
+        with ui.column().classes("flex-1 min-w-[480px] gap-2"):
+            ui.label("Graph canvas").classes("text-lg font-semibold text-slate-200")
+            if mount_graph_panel is not None:
+                mount_graph_panel(universe_dir, slug)
+            else:
+                ui.label("(graph canvas ships in Plan 11-03)").classes("text-xs text-slate-400")
+            ui.separator()
+            ui.label("Causal chain").classes("text-lg font-semibold text-slate-200")
+            if mount_causal_chain_panel is not None:
+                mount_causal_chain_panel(universe_dir, slug)
+            else:
+                ui.label("(causal chain ships in Plan 11-04)").classes("text-xs text-slate-400")
+
+
+def run_app(slug: str, *, port: int = 8080, dark: bool = True, show: bool = True) -> None:
+    """CLI entry: build the app and start the server."""
+    ui = create_app(slug, dark=dark)
+    # reload=False: we never want the NiceGUI reloader picking up stale modules
+    # in a CLI run. show opens the browser; callers disable it in tests.
+    ui.run(
+        title=f"Token World — {slug}",
+        port=port,
+        reload=False,
+        show=show,
+        dark=dark,
+    )

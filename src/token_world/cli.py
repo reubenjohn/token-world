@@ -1857,3 +1857,56 @@ def diff_ticks(slug: str, tick_a: str, tick_b: str, fmt: str) -> None:
         click.echo(render_diff_json(report), nl=False)
     else:
         click.echo(render_diff_table(report), nl=False)
+
+
+@cli.command("dashboard")
+@click.argument("slug")
+@click.option(
+    "--port",
+    type=int,
+    default=8080,
+    show_default=True,
+    help="Port to bind the dashboard server on (localhost only).",
+)
+@click.option(
+    "--no-show",
+    is_flag=True,
+    default=False,
+    help="Do not open a browser window automatically.",
+)
+@click.option(
+    "--no-dark",
+    is_flag=True,
+    default=False,
+    help="Disable dark mode.",
+)
+def dashboard_cmd(slug: str, port: int, no_show: bool, no_dark: bool) -> None:
+    """Launch the read-only web dashboard for a universe.
+
+    Requires the optional ``[dashboard]`` extra (``uv sync --extra dashboard``).
+    Opens a browser at ``http://localhost:PORT`` with four panels: stats
+    strip, live tick stream, graph canvas, causal chain viewer. The
+    dashboard is strictly read-only — all mutation still flows through the
+    simulation engine + MCP.
+    """
+    try:
+        from token_world.dashboard.app import run_app
+    except ImportError as exc:
+        click.echo(
+            "Error: dashboard extras not installed. Run `uv sync --extra dashboard` and retry.",
+            err=True,
+        )
+        click.echo(f"(import failure: {exc})", err=True)
+        raise SystemExit(1) from exc
+
+    # Verify the universe exists early so we fail before NiceGUI prints banners.
+    manager = UniverseManager()
+    try:
+        manager.load(slug)
+    except FileNotFoundError as exc:
+        click.echo(f"Error: {exc}", err=True)
+        click.echo("Hint: run `token-world list` to see available slugs.", err=True)
+        raise SystemExit(1) from exc
+
+    click.echo(f"Starting dashboard for '{slug}' on http://localhost:{port}")
+    run_app(slug, port=port, dark=not no_dark, show=not no_show)

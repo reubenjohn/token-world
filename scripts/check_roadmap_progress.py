@@ -262,6 +262,13 @@ def build_report(roadmap_path: Path) -> DriftReport:
         mentioned_phase_ids.add(row.phase_id.zfill(2) if "." not in row.phase_id else row.phase_id)
         dir_path = _find_phase_dir(row.phase_id)
         if dir_path is None:
+            # Retroactive-phasing tolerance: a row whose phase dir doesn't
+            # exist yet is the known-acceptable "ship in direct mode,
+            # scaffold dir later" pattern (e.g. v1.1 phase 09/10/12 rows
+            # land before any PLAN.md is written). Only flag when the row
+            # claims Complete progress.
+            if row.status.lower() in ("in progress", "planning"):
+                continue
             report.phase_dir_missing.append(row.phase_id)
             continue
 
@@ -279,6 +286,13 @@ def build_report(roadmap_path: Path) -> DriftReport:
             and row.status.lower() in ("in progress", "planning")
         )
         if is_retroactive_skeleton:
+            continue
+
+        # Planning-stage tolerance: a phase whose row says "Planning"
+        # may have 1+ PLAN files in flight (planning underway). Skip
+        # the count + status checks while in this transient state. Only
+        # SUMMARY count > 0 would mean the row is actually wrong.
+        if row.status.lower() == "planning" and summary_count == 0:
             continue
 
         # Count mismatch: compare when both sides are known.
