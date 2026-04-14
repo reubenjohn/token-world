@@ -1391,3 +1391,49 @@ def playtest(
             click.echo(f"Judge scores: {judge_result.get('scores', {})}")
         except Exception as exc:  # never block the run on judge failure
             click.echo(f"Judge pass failed (report still written): {exc}", err=True)
+
+
+@cli.command("cost")
+@click.argument("slug")
+@click.option(
+    "--since",
+    type=int,
+    default=None,
+    help="Only aggregate the last N ticks (default: all ticks).",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["table", "json"]),
+    default="table",
+    show_default=True,
+    help="Output format.",
+)
+def cost(slug: str, since: int | None, fmt: str) -> None:
+    """Aggregate per-tick USD and token counts into a compact dashboard.
+
+    Reads only from ``<universe>/tick_summaries/`` (ticks/, batches/, epochs/).
+    Pure-Python, no LLM calls. Under the claude-cli backend token counters
+    are 0 by design (Phase 07.1 D-07); such runs are flagged as
+    "CLI-subscription" rather than shown as free.
+    """
+    from token_world.playtest.cost import aggregate, render_json, render_table
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(slug)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    report = aggregate(universe_dir, slug=slug, since=since)
+
+    # Emit skip warnings to stderr first so a caller piping stdout to jq
+    # still sees them.
+    for warning in report.warnings:
+        click.echo(f"warning: {warning}", err=True)
+
+    if fmt == "json":
+        click.echo(render_json(report), nl=False)
+    else:
+        click.echo(render_table(report), nl=False)
