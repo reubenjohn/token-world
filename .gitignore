@@ -58,3 +58,6 @@ uv.lock
 
 # MkDocs build output
 site/
+
+# Claude Code runtime state
+.claude/scheduled_tasks.lock
