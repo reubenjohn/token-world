@@ -222,6 +222,121 @@ Track A → Track C → Track B. **CLI first** because it's what agents consume 
 
 ---
 
+## Complete Tooling Inventory (What It Takes To Get To Emergence)
+
+Full brainstorm of what needs to exist for universes to *reliably emerge from play* and be *legible to observers*. Grouped by audience. Mark P0 / P1 / P2 — P0 is emergence-blocking, P1 is emergence-amplifying, P2 is polish.
+
+### A. Operator Tools (what the authoring LLM needs)
+
+| Tool | Purpose | Status | Priority |
+|---|---|---|---|
+| `token-world inspect <slug>` | Universe overview — node/mechanic/agent counts, last N ticks, active LRAs, recent yields | missing | **P0** |
+| `token-world tick <slug> <id>` | Full tick detail — action → classification → match → mutations → observation tree | missing | **P0** |
+| `token-world trace <slug> <node.prop>` | Causal chain — "why does alice.hp=3?" → mutation → mechanic → action → tick | missing | **P0** |
+| `token-world mechanics <slug>` | Registry browser — verb, tags, call count, last invoked, source path | partial (Phase 2 registry exists) | **P0** |
+| `validate_mechanic <path>` | Run existing Phase 4 pipeline as CLI step so operator can verify before committing | exists in Phase 4, needs CLI expose | **P0** |
+| `token-world mechanic-diff <mechanic-id>` | Show version history + diff between versions | missing | P1 |
+| `token-world agent <slug> <id>` | Personality + rolling memory + active LRA + attention state | missing | P1 |
+| `token-world graph <slug> [--seed-query Q]` | Mermaid / JSON export — `viz-graph` already exists, needs universe-slug ergonomics | partial | P1 |
+| `token-world stats <slug> [--stream]` | Tick/min, yield %, novel-mechanic rate, cost, emergent-subtype count | missing | **P0** |
+| `token-world diff <slug> <tick_a> <tick_b>` | Snapshot delta — nodes/edges/properties changed between two ticks | missing (graph snapshots exist) | P1 |
+| `token-world search <slug> --verb X --since N` | Find ticks matching a predicate — debug a recurring failure | missing | P2 |
+| `token-world mechanic-lint <path>` | Style + convention check for a proposed mechanic before validation | missing | P1 |
+| `token-world mechanic-dedup <slug> <proposed-verb>` | Check if existing mechanic already covers the verb/watches intent | missing | **P0** |
+| Mechanic template library | Copy-paste-adapt snippets for common patterns (LRA, TickMatcher, AOE, etc.) | implicit in seeds/; promote to docs/templates/ | P1 |
+| MCP tools on engine | Add `inspect_universe`, `trace_property`, `stats` alongside `resume_tick`/`rollback`/`list_mechanics` | partial | P1 |
+
+### B. Observer Tools (humans and non-authoring agents)
+
+| Tool | Purpose | Status | Priority |
+|---|---|---|---|
+| Web dashboard — tick stream | Live card feed: agent intent → verdict → mechanic → observation | missing | **P0** |
+| Web dashboard — graph canvas | Interactive node-link view of current graph state | missing | **P0** |
+| Web dashboard — causal chain panel | Click a property → walk back through mutations → mechanic → action | missing | **P0** |
+| Web dashboard — stats strip | Live numbers (always visible): tick #, tick/min, yield %, novel mechanics, cost | missing | **P0** |
+| Web dashboard — tick scrubber | Horizontal timeline; click tick → rewind graph canvas via snapshot | missing | P1 |
+| Web dashboard — mechanic registry table | List mechanics + call counts + author (seed vs operator) | missing | P1 |
+| Web dashboard — agent inspector drawer | Personality / memory / active LRA / attention state for any agent | missing | P1 |
+| Web dashboard — styling + polish | Dark mode, typography, motion design — matters for sharing | missing | P2 |
+| `token-world watch <slug>` | Terminal live-tail — stdout stream as new ticks land | missing | **P0** |
+| `token-world replay <slug> --speed Nx` | Play back historical ticks with timing | missing | P2 |
+| `token-world export <slug> --format html` | Standalone shareable HTML page of a completed universe | missing | P2 |
+
+### C. Emergence Loop (the missing glue)
+
+| Tool | Purpose | Status | Priority |
+|---|---|---|---|
+| Autonomous operator mode | `OperatorHarness.run_until_blocked()` — Agent SDK drives yield→author→validate→resume without human clicks | partial (single-tick harness exists) | **P0** |
+| Mechanic overlap detector | Before authoring, diff proposed verb+watches against existing mechanics; prefer edit-existing over create-new | missing | **P0** |
+| Mechanic quality gate | Linter + validator + TDD test-run pass required before commit | Phase 4 pipeline exists; wire as gate | **P0** |
+| Tick budget | `--ticks N` auto-stops after N ticks | missing | **P0** |
+| Yield budget | Stop if operator consulted >N times in last M ticks (thrashing protection) | missing | **P0** |
+| Cost ceiling | Refuse to start if estimated cost > $X; abort mid-run if exceeded | missing | **P0** |
+| Kill switch | `<universe>/.stop` file halts loop at next checkpoint | missing | **P0** |
+| Snapshot cadence | Auto-snapshot every N ticks for rollback-ability | partial (manual snapshots exist) | **P0** |
+| Resume from crash | Next invocation picks up from last snapshot | missing | P1 |
+| Operator decision log | `<universe>/operator-log.jsonl` — what the operator chose and why, per yield | missing | **P0** |
+| Operator health check | Heartbeat — "is the simulation actually progressing?" vs stuck in a classify-retry loop | missing | P1 |
+
+### D. Seed Universe Infrastructure (inviting interesting emergence)
+
+| Tool | Purpose | Status | Priority |
+|---|---|---|---|
+| `scripts/seed_starter_universe.py` | Reproducible starter: 3-5 entities with emergent hooks, 2 agents with contrasting personalities, 5-8 seed mechanics | missing | **P0** |
+| Multi-agent support (2-3 agents in same universe) | Two agents with different personalities in one tick cycle | partial — single-agent is v1 baseline; MULTI-01 is v2 | **P0** for emergence; re-scope from v2 |
+| Personality diversity sampler | Generate contrasting personalities from archetype set (curious child, cautious elder, mercurial trickster, methodical scholar, etc.) | missing | P1 |
+| Starter-scenario catalog | A handful of seeds with known-interesting outcomes for replay + regression | missing | P1 |
+
+### E. Emergence Detection (proving it's working)
+
+| Tool | Purpose | Status | Priority |
+|---|---|---|---|
+| Novel-subtype tracker | Count distinct `subtype` values per run; flag first-occurrences; emit events to dashboard | missing | **P0** |
+| Novel-mechanic tracker | Count operator-authored mechanics per run; tag source (seed vs emergent) | missing | **P0** |
+| Novel-verb tracker | Track first time each verb is used + first mechanic match | missing | P1 |
+| Vocabulary growth curve | Plot: distinct verbs, subtypes, edge types vs tick number — convexity = emergence | missing | P1 |
+| Agent divergence metric | How differently do two agents behave given identical universe? (personality effect) | missing | P2 |
+| Conservation violation log | Ticks that hit `ConservationChecker` — root-cause tag | partial (checker exists, log surfaces are incomplete) | P1 |
+
+### F. Sharing & Demo Infrastructure
+
+| Tool | Purpose | Status | Priority |
+|---|---|---|---|
+| Hosted dashboard (public URL) | Click a link, see a universe move. GitHub Pages or Cloudflare Pages static SPA reading live data | missing | P1 |
+| `token-world archive <slug> --out foo.tar.gz` | Full universe export (graph + mechanics + tick_summaries + operator-log) for sharing | missing | P1 |
+| `token-world import foo.tar.gz` | Reproduce a shared universe locally | missing | P1 |
+| Recording mode | Headless tick run + asciinema/MP4 capture for embedding in blog posts | missing | P2 |
+| Gallery of emergent universes | Curated set of shipped universe archives with notes on what emerged | missing | P2 |
+| README demo GIF | 10-second animation of the dashboard for the top of README.md | missing | P2 |
+| Blog post scaffold | Draft + screenshots + a "try it yourself" button | missing | P2 |
+
+### G. Developer / Research Infrastructure
+
+| Tool | Purpose | Status | Priority |
+|---|---|---|---|
+| Deterministic universe seed | Given seed X + initial state + tick count, final state should be reproducible (modulo LLM nondeterminism — use `claude-cli` backend + fixed temperature) | partial (RNG via ctx.rng) | P1 |
+| Snapshot regression tests | After N ticks from seed S, expected graph structure holds | missing | P1 |
+| Fuzz testing for mechanic authoring | Generate random action texts, confirm engine never crashes (only yields or refuses) | missing | P1 |
+| Performance benchmarks | ticks/sec by (node count, mechanic count, LRA count) — track over time | missing | P2 |
+| Cost-per-tick benchmark | $ per tick across backend + model combos | missing (partial via `cost` CLI) | P1 |
+| `scripts/test_emergence.py` | Bootstrap a starter universe, run N ticks, assert M novel mechanics authored — integration test for the whole loop | missing | P1 |
+
+---
+
+### Tooling Stack: What To Build, In What Order
+
+**Phase 1 (overnight / few hours)**: Everything marked **P0** above, plus the `token-world watch` terminal live-tail. At the end of Phase 1, an operator agent can drive a universe to emergence AND a human can follow along from the terminal.
+
+**Phase 2 (next overnight)**: The P0 dashboard panels (tick stream, graph canvas, causal chain, stats strip). At the end of Phase 2, you can share a link.
+
+**Phase 3 (next milestone)**: P1s — tick scrubber, mechanic registry table, agent inspector, replay mode, sharing exports, emergence detection metrics.
+
+**Phase 4 (polish milestone)**: P2s — styling, dark mode, motion design, recording mode, gallery, blog.
+
+**Principle: elegance comes from the engine, not the tooling.** The project must stay clean; the universes it births can be as spaghetti as they want. Tooling is scaffolding — make each tool single-purpose, composable (every CLI has `--format json`), and documented in the Script Catalog. Think of the CLI surface as a **query language for universes**, not a collection of one-off scripts.
+
+---
+
 ## Session 3 Summary (What Just Shipped)
 
 17 commits (`75fa563..c19fb8b`). 1645 → 1743 tests (+98). Milestone v1.0 tagged, archived, retrospective written.
