@@ -8,6 +8,7 @@ human_verification:
   - test: "Run `token-world quality willowbrook` on the live willowbrook dataset"
     expected: "Scorecard with all 8 dimensions showing interpretable scores (no crash, no INSUFFICIENT_DATA)"
     why_human: "Willowbrook universe not available in CI; requires local environment with real run data (SC-4)"
+    result: "VERIFIED 2026-04-14 — scorecard ran cleanly on willowbrook (50 ticks): 8 dimensions scored, verdict=FAILED (expected given pre-ENGINE-01 history). No crash, no INSUFFICIENT_DATA. Calibration notes: vocabulary_growth FAIL is stagnation not rate (accurate); character_stability breaks from early seeding phase action_text; refusal_cluster max=9 reflects pre-fix era."
 ---
 
 # Phase 13: Quality KPIs Substrate — Verification Report
@@ -26,7 +27,7 @@ human_verification:
 | 1 | `token-world quality <slug>` prints a scorecard with all 8 rubric dimensions | VERIFIED | CLI command exists (`uv run token-world quality --help` confirmed); scorer.py implements all 8 dimension scorers: Groundedness, Character stability, Action coherence, Refusal cluster, Vocabulary growth, Conservation drift, Graph fan-out, Novel subtype rate |
 | 2 | Dashboard Quality panel uses Python import, never recomputes | VERIFIED | `quality.py` panel imports `from token_world.quality import QualityReport, score` (line 13); no subprocess or shell calls present; `app.py` mounts panel at lines 76+78 |
 | 3 | CI gate fails with named-dimension error when threshold breached | VERIFIED | `test_failing_fixture_exits_nonzero` passes: all-refused fixture exits 1 with "Action coherence" in stderr; `test_healthy_fixture_exits_zero` passes |
-| 4 | Works on real data (willowbrook) | HUMAN NEEDED | SC-4 requires real willowbrook dataset; not verifiable in CI |
+| 4 | Works on real data (willowbrook) | VERIFIED | `uv run token-world quality willowbrook --last 50` ran cleanly: 8 dimensions scored, verdict=FAILED (expected — pre-ENGINE-01 history). No crash, no INSUFFICIENT_DATA |
 
 **Score:** 3/3 programmatically verified truths + 1 human-needed item
 
