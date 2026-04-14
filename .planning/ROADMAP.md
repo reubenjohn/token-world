@@ -88,7 +88,9 @@ Success criteria:
 **Goal:** Every overnight run ends with an automatable, mechanically-scored quality report consumed by both CLI users and the dashboard — with CI able to gate a release on thresholds from the sim-quality rubric (docs already shipped in Phase 12.5).
 **Depends on:** Phase 12.5 (warm-up; ENGINE-01 + ENGINE-02 make the data honest enough to score)
 **Requirements:** REQ-V12-QUALITY-02
-**Plans:** TBD
+**Plans:** 2 plans
+- [ ] 13-01-PLAN.md — Quality scorer subpackage + CLI command
+- [ ] 13-02-PLAN.md — Dashboard Quality panel + CI gate + pytest wiring
 
 Success criteria:
 1. SC-1: Operator runs `token-world quality <slug>` and sees a single scorecard with all 8 rubric dimensions (groundedness, character stability, action coherence, refusal clustering, vocabulary growth, novel subtype rate, graph fan-out, conservation drift) — no filesystem-poking, no `grep` pipelines.
@@ -206,7 +208,7 @@ Full phase detail moved to [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.
 
 | Phase | Milestone | Plans Complete | Status   | Notes |
 |-------|-----------|----------------|----------|-------|
-| 13. Quality KPIs substrate | v1.2 | 0/0 | Planning | REQ-V12-QUALITY-02 — `/gsd-plan-phase 13` to scaffold |
+| 13. Quality KPIs substrate | v1.2 | 0/2 | Planning | REQ-V12-QUALITY-02 |
 | 14. Engine polish + seed corpus hygiene | v1.2 | 0/0 | Planning | ENGINE-05, SEEDS-01, TOOLING-02 |
 | 15. Multi-agent dashboard scaffold | v1.2 | 0/0 | Planning | DASHBOARD-05 — dashboard-only; engine stays single-agent |
 | 16. Composite actions | v1.2 | 0/0 | Planning | ENGINE-04 — architectural; design wave + implementation wave |
