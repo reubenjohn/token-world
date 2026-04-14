@@ -2,6 +2,12 @@
 
 **Domain:** LLM-powered procedural universe simulation
 **Researched:** 2026-04-11
+**Archived:** 2026-04-15 — see "Stale claims rectified at archival" note below before relying on any specific recommendation.
+
+> **Stale claims rectified at archival (Session 4, 2026-04-15):**
+> - **Mechanic generator model:** Opus (via Agent SDK), NOT Sonnet. Token World v1.0 ships with Opus authoring mechanics through the Phase 04.1 Operator Agent Harness ($1.15/23 turns observed in production). The original Sonnet recommendation in this document was superseded by `04-CONTEXT.md` D-02. References below in Pattern 3 + Component Boundaries table are wrong; CLAUDE.md / `src/token_world/operator/` are authoritative.
+> - **Mechanic Registry:** flat module-based registry (`mechanics/<id>.py` auto-scan), NOT folder-per-mechanic, NOT concept-indexed. The Phase 2 D-15 folder-per-mechanic decision was superseded by Phase 4 (single-file convention; see `.planning/phases/04-llm-mechanic-generation/04-01-PLAN.md`).
+> - **Sandboxing:** RestrictedPython is NOT shipped in v1. The validation pipeline (6-stage gate in `src/token_world/mechanic/validation.py`) replaces it; sandboxing was deferred to v2 per ROADMAP.
 
 ## Recommended Architecture
 
@@ -42,9 +48,9 @@
 | Component | Responsibility | Communicates With | Implementation |
 |-----------|---------------|-------------------|----------------|
 | Resident Agent | Generates actions based on personality/memory, receives observations | Simulation Engine (text in/out) | Anthropic SDK, Haiku model, system prompt with personality |
-| Simulation Engine | Interprets actions, selects/triggers mechanics, formats observations | Agent, Mechanic Registry, Generator, Graph | Anthropic SDK, Sonnet/Haiku models, tool-use pipeline |
+| Simulation Engine | Interprets actions, selects/triggers mechanics, formats observations | Agent, Mechanic Registry, Generator, Graph | Anthropic SDK, Haiku (classify) + Sonnet (observe), tool-use pipeline |
 | Mechanic Registry | Stores and indexes mechanics by concept/trigger | Engine, Framework, SQLite | Python dict + SQLite persistence |
-| Mechanic Generator | Generates new mechanic code when no existing mechanic matches | Engine, Framework | Anthropic SDK, Sonnet model, structured output |
+| Mechanic Generator | Generates new mechanic code when no existing mechanic matches | Engine, Framework | Claude Agent SDK, Opus model (NOT Sonnet — superseded by Phase 04.1 D-02) |
 | Mechanic Framework | Defines API for preconditions and side effects | All mechanic code, Graph | Pure Python classes and functions |
 | Knowledge Graph | In-memory graph state with arbitrary properties | Framework, Persistence | NetworkX DiGraph |
 | Persistence Layer | Durable storage of all state | Graph, Registry, Agent state | SQLite via stdlib sqlite3 |
@@ -145,12 +151,16 @@ class GraphMutator:
 **Why:** Cost efficiency. Haiku is roughly 10x cheaper than Sonnet. Classification tasks do not need Sonnet-level reasoning.
 
 ```python
+# WARNING (2026-04-15): generate_mechanic is OPUS in v1.0, not Sonnet.
+# Mechanic authoring runs through the Agent-SDK-driven Operator harness
+# (Phase 04.1 D-02). The format_observation route uses Sonnet (not Haiku
+# as in this stale snippet) per Phase 5 D-15 hard-grounding requirement.
 MODELS = {
-    "classify_action": "claude-haiku-4-5-20250315",
-    "select_mechanic": "claude-haiku-4-5-20250315",
-    "generate_mechanic": "claude-sonnet-4-5-20250514",
-    "format_observation": "claude-haiku-4-5-20250315",
-    "agent_personality": "claude-haiku-4-5-20250315",
+    "classify_action": "claude-haiku-4-5-20251001",
+    "select_mechanic": "claude-haiku-4-5-20251001",
+    "generate_mechanic": "claude-opus-4-6",         # Opus, not Sonnet
+    "format_observation": "claude-sonnet-4-6",      # Sonnet, not Haiku
+    "agent_personality": "claude-haiku-4-5-20251001",
 }
 ```
 

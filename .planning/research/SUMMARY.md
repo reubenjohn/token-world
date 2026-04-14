@@ -3,7 +3,14 @@
 **Project:** Token World
 **Domain:** LLM-powered procedural universe simulation
 **Researched:** 2026-04-11
+**Archived:** 2026-04-15 — see "Stale claims rectified at archival" note below before relying on any specific recommendation.
 **Confidence:** MEDIUM-HIGH
+
+> **Stale claims rectified at archival (Session 4, 2026-04-15):**
+> - **Mechanic generator model:** Opus (via Agent SDK), NOT Sonnet. Token World v1.0 ships with Opus authoring mechanics through the Phase 04.1 Operator Agent Harness ($1.15/23 turns observed in production). References below to "Sonnet for mechanic code generation" are wrong; CLAUDE.md / `src/token_world/operator/` are authoritative.
+> - **Mechanic Registry:** flat module-based registry (`mechanics/<id>.py` auto-scan), NOT folder-per-mechanic, NOT concept-indexed. The Phase 2 D-15 folder-per-mechanic decision was superseded by Phase 4 (single-file convention; see `04-llm-mechanic-generation/04-01-PLAN.md`).
+> - **Sandboxing:** RestrictedPython is NOT shipped in v1. The validation pipeline (6-stage gate) replaces it; sandboxing was deferred to v2.
+> - **Phase numbering note:** the original 6-phase plan in §"Implications for Roadmap" was reorganised during planning; the actual v1.0 ship list is Phases 0..7, plus inserted decimal phases 04.1 + 07.1. See `.planning/milestones/v1.0-ROADMAP.md`.
 
 ## Executive Summary
 
@@ -27,7 +34,7 @@ The stack is Python-centric and avoids server dependencies. NetworkX provides in
 - Pydantic 2.12+: data validation — structured output schemas, native Anthropic SDK integration
 - RestrictedPython 8.2: mechanic sandboxing — AST-level restriction, blocks dangerous ops at compile time
 
-**Model selection strategy:** Haiku 4.5 for classification, mechanic selection, observation formatting, and agent personality. Sonnet 4.5 for mechanic code generation. Estimated $0.01-0.05 per simulation step with Haiku-heavy routing.
+**Model selection strategy (v1.0 actual, post-archival rectification):** Haiku 4.5 for classification, mechanic matching, and resident-agent personality. Sonnet 4.6 for observation synthesis (D-15 hard grounding). **Opus 4.6 (via Claude Agent SDK) for mechanic code generation** — superseded the original Sonnet recommendation per Phase 04.1 D-02. Observed cost $1.15/23 turns for one mechanic at the operator layer; per-tick simulation cost remains $0.01-0.05 with Haiku-heavy routing.
 
 **Do not use:** LangChain, LangGraph, CrewAI, FastAPI, SQLAlchemy, MongoDB, Neo4j, pickle, Celery. Defer Claude Agent SDK to v2+ (multi-agent).
 
@@ -63,7 +70,7 @@ The architecture is a clean pipeline of specialized components with single-direc
 1. Resident Agent — Haiku-powered with personality system prompt; produces action text; consumes observation text
 2. Simulation Engine — pipeline of focused LLM calls (classify -> select -> generate? -> execute -> observe); the orchestrator
 3. Mechanic Registry — indexed by trigger concept; dict keyed by concept with lists of mechanics per concept
-4. Mechanic Generator — Sonnet-powered code generation with structured output; produces Mechanic-protocol-compliant Python
+4. Mechanic Generator — **Opus**-powered code generation via Claude Agent SDK (Phase 04.1 Operator Harness), NOT Sonnet; produces Mechanic-protocol-compliant Python through normal SDLC + 6-stage validation pipeline
 5. Mechanic Framework — pure Python Protocol defining `check(graph, context) -> bool` and `apply(graph, context) -> list[Mutation]`
 6. Knowledge Graph — NetworkX DiGraph; nodes and edges with arbitrary dict attributes; entirely in-memory at runtime
 7. Persistence Layer — custom SQLite adapter; graph_snapshots, graph_events, mechanics, mechanic_versions, simulation_log tables
@@ -98,7 +105,7 @@ Based on the dependency chain from FEATURES.md and the structural constraints fr
 
 ### Phase 3: LLM Mechanic Generation
 **Rationale:** With a stable framework API and hand-written examples available, mechanic generation has a well-defined target. This is the highest-complexity phase — prompt engineering, structured output schemas, sandboxing, and validation all converge here.
-**Delivers:** Mechanic Generator component (Sonnet + structured output), generation prompt with framework docs and examples, RestrictedPython sandbox with controlled namespace, post-generation validation (compile, AST check, test scenario execution), mechanic naming and collision detection.
+**Delivers (per v1.0 actual):** Mechanic authoring via Claude Agent SDK with **Opus** (not Sonnet), generation prompt with framework docs and examples, **6-stage validation pipeline** (syntax -> AST -> import -> contract -> tests -> dry-execute) replacing the originally-planned RestrictedPython sandbox (deferred to v2), mechanic naming and collision detection via `claim_id()`.
 **Addresses:** "LLM mechanic generation", "Emergent concept creation"
 **Avoids:** Code execution escapes (Pitfall 3 — sandbox built before first generation), mechanic naming collisions (Pitfall 8), testing generated code without scenarios (Pitfall 12).
 
@@ -106,7 +113,7 @@ Based on the dependency chain from FEATURES.md and the structural constraints fr
 **Rationale:** The simulation engine wires together all components built in Phases 1-3. It is the main loop: classify action, look up mechanic, generate if missing, execute, format observation. At the end of this phase the core loop runs end-to-end without a live agent.
 **Delivers:** Action classifier (Haiku + structured output), Mechanic Registry (concept-indexed), engine pipeline (classify -> select -> generate? -> execute -> observe), observation formatter (graph-grounded), simulation history log, CLI harness for manual action input.
 **Addresses:** "Simulation engine (action -> mechanic -> observation)", "Simulation history log", "Natural language action parsing", "Grounded observations"
-**Avoids:** Monolithic prompts (Architecture anti-pattern 4 — separate LLM call per task), ungrounded observation drift (Pitfall 2 — observation prompt always includes graph context), global mechanic namespace (Architecture anti-pattern 3 — indexed by concept), token cost explosion (Pitfall 5 — Haiku for cheap tasks, Sonnet only for generation).
+**Avoids:** Monolithic prompts (Architecture anti-pattern 4 — separate LLM call per task), ungrounded observation drift (Pitfall 2 — observation prompt always includes graph context), global mechanic namespace (Architecture anti-pattern 3 — module-based registry per Phase 4 D-15 supersession), token cost explosion (Pitfall 5 — Haiku for classify, Sonnet for observe, Opus for authoring at the operator layer only).
 
 ### Phase 5: Resident Agent
 **Rationale:** The agent is the consumer of the simulation engine. It is the last core component because it requires a working engine to interact with. Agent complexity is low relative to the engine — it is a personality system prompt plus memory context plus an action generation loop.

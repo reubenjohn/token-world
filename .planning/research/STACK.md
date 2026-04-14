@@ -2,7 +2,13 @@
 
 **Project:** Token World - LLM-powered procedural universe simulation
 **Researched:** 2026-04-11
+**Archived:** 2026-04-15 — see "Stale claims rectified at archival" note below before relying on any specific recommendation.
 **Overall Confidence:** MEDIUM-HIGH
+
+> **Stale claims rectified at archival (Session 4, 2026-04-15):**
+> - **Model routing for mechanic generation:** Opus (via Claude Agent SDK at the operator layer), NOT Sonnet. The "Model Selection Strategy" table below already reflects this (Opus row); the per-call inline annotation in §"Agent Framework" already says "claude-opus-4-6". This document is internally consistent with the v1.0 actual.
+> - **Mechanic layout:** flat single-file modules (`mechanics/<id>.py`); Phase 2 D-15 folder-per-mechanic was superseded by Phase 4. The "What NOT to Use" list (no LangChain, no MongoDB, etc.) is still authoritative; PROJECT.md cross-references this file.
+> - **Sandboxing:** RestrictedPython is referenced as the planned approach but **not shipped** in v1.0; the validation pipeline (6-stage gate) replaces it for v1; sandboxing was deferred to v2.
 
 ## Recommended Stack
 
