@@ -116,6 +116,12 @@ def main() -> int:
     parser.add_argument("--poll-s", type=float, default=2.0)
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--agent-id", default=None)
+    parser.add_argument(
+        "--scenario",
+        type=Path,
+        default=None,
+        help="YAML scenario file (scripted/inject turns) — accelerates emergence.",
+    )
     args = parser.parse_args()
 
     ticks = args.tick_budget if args.tick_budget is not None else args.ticks
@@ -194,12 +200,24 @@ def main() -> int:
         args.timeout_per_yield,
     )
 
+    scenario_obj = None
+    if args.scenario is not None:
+        from token_world.playtest import Scenario
+
+        scenario_obj = Scenario.load(args.scenario)
+        logger.info(
+            "Loaded scenario {} ({} scripted turns)",
+            args.scenario.name,
+            len(scenario_obj.turns),
+        )
+
     start = time.monotonic()
     try:
         report_path = runner.run(
             universe_dir,
             turns=ticks,
             no_operator=False,
+            scenario=scenario_obj,
             output_path=args.output,
         )
     except SystemExit as e:

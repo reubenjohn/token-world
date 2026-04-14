@@ -1,0 +1,36 @@
+name: "willowbrook_bootstrap"
+description: >
+  Bootstrap scenario that scripts Mira through emergent actions in the
+  Willowbrook starter universe. Designed to trigger yields on verbs that
+  have no existing mechanic: draw (water), plant (seed), sharpen, pet,
+  force (lock), peer (into well). Once the first few mechanics are authored
+  the universe becomes rich enough that agent-decide turns find engaging
+  things to do.
+adversarial_rate: 0.0
+seed: 1415
+turns:
+  # Bootstrap: look + move through the universe first so Mira has grounded observations
+  - action: "I look around the cottage carefully, taking in the hearth and the chest."
+  - action: "I walk over to the old chest and examine the lock closely."
+  - action: "I pick up the knife from my pocket and look at the edge."
+  - action: "I walk through the cottage door out to the garden."
+  - action: "I look around the garden. The well, the bed, the whetstone — I see all three."
+
+  # Start triggering yields — these verbs have no existing mechanic:
+  - action: "I draw a bucket of water from the stone well."                  # draw → yield
+  - action: "I peer down into the well, watching the water below."           # peer → yield
+  - action: "I pet the tabby cat, Pip, who is purring by the hearth."        # pet → yield
+  - action: "I sharpen my pocket knife against the whetstone, slowly."       # sharpen → yield
+  - action: "I plant a single pea seed in the garden bed and cover it with loam."  # plant → yield
+
+  # Alternate between agent-decide and more scripted emergent actions
+  - action: null
+  - action: "I try to force the lock on the old chest with the edge of my knife."
+  - action: null
+  - action: "I drop a small pebble into the well and count how long until I hear it land."
+  - action: null
+  - action: "I water the garden bed using the bucket I drew from the well."
+  - action: null
+  - action: "I coax Pip the cat into my lap and stroke her fur."
+  - action: null
+  - action: "I hum to the hearth-fire, watching the flames curl."

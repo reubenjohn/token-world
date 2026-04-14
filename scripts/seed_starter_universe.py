@@ -63,6 +63,43 @@ MIRA = PersonalityBundle(
 )
 
 
+# Minimal seed for Willowbrook — just enough that Mira can observe her
+# surroundings and move around. Everything else (watering, sharpening, petting,
+# planting, peering, forcing locks, drawing water) must be authored by the
+# operator the first time Mira tries it, which is exactly the emergence we
+# want.
+_KEEP_MECHANICS = frozenset(
+    {
+        "look.py",
+        "observation.py",
+        "movement.py",
+        "passage_move.py",
+        "position_sync.py",
+        "speak.py",
+        "pickup.py",
+        "environmental_reaction.py",
+        "_helpers.py",  # shared helpers used by the above
+    }
+)
+
+
+def _prune_seed_mechanics(universe_dir: Path) -> None:
+    """Remove all seed mechanics except the minimal set in :data:`_KEEP_MECHANICS`.
+
+    The full scaffolder copies ~30 seed mechanics including LRA-triggering
+    ones (``daydream``, ``sleep``, ``autopilot_*``, ``drunk``) that starve a
+    starter universe of turns. We keep only the primitives a resident needs
+    to orient herself; operator-authored mechanics fill everything else.
+    """
+    mech_dir = universe_dir / "mechanics"
+    removed: list[str] = []
+    for py in sorted(mech_dir.glob("*.py")):
+        if py.name not in _KEEP_MECHANICS:
+            py.unlink()
+            removed.append(py.name)
+    logger.info("Pruned {} seed mechanics; kept {}", len(removed), sorted(_KEEP_MECHANICS))
+
+
 def _seed_graph(kg: KnowledgeGraph) -> dict[str, str]:
     """Populate the knowledge graph with the starter scene. Returns ID map."""
     ids: dict[str, str] = {}
@@ -211,6 +248,8 @@ def seed(slug: str = DEFAULT_SLUG, *, overwrite: bool = False) -> Path:
 
     universe_dir = manager.create("Willowbrook")
     logger.info("Scaffolded universe at {}", universe_dir)
+
+    _prune_seed_mechanics(universe_dir)
 
     kg = KnowledgeGraph(db_path=universe_dir / "universe.db")
     ids = _seed_graph(kg)
