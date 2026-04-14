@@ -32,6 +32,7 @@ Act as autonomously as possible. Minimize human steering — plan and execute wi
 - Update Mermaid diagrams in `docs/design/` when architecture changes
 - Keep docs attractive for potential contributors — clear README, design rationale, visual architecture diagrams
 - See [docs/design/architecture.md](docs/design/architecture.md) for system component diagrams
+- New tooling/UX features must declare their primary surface per [docs/design/tooling-surfaces.md](docs/design/tooling-surfaces.md)
 
 ## Code Quality
 
