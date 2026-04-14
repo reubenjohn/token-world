@@ -49,12 +49,12 @@ doing. NOT a chat surface (humans chat with Claude Code, which IS the operator).
 
 Closed-out paper cuts from v1.0.
 
-- [ ] REQ-WARMUP-01: Close Phase 04.1 SC-2 smoke test via claude-cli backend
-- [ ] REQ-WARMUP-02: `scripts/check_requirements_traceability.py` (+ CI wire)
-- [ ] REQ-WARMUP-03: `scripts/check_roadmap_progress.py` (+ CI wire)
-- [ ] REQ-WARMUP-04: Research docs (`STACK.md`, `ARCHITECTURE.md`, `SUMMARY.md`) refreshed + archival-timestamp headers
-- [ ] REQ-WARMUP-05: `BatchSummary.agent_id` stub fixed (populate from first mutation's actor)
-- [ ] REQ-WARMUP-06: Agent-workflow friction reducers (`commit.sh`, `run_uat.py`, `phase_show.py`, `ci_status.py`, agent-prompt fragments)
+- [x] REQ-WARMUP-01: Close Phase 04.1 SC-2 smoke test via claude-cli backend (closed `0ac7f38`)
+- [x] REQ-WARMUP-02: `scripts/check_requirements_traceability.py` (+ CI wire) (shipped `acb9797`; pytest-wired in `tests/test_meta/`)
+- [x] REQ-WARMUP-03: `scripts/check_roadmap_progress.py` (+ CI wire) (shipped `acb9797`; pytest-wired in `tests/test_meta/`)
+- [x] REQ-WARMUP-04: Research docs (`STACK.md`, `ARCHITECTURE.md`, `SUMMARY.md`) refreshed + archival-timestamp headers (shipped `ff211b7`)
+- [x] REQ-WARMUP-05: `BatchSummary.agent_id` stub fixed (populate from first mutation's actor) (shipped `97f9648`)
+- [x] REQ-WARMUP-06: Agent-workflow friction reducers (`commit.sh`, `run_uat.py`, `phase_show.py`, `ci_status.py`, agent-prompt fragments) (shipped Session 4)
 
 ## Non-Requirements (explicitly out of scope for v1.1)
 
@@ -73,7 +73,7 @@ Closed-out paper cuts from v1.0.
 | REQ-EMERGE-02 | Phase 08 | done | `0a95763` |
 | REQ-EMERGE-03 | Phase 08 | done | `0a95763` |
 | REQ-OPCLI-01..06 | Phase 09 (Track A) | in_progress | (subagent) |
-| REQ-WARMUP-01..06 | Phase 10 (Warm-up) | in_progress | (subagent) |
+| REQ-WARMUP-01..06 | Phase 10 (Warm-up) | done | Session 4 — see commits `0ac7f38`, `acb9797`, `ff211b7`, `97f9648`, `c3fd0ec` |
 | REQ-DASH-01..06 | Phase 11 (Track B) | planning | — |
 | REQ-EMERGE-04..07 | Phase 12 (overnight orchestration) | planning | — |
 
