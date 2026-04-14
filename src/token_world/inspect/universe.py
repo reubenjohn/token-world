@@ -376,6 +376,11 @@ def render_table(report: InspectReport) -> str:
     if not report.recent_ticks:
         out.append("  (no tick summaries found)")
     else:
+        # Header row matches the data-row column widths in the loop below:
+        # tick_id:>4  status:<6  mech:<24  "(N mut)" (rendered as 7-wide
+        # "MUT    " here so columns align with e.g. "(0 mut)")  observation.
+        out.append(f"  {'TICK':>4}  {'STATUS':<6}  {'MECHANIC':<24}  {'MUT':<7}  OBSERVATION")
+        out.append(f"  {'-' * 4}  {'-' * 6}  {'-' * 24}  {'-' * 7}  {'-' * 11}")
         for line in report.recent_ticks:
             status = "yield" if line.yielded else ("refuse" if line.refused else "exec")
             mech = line.matched_mechanic_id or "-"

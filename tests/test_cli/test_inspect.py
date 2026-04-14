@@ -194,6 +194,37 @@ def test_render_table_smoke(fake_universe_with_graph: Path) -> None:
     assert "Operator Log" in out
 
 
+def test_render_table_recent_ticks_has_column_headers(fake_universe: Path, write_tick) -> None:
+    """MORNING-HANDOFF §A6: recent-ticks table must have a header row.
+
+    Rows previously rendered as ``17 refuse - (0 mut) ...`` with no label,
+    so users couldn't parse columns. The renderer must emit a header row
+    with column names (TICK / STATUS / MECHANIC / MUT / OBSERVATION) *before*
+    the data rows, and a separator beneath the header.
+    """
+    ticks = fake_universe / "tick_summaries" / "ticks"
+    write_tick(ticks, "1", matched_mechanic_id="open_chest", observation_text="a")
+    write_tick(ticks, "2", refused=True, observation_text="b")
+    write_tick(ticks, "3", yielded=True, observation_text="c")
+    report = aggregate(fake_universe, slug="hdr")
+    out = render_table(report)
+
+    # Locate the "Ticks (3 total, last 3):" section and its first data row.
+    lines = out.splitlines()
+    ticks_section_idx = next(i for i, ln in enumerate(lines) if ln.startswith("Ticks ("))
+    # Header row must appear before the first data row in the section.
+    header_line = lines[ticks_section_idx + 1]
+    assert "TICK" in header_line
+    assert "STATUS" in header_line
+    assert "MECHANIC" in header_line
+    assert "MUT" in header_line
+    assert "OBSERVATION" in header_line
+    # A separator row of dashes should immediately follow the header.
+    separator_line = lines[ticks_section_idx + 2]
+    assert set(separator_line.strip()) <= {"-", " "}
+    assert "---" in separator_line
+
+
 def test_render_json_is_valid_and_has_expected_shape() -> None:
     report = InspectReport(slug="x", universe_dir="/tmp/x")
     payload = json.loads(render_json(report))
