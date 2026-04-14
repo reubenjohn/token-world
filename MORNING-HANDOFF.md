@@ -509,26 +509,48 @@ User liked Willowbrook. Keep it, refine it. Candidates:
   into the framework; Willowbrook-specific ones (force, plant, water,
   draw with buckets) stay universe-local.
 
-### I. Other deferred items — mine `.planning/`
+### I. Deferred items mined from `.planning/`
 
-User asked for a sweep of past planning docs to catch deferred items worth
-picking up now. That was not done in session 4. Next session **first thing**:
+Sweep done late in session 4 (the one TODO from the earlier handoff I
+nearly forgot). Source: `.planning/backlog/phase-03-gap-deferrals.md`
+(16 items) + v1.0 MILESTONES known-gaps + per-phase SUMMARY `Known Gaps`
+sections.
 
-```bash
-# Grep for deferral markers
-grep -rn "TODO\|DEFERRED\|backlog\|v1\.2\|v2+\|follow-up" .planning/phases/*/
-# Look at phase verification sections
-for f in .planning/phases/*/*-VERIFICATION.md; do echo "=== $f ==="; grep -A2 "Known Gap\|Deferred\|Follow-up" "$f" 2>/dev/null; done
-# Retrospective candidates
-cat .planning/RETROSPECTIVE.md | grep -A3 "Carry"
-```
+**Items worth flagging for v1.2** (the four that have concrete Willowbrook
+traction today):
 
-Consolidate into v1.2 REQUIREMENTS candidates. Some likely hits from a quick
-mental scan:
-- Phase 04.1 IN-04 style cleanup (noted at milestone close)
-- Phase 6 belief-overlay structural-key filter v2 integration
-- Phase 7 LRA threshold-evaluator expansion
-- Phase 5 D-11 NoMatchResult top-K tuning
+- **GAP-GRAPH18 — door state convention.** Willowbrook's `cottage_door`
+  carries `locked` + `connects: [...]` as properties, ad-hoc. Aligns with
+  §E3 (locked/blocked/inventory_full should be emergent, not engine-coded).
+  Fix here naturally folds into the §E3 audit.
+- **GAP-GRAPH14 — container subtype with capacity.** The `old_chest` is
+  `subtype=container` but with implicit semantics. If inventory-like
+  patterns emerge again, formalize the `container` subtype with
+  `capacity`, `contents`, `open`/`locked` as canonical properties.
+- **GAP-GRAPH06 — portal/passage vocabulary.** We're using
+  `subtype='passage'` ad-hoc (cottage_door). Three mechanics touch it
+  (walk, passage_move, movement) with slightly different conventions.
+  Small doc decision: canonicalize now before more passage-verbs land.
+- **GAP-GRAPH10 — fungible amount representation.** Not urgent
+  (commerce hasn't emerged in Willowbrook), but Mira's `drawn_water`
+  bucket is an ad-hoc amount-as-dict. Surface when commerce emerges.
+
+**Items firmly v2** (12 of the 16): all tied to multi-agent, reputation,
+transactional primitives, listener/observer propagation — correctly
+deferred per D-06.
+
+**v1.0 known gaps** (from MILESTONES): all addressed in v1.1 warm-up
+(04.1 SC-2 closed, traceability/roadmap CI checks, research docs
+refreshed, `agent_id` stub fixed). No stragglers.
+
+**New v1.2 candidates surfaced in session 4** — not from the backlog but
+from overnight-run observations, already documented above:
+- §E3 `locked`/`blocked`/`inventory_full` audit
+- §E5 energy-economy `_economy.py` module
+- §E6 engine primary check-fail → RefuseDecision (the truthfulness bug)
+- §A7 dashboard scroll-preservation
+- §C Mira character-break mitigations
+- §D quality KPIs
 
 ### J. Prioritised v1.2 backlog
 
@@ -771,3 +793,163 @@ No uncommitted changes (assuming the morning final commit lands).
 **Go look at it move.** 🌱🌌
 
 *— Session 4, signing off.*
+
+---
+
+## §L — Operating Notes for the Next Autonomous Agent
+
+(Author: the Opus 4.6 agent that ran session 4. If you're picking up this
+handoff at 1 AM with the user asleep, read this section second — right
+after §J. It captures operational knowledge the launch prompt can't carry.)
+
+### Cost + safety invariants
+
+- **Route the operator loop through Task subagents, never Agent SDK.**
+  User's zero-marginal-cost mandate. Subagents run under the Claude Code
+  subscription; Agent SDK + Opus runs against the metered API. The
+  `ExternalOperator` + inbox/resolution protocol is the blessed shape for
+  unattended authoring. If you reach for `claude_agent_sdk.query(...)` for
+  anything overnight, stop and check whether a subagent can do it.
+- **Set cost rails on every run.** `--tick-budget`, `--yield-budget`,
+  `--cost-ceiling`, and the kill-switch file at `<universe>/.stop` are
+  all load-bearing. Don't skip them even for a "short" run. The kill
+  switch triggers at every progress print (tick boundary) so it's
+  effective in under 10 seconds of wall time.
+- **Before re-seeding, back up authored mechanics.** `scripts/seed_starter_universe.py --overwrite` deletes the universe including all authored mechanics. Session 4 lost 3 mechanics momentarily to `--overwrite` and had to restore manually. Proposed `--preserve-mechanics` flag not shipped yet.
+
+### Operational rhythm for overnight runs
+
+- **ScheduleWakeup cadence.** 90–180 s while the run is active (yields
+  arrive every 2–5 min). Drop to 300 s when things quiet down. Faster
+  than 90 s bloats context from repeated state reads; slower than 300 s
+  leaves the runner idle on blocked yields past its timeout.
+- **Subagent summaries: ask for one-line JSON, not prose.** Each
+  authoring subagent adds ~100 tokens instead of ~1000. For a 200-tick
+  run with 20 yields, that's 2k vs 20k tokens of summary accumulation.
+- **Guardrail every subagent prompt.** "DO NOT touch the host project
+  `/home/reuben/workspace/token_world`. You operate only inside the
+  universe directory `/home/reuben/.local/share/token_world/universes/<slug>/`."
+  Session 4 had one subagent run git on the host repo before I added the
+  guardrail. Not destructive, but embarrassing.
+- **Subagent lane-scoping when running in parallel.** If you spawn
+  multiple subagents concurrently (e.g. one dashboard + one CLI + one
+  warm-up), each prompt MUST name its scope: `src/token_world/dashboard/**`
+  OR `src/token_world/inspect/**` OR `scripts/**` etc. Session 4's
+  parallel-subagent trio worked because of this; the one slip-up was
+  `git add -A` sweeping another agent's WIP into an unrelated commit.
+
+### Hooks and ergonomics
+
+- **PreToolUse "READ-BEFORE-EDIT" hook fires spuriously** on files you
+  already read in-session. The edits land anyway. Don't start defensive
+  re-reads — that's cargo culting. Just proceed.
+- **`deny-ad-hoc-bash.js` now exempts git-commit heredocs** (session-4
+  hook update; tests at `~/.claude/hooks/deny-ad-hoc-bash.test.js`). You
+  can now write commit messages inline with a heredoc. The `/tmp/commit_$TOPIC.txt`
+  dance is no longer required *for commit messages*, though it's still
+  the right pattern for anything else over 300 chars.
+- **`scripts/commit.sh` uses `git add -A`** which can sweep another
+  active subagent's WIP. For solo use it's fine; for parallel-subagent
+  sessions, prefer targeted `git add <files> && git commit -F <msg>`.
+
+### /tmp vs a permanent home
+
+- **`/tmp/` is for truly ephemeral, one-shot payloads.** Commit-message
+  bodies (one per commit), temporary dispatch files for subagent
+  prompts, log scraping buffers. That's fine.
+- **Reusable scripts, test suites, and reference examples belong somewhere
+  stable.** Session 4's mistake: I wrote a 60-line hook regression test
+  in `/tmp/hook_test_cases.js` and deleted it "to clean up." The next
+  agent touching the hook has no regression coverage. Fixed by moving
+  it to `~/.claude/hooks/deny-ad-hoc-bash.test.js` — but the better
+  discipline was writing it in the right place first.
+- **Rule of thumb:** if you'd want the next agent to find and re-run
+  this script, it doesn't belong in `/tmp/`. Put it next to the thing
+  it tests (hook tests alongside hooks, Python tests in `tests/`, etc).
+
+### Discipline checkpoints for UI / product work
+
+- **Screenshots aren't validation.** Use §K1 Playwright routine:
+  scroll inside each scrollable region, wait through 2 refresh cycles,
+  click every interactive element, resize viewport, take a screenshot
+  in each state. Session 4's dashboard "shipped" with a live-refresh
+  bug that killed scroll on every poll — I never scrolled.
+- **Read your CLI output as a fresh user**, not as an oracle. "Is there
+  a header row?" "Would I understand what these columns are?" "Did this
+  truncate my observation on expansion?" These questions are free.
+- **End-of-build "user pass" cooldown.** After a build-and-commit cycle,
+  spend 5 minutes actually using the thing. Not testing it — *using*
+  it. This catches the bugs unit tests can't see.
+
+### Signals that something's going wrong
+
+- **Zero yields across 10+ ticks in a supposedly-emergent run.** Check
+  the classifier response first
+  (`<universe>/diagnostics/tick_N/classification/response.txt`). Empty
+  verb list → classifier refuses everything. Markdown-fenced response →
+  parse fails. Both bugs happened in session 4.
+- **Agent meta-narration** ("I notice the framework…", "I recognize
+  this is a yield boundary…"). The resident is decompensating. Either
+  halt the run via `.stop` and investigate, or accept that the run is
+  done.
+- **CI green + dashboard "shipped" + tests all pass, but the thing
+  doesn't actually work.** Tests are necessary, not sufficient. E6
+  (engine recorded EXECUTED for check-refused ticks) passed every test
+  because no test asserted "refused mechanics show refused in the tick
+  summary." Write the K2 quality rubric; make CI gate on it.
+
+### Context hygiene
+
+- **Don't read subagent output files directly.** The `.output` path
+  returned by background agent is a JSONL transcript — reading it will
+  overflow your context. Use the agent's own returned summary.
+- **Prefer `token-world inspect` over `ls | wc`.** The inspect command
+  returns one-shot state (node counts, recent yields, active LRAs) that
+  composes with other tools and is `--format json`-able. It's cheaper
+  on context than multiple filesystem pokes.
+- **ScheduleWakeup prompts re-introduce your current context.** Keep
+  the wakeup prompt short and self-sufficient; don't rely on it to
+  re-load state.
+
+### The user's review culture
+
+Your feedback is sharpened by specific questions, not reassurance.
+"Did you scroll?" > "looks good". Model reports back the same way:
+what did I *not* check? What could be wrong that I don't know is
+wrong? The user rewards honesty more than confidence. Session 4 only
+caught its own bugs because of the user's meta-reflection prompts
+— your next session should adopt that discipline without being asked.
+
+### If you ever feel stuck
+
+- **Cost uncertainty?** Route through subagents. Stop spending.
+- **Engine doing something surprising?** Read `<universe>/diagnostics/tick_N/`
+  — every stage persists its raw I/O.
+- **Dashboard doesn't refresh?** `ps aux | grep token-world`; it
+  probably crashed.
+- **Mechanic validation failing for non-obvious reasons?** The subagent
+  probably imported something from the wrong module
+  (`VerbMatcher` lives in `token_world.mechanic.matchers`, not
+  `token_world.mechanic.protocol`). Happens every 3-4 mechanics.
+- **Run produces no yields?** Classifier is refusing. Open
+  `diagnostics/tick_N/classification/response.txt`.
+- **Genuine hard blocker?** Surface to the user. Don't try to unjam
+  architectural decisions autonomously.
+
+### What NOT to do
+
+- **Don't delete `universe.db`** when re-seeding. The seed script handles
+  it. Manual `rm` leaves dangling git state.
+- **Don't edit files in `src/token_world/mechanic/seeds/`** as a workaround
+  for a bug in an authored universe mechanic. Seed mechanics are the
+  framework-owned reference library; universe mechanics are the play
+  space.
+- **Don't run live-API Agent SDK calls overnight** unless the user's
+  explicit cost-authorization covers it.
+- **Don't "clean up" by deleting things you'll want later.** If in
+  doubt, move, don't delete.
+
+---
+
+*— Session 4 operating notes, written after demo + user feedback. Every
+entry here has a real backstory; when in doubt, trust the note.* 🌱🌌
