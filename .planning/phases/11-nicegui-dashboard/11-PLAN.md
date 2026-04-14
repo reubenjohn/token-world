@@ -16,42 +16,42 @@ Willowbrook universe legible. MVP 4 panels.
 ## Build order
 
 ### Plan 11-01 — NiceGUI skeleton + stats strip (60 min)
-- [ ] Add `nicegui` to `pyproject.toml` as optional `[dashboard]` extra
-- [ ] `src/token_world/dashboard/__init__.py` — empty
-- [ ] `src/token_world/dashboard/app.py` — NiceGUI `create_app(universe_dir)`
-- [ ] `src/token_world/dashboard/panels/stats.py` — always-visible header using `token-world stats` JSON
-- [ ] CLI wiring: `token-world dashboard <slug> [--port 8080]` in `src/token_world/cli.py`
-- [ ] Smoke test: `uv run token-world dashboard willowbrook` → browser opens, stats render
-- [ ] 1 pytest checking the app module imports without error
+- [x] Add `nicegui` to `pyproject.toml` as optional `[dashboard]` extra
+- [x] `src/token_world/dashboard/__init__.py` — empty
+- [x] `src/token_world/dashboard/app.py` — NiceGUI `create_app(universe_dir)`
+- [x] `src/token_world/dashboard/panels/stats.py` — always-visible header using `token-world stats` JSON
+- [x] CLI wiring: `token-world dashboard <slug> [--port 8080]` in `src/token_world/cli.py`
+- [x] Smoke test: `uv run token-world dashboard willowbrook` → browser opens, stats render
+- [x] 1 pytest checking the app module imports without error
 
 ### Plan 11-02 — Live tick stream panel (45 min)
-- [ ] `src/token_world/dashboard/panels/tick_stream.py`
-- [ ] Poll `tick_summaries/ticks/` every 2s via `ui.timer`
-- [ ] Card format: tick_id | action_text (truncated) | mechanic_id OR yield OR refuse | observation (truncated)
-- [ ] Auto-scroll to newest
-- [ ] Click a tick card → expand to full detail (via `token-world tick --format json`)
-- [ ] Pytest: card renders from a synthetic tick dict
+- [x] `src/token_world/dashboard/panels/tick_stream.py`
+- [x] Poll `tick_summaries/ticks/` every 2s via `ui.timer`
+- [x] Card format: tick_id | action_text (truncated) | mechanic_id OR yield OR refuse | observation (truncated)
+- [x] Auto-scroll to newest
+- [x] Click a tick card → expand to full detail (via `token-world tick --format json`)
+- [x] Pytest: card renders from a synthetic tick dict
 
 ### Plan 11-03 — Graph canvas panel (60 min)
-- [ ] `src/token_world/dashboard/panels/graph_canvas.py`
-- [ ] Use `ui.mermaid` OR Cytoscape via `ui.html` — whichever lands simpler
+- [x] `src/token_world/dashboard/panels/graph_canvas.py`
+- [x] Use `ui.mermaid` OR Cytoscape via `ui.html` — whichever lands simpler
   in NiceGUI. Mermaid is already a dep; Cytoscape requires CDN.
-- [ ] Render current graph (nodes + edges, color by type/subtype)
-- [ ] Click a node → right drawer shows full properties
-- [ ] Pytest: renders from a `KnowledgeGraph` fixture
+- [x] Render current graph (nodes + edges, color by type/subtype)
+- [x] Click a node → right drawer shows full properties
+- [x] Pytest: renders from a `KnowledgeGraph` fixture
 ### Plan 11-04 — Causal chain viewer (30 min)
-- [ ] `src/token_world/dashboard/panels/causal_chain.py`
-- [ ] Input: node_id + property
-- [ ] Call `token-world trace <slug> <node> <prop> --format json`
-- [ ] Render as a vertical tree of hops
-- [ ] Pytest: renders from a synthetic trace JSON
+- [x] `src/token_world/dashboard/panels/causal_chain.py`
+- [x] Input: node_id + property
+- [x] Call `token-world trace <slug> <node> <prop> --format json`
+- [x] Render as a vertical tree of hops
+- [x] Pytest: renders from a synthetic trace JSON
 
 ### Plan 11-05 — Wire + polish (30 min)
-- [ ] Tab or split-pane layout: stats strip header | tick stream left | graph canvas right top | causal chain right bottom
-- [ ] Error states: universe doesn't exist, universe is empty, run isn't running yet
-- [ ] Dark mode via NiceGUI theme
-- [ ] `docs/guides/dashboard.md` — 1-page explainer
-- [ ] Update CLAUDE.md Script Catalog row
+- [x] Tab or split-pane layout: stats strip header | tick stream left | graph canvas right top | causal chain right bottom
+- [x] Error states: universe doesn't exist, universe is empty, run isn't running yet
+- [x] Dark mode via NiceGUI theme
+- [x] `docs/guides/dashboard.md` — 1-page explainer
+- [x] Update CLAUDE.md Script Catalog row
 
 ## Verification (must pass before closing)
 

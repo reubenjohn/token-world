@@ -81,44 +81,31 @@ def create_app(slug: str, *, dark: bool = True) -> Any:
 def _mount_main_body(ui: Any, universe_dir: Path, slug: str) -> None:
     """Mount the main split pane (tick stream / graph / causal chain).
 
-    Each panel module is imported lazily so earlier plans (11-01) can ship
-    with just the stats strip; later plans (11-02+) drop in the remaining
-    modules without changing this seam.
+    Layout at 1280px+:
+
+        +-----------------+-----------------+
+        |                 |  Graph canvas   |
+        |  Tick stream    |                 |
+        |  (live)         +-----------------+
+        |                 |  Causal chain   |
+        +-----------------+-----------------+
+
+    Below 1024px the columns flex-wrap to a single column.
     """
-    try:
-        from token_world.dashboard.panels.tick_stream import mount_tick_stream_panel
-    except ImportError:
-        mount_tick_stream_panel = None  # type: ignore[assignment]
-    try:
-        from token_world.dashboard.panels.graph_canvas import mount_graph_panel
-    except ImportError:
-        mount_graph_panel = None  # type: ignore[assignment]
-    try:
-        from token_world.dashboard.panels.causal_chain import mount_causal_chain_panel
-    except ImportError:
-        mount_causal_chain_panel = None  # type: ignore[assignment]
+    from token_world.dashboard.panels.causal_chain import mount_causal_chain_panel
+    from token_world.dashboard.panels.graph_canvas import mount_graph_panel
+    from token_world.dashboard.panels.tick_stream import mount_tick_stream_panel
 
     with ui.row().classes("w-full gap-4 items-stretch flex-wrap"):
         with ui.column().classes("flex-1 min-w-[360px] max-w-[560px] gap-2"):
             ui.label("Tick stream").classes("text-lg font-semibold text-slate-200")
-            if mount_tick_stream_panel is not None:
-                mount_tick_stream_panel(universe_dir, slug)
-            else:
-                ui.label("(tick stream panel ships in Plan 11-02)").classes(
-                    "text-xs text-slate-400"
-                )
+            mount_tick_stream_panel(universe_dir, slug)
         with ui.column().classes("flex-1 min-w-[480px] gap-2"):
             ui.label("Graph canvas").classes("text-lg font-semibold text-slate-200")
-            if mount_graph_panel is not None:
-                mount_graph_panel(universe_dir, slug)
-            else:
-                ui.label("(graph canvas ships in Plan 11-03)").classes("text-xs text-slate-400")
+            mount_graph_panel(universe_dir, slug)
             ui.separator()
             ui.label("Causal chain").classes("text-lg font-semibold text-slate-200")
-            if mount_causal_chain_panel is not None:
-                mount_causal_chain_panel(universe_dir, slug)
-            else:
-                ui.label("(causal chain ships in Plan 11-04)").classes("text-xs text-slate-400")
+            mount_causal_chain_panel(universe_dir, slug)
 
 
 def run_app(slug: str, *, port: int = 8080, dark: bool = True, show: bool = True) -> None:

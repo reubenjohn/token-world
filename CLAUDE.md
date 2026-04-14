@@ -138,6 +138,7 @@ Run quick test after every change. Run full suite before commits.
 | `token-world watch <slug> [--interval S]` | Live tail of new tick summaries, one line per tick (Ctrl-C to exit) |
 | `token-world agents <slug> [--id X] [--format table\|json]` | Inspect agent-typed nodes: personality, persona, memory, active LRA, attention state |
 | `token-world diff <slug> <tick_a> <tick_b> [--format table\|json]` | Graph changes between two ticks: nodes/edges added or removed + property old -> new |
+| `token-world dashboard <slug> [--port 8080] [--no-show] [--no-dark]` | Launch the read-only NiceGUI web dashboard — 4 panels (stats strip, live tick stream, graph canvas, causal chain). Requires `uv sync --extra dashboard`. See `docs/guides/dashboard.md` |
 | `TOKEN_WORLD_BACKEND=claude-cli token-world playtest ...` | Route LLM calls through `claude -p` subprocess (zero marginal cost via Claude subscription) — see `docs/guides/claude-cli-backend.md` |
 | `uv run pytest -x -q` | Quick test run |
 | `uv run pytest -v` | Full verbose test run |
