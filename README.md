@@ -64,8 +64,20 @@ prek install
 
 Full documentation is available at [reubenjohn.github.io/token-world](https://reubenjohn.github.io/token-world/).
 
-- [Architecture Overview](docs/design/architecture.md)
+- [Architecture Overview](docs/design/architecture.md) — system components + simulation loop diagrams
+- [Simulation Pipeline](docs/design/simulation-pipeline.md) — detailed per-tick flow (classify → match → decide → execute → observe)
 - [Getting Started Guide](docs/guides/getting-started.md)
+- [Authoring Mechanics](docs/guides/authoring-mechanics.md)
+- [Graph Visualization](docs/guides/viz-graph.md)
+- [Zero-Cost LLM Backend](docs/guides/claude-cli-backend.md) — route simulation LLM calls through your Claude subscription
+
+## Status
+
+**v1.0 MVP — SHIPPED 2026-04-14** ([release notes](.planning/MILESTONES.md) · [retrospective](.planning/RETROSPECTIVE.md))
+
+10 phases delivered: knowledge graph, mechanic framework, operator-authored mechanics under inversion of control, simulation engine with grounded observations, resident agent with memory and playtesting, composable attention/consciousness mechanics (sleep + daydream + drunk + autopilot_travel), and a pluggable LLM backend supporting zero-cost UAT via `claude -p`.
+
+1743 tests passing · CI green on master · tagged `v1.0`.
 
 ## License
 
