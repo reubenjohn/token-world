@@ -228,23 +228,12 @@ paths list and delegate to targeted `git add`.
 ([handoff](../MORNING-HANDOFF.md))
 **Target phase:** TBD (shipped via commit `958a28b` pre-milestone-scaffolding)
 
----
-
-## v1.2.0 Active Backlog
-
-Not yet landed. Ordered roughly by §J priority. Each requirement lists a
-target phase of `TBD` until a ROADMAP row lands.
-
 ### REQ-V12-CLI-02 — `token-world yield` CLI + dashboard "Active Yield" banner
 
 While orchestrating, the author reached for `cat /.../operator_inbox/N.yield.json`
 because there was no tool to inspect a pending yield mid-run (§F row 1).
 Belongs on the CLI per §G (stateless query) with a complementary sticky
 banner in the dashboard.
-
-**Rationale:** operators + subagents need to see the classified action
-that caused a yield without rooting through inbox files. Driven by §F's
-data-sourcing gap + the allocation-principle decision.
 
 **Acceptance criteria:**
 - `token-world yield <slug> [--tick N | --pending]` command.
@@ -253,9 +242,42 @@ data-sourcing gap + the allocation-principle decision.
   sticky across poll cycles (hides when inbox empties).
 - Test: smoke test against a fixture universe with a staged yield JSON.
 
-**Status:** Active
-**Source:** MORNING-HANDOFF §J #5, §F row 1 ([handoff](../MORNING-HANDOFF.md))
-**Target phase:** TBD
+**Status:** Shipped (session 6)
+**Source:** MORNING-HANDOFF §J #5, §F row 1; SESSION-6-REPORT commit row
+**Target phase:** TBD (shipped via commit `7435536` pre-milestone-scaffolding)
+
+### REQ-V12-ENGINE-02 — Observation-grounding drift investigation (tick 35)
+
+The chest was unlocked by `force` at tick 15 but tick 35's observation
+still said "locked" (§E4). Root cause landed in session 6: observer was
+narrating from the intent `action_text` rather than the applied mutation
+list, so it pattern-matched the stale `description` string over the fresh
+`projected_state.locked=False`. Fix in commit `e110e2c` added per-mutation
+bullets to the observer prompt and an OUTCOME CONSISTENCY system-prompt
+clause; three regression tests added; universe prompt hashes refreshed.
+
+**Acceptance criteria:**
+- Root cause identified via `token-world tick <id> --format json` + trace
+  walk. **Done — narrated from `action_text`, not mutations.**
+- Observer prompt receives per-mutation `target.prop: old -> new` bullets.
+- Observer system prompt contains an OUTCOME CONSISTENCY clause forbidding
+  contradiction of the mutation list.
+- Regression tests: 3 scenarios cover mutation-consistent narration,
+  refuse-narrative flavour preservation, and no-mutation idle flavour.
+
+**Status:** Shipped (session 6)
+**Source:** MORNING-HANDOFF §J #13, §E4; SESSION-6-REPORT commit row
+**Target phase:** TBD (shipped via commit `e110e2c` pre-milestone-scaffolding)
+
+---
+
+## v1.2.0 Active Backlog
+
+Not yet landed. Ordered roughly by §J priority. Each requirement lists a
+target phase of `TBD` until a ROADMAP row lands. The user's session-6
+mandate was **inclusive**: every remaining requirement across the project
+goes here unless it's truly far-fetched (those live in
+`.planning/backlog/v2.0-REQUIREMENTS.md` as REQ-V20-*).
 
 ### REQ-V12-DASHBOARD-05 — Multi-agent scaffold (selector + per-tick badge)
 
@@ -305,31 +327,6 @@ E6 and C both trace to this systemic gap.
 
 **Status:** Active
 **Source:** MORNING-HANDOFF §J #12, §D, §K2 ([handoff](../MORNING-HANDOFF.md))
-**Target phase:** TBD
-
-### REQ-V12-ENGINE-02 — Observation-grounding drift investigation (tick 35)
-
-The chest was unlocked by `force` at tick 15 but tick 35's observation
-still said "locked" (§E4). Likely cause: observer's prompt grounding
-pattern-matched the stale `description` string rather than
-`projected_state.locked=False`. Could instead be
-`projected_state` built from pre-apply snapshot. Requires
-investigation then a targeted fix (either prompt hardening or pipeline
-ordering).
-
-**Rationale:** observation drift is a grounding-invariant violation;
-groundedness is a core simulation property (D-15). Every occurrence
-poisons downstream KPIs.
-
-**Acceptance criteria:**
-- Root cause identified via `token-world tick 35 --format json` and
-  `token-world trace old_chest locked`.
-- Fix lands with a regression test that reproduces the drift.
-- Observer prompt hardened: must never contradict `projected_state`;
-  `description` field is cosmetic, not canonical.
-
-**Status:** Active
-**Source:** MORNING-HANDOFF §J #13, §E4 ([handoff](../MORNING-HANDOFF.md))
 **Target phase:** TBD
 
 ### REQ-V12-ENGINE-03 — Engine audit: `locked` / `blocked` / `inventory_full` must be emergent
@@ -433,6 +430,287 @@ renderer.
 **Status:** Active (depends on REQ-V12-DASHBOARD-03 — shipped; this
 requirement is the seed-corpus half)
 **Source:** MORNING-HANDOFF §J #17, §E2 ([handoff](../MORNING-HANDOFF.md))
+**Target phase:** TBD
+
+### REQ-V12-ENGINE-05 — Collapse doubled "You try, but" in refuse observation template
+
+Session 6 second unattended run produced tick-61 observation reading
+*"You try, but You try, but no passage supplied via params['path'].."*.
+The observer template is double-wrapping the refuse narrative —
+likely a 2-line fix in `engine.py` or `observer.py` where both the
+refuse branch and the observer template add the "You try, but" wrapper.
+
+**Rationale:** presentation bug surfaces right after REQ-V12-ENGINE-01
+lands (honest refuses now reach the observer path where old EXECUTED-lies
+used to dodge it). Minor user-visible quality issue; cheap to fix.
+
+**Acceptance criteria:**
+- Grep confirms single source of truth for the "You try, but" wrapper.
+- Regression test on a refuse tick asserts the wrapper appears exactly
+  once in the observation text.
+- willowbrook tick 61 (or equivalent fixture) round-trips cleanly.
+
+**Status:** Active
+**Source:** SESSION-6-REPORT "Remaining Work" follow-ups section
+**Target phase:** TBD
+
+### REQ-V12-CLI-03 — `token-world tick --stage <name> --raw` flags
+
+During session 4 orchestration the author repeatedly reached for
+`cat diagnostics/tick_N/classification/response.txt` because the
+existing `tick` CLI surfaces the parsed summary but not the raw
+intermediate pipeline I/O (§F row 2). Add `--stage <classification
+| matcher | observer>` + `--raw` flags so operators can inspect the
+raw prompt + response at any pipeline stage without leaving the CLI.
+
+**Rationale:** diagnosis gap captured in §F. Extends the existing
+`token-world tick` command rather than adding a new one. Unblocks
+classifier / matcher / observer debugging during mechanic-authoring
+sessions.
+
+**Acceptance criteria:**
+- `token-world tick <slug> <id> --stage classification [--raw]` prints
+  the parsed or raw classifier payload for that tick.
+- Same flags work for `--stage matcher` (DeterministicMatcher winner +
+  candidates) and `--stage observer` (Sonnet prompt + response).
+- `--format json` respects the stage filter.
+- Tests: fixture universe with a completed tick exercises each stage.
+
+**Status:** Active
+**Source:** MORNING-HANDOFF §F row 2, §G allocation rules
+**Target phase:** TBD
+
+### REQ-V12-CLI-04 — `token-world mechanics --history` flag
+
+§F row 3 captured the "what emerged since yesterday?" investigation the
+author did by running `git log --oneline mechanics/` inside the universe
+repo. Promote to the CLI so the registry browser can show the mechanic
+timeline without shelling into git.
+
+**Rationale:** every universe is a git repo by construction; exposing
+that history under the `mechanics` command closes the investigation
+loop. Complements REQ-V12-DASHBOARD-09 (registry panel "Last invoked"
+column) — the CLI is canonical producer; dashboard consumes its JSON.
+
+**Acceptance criteria:**
+- `token-world mechanics <slug> --history` prints a chronological view:
+  mechanic id, first-authored commit + timestamp, last-invoked tick.
+- `--format json` mirrors the above as array of objects.
+- Tests: fixture universe with N commits on `mechanics/` verifies ordering.
+
+**Status:** Active
+**Source:** MORNING-HANDOFF §F row 3
+**Target phase:** TBD
+
+### REQ-V12-DASHBOARD-07 — Run-status indicator
+
+§F row 4 captured the "is `run_unattended.py` still running?" ask that
+sent the author back to `ps aux | grep` repeatedly. The right fix: the
+runner writes a PID file on start, removes it on exit, and the dashboard
+stats strip renders a green/yellow/red dot reading that file.
+
+**Rationale:** data-sourcing gap; also a session-4 process-hygiene
+improvement — stale `.stop` and stale PID files both benefit from being
+surfaced. Dashboard is the right surface per §G (continuous monitoring
+for a human observer).
+
+**Acceptance criteria:**
+- `scripts/run_unattended.py` writes `<universe>/.run-pid` on start,
+  removes on normal exit, handles SIGINT gracefully.
+- Dashboard stats strip renders a green dot if PID file exists and
+  process is alive; yellow if PID file exists but process dead; red
+  (or hidden) if no PID file. Hover tooltip shows PID + start time.
+- Tests: mock PID file states; assert the indicator correctly
+  classifies each.
+
+**Status:** Active
+**Source:** MORNING-HANDOFF §F row 4
+**Target phase:** TBD
+
+### REQ-V12-DASHBOARD-08 — Agent inspector drawer
+
+§F row 7 and session-5 feedback: Mira's `last_observed`, `last_moved`,
+active LRA, attention state are all in the graph but terse when surfaced
+via `token-world agents`. The dashboard needs a structured panel — a
+drawer that opens when the user clicks an agent node and renders the
+agent's full internal state as labelled sections, not raw JSON.
+
+**Rationale:** promoted from v1.1 Phase 11 out-of-scope. Extends the
+existing graph-canvas property drawer (already ships per REQ-V11-DASH-03)
+with an agent-specific layout. Multi-agent scaffold (REQ-V12-DASHBOARD-05)
+will need this surface when >1 agent exists.
+
+**Acceptance criteria:**
+- Clicking an agent node opens an inspector drawer (reuse existing
+  drawer component from REQ-V12-DASHBOARD-01 non-rebuild guarantee).
+- Sections: Identity (id, personality summary), Location (rendered from
+  `located_in` pseudo-edge), Memory (recent tick summaries), Active LRA,
+  Attention state, Recent actions (last 10 action_texts).
+- Playwright test verifies drawer opens, sections render, scroll
+  preserves across poll cycles (reuses REQ-V12-DASHBOARD-01 guarantee).
+
+**Status:** Active
+**Source:** MORNING-HANDOFF §F row 7; session-5 feedback
+**Target phase:** TBD
+
+### REQ-V12-DASHBOARD-09 — Mechanic timeline column in registry panel
+
+§F row 3 overlap: the registry browser today shows mechanic id, call
+count, and author (seed vs operator). Add a "Last invoked" (most recent
+tick id) column and a "First authored" (git commit + timestamp) column so
+the registry tells the *lifecycle* of each mechanic, not just its
+cumulative stats.
+
+**Rationale:** low-cost add on top of REQ-V12-CLI-04 (which provides the
+history JSON). Dashboard consumes CLI JSON per §G allocation rules.
+
+**Acceptance criteria:**
+- Registry panel table includes "First authored" (commit hash + date)
+  and "Last invoked" (tick id + age) columns.
+- Columns sortable.
+- Consumes `token-world mechanics <slug> --history --format json`
+  rather than re-walking the git log.
+- Tests: fixture universe with synthesized history JSON verifies
+  column rendering + sort.
+
+**Status:** Active (depends on REQ-V12-CLI-04)
+**Source:** MORNING-HANDOFF §F row 3
+**Target phase:** TBD
+
+### REQ-V12-EMERGE-01 — Mechanic overlap detector (carried from v1.1)
+
+Originally REQ-EMERGE-05 under v1.1 — did not land before v1.1 close.
+Before authoring a new mechanic, the operator subagent should diff the
+proposed verb + watches against the existing registry and prefer
+editing an existing mechanic when overlap exceeds a threshold. Without
+this, emergent universes will accumulate near-duplicates (two `pet`
+variants, three `examine` variants) and the corpus grows chaotic.
+
+**Rationale:** explicit carry-forward from v1.1; see milestones/v1.1
+archive for original framing. Infrastructure for keeping the emergent
+corpus coherent as the overnight runs scale.
+
+**Acceptance criteria:**
+- `src/token_world/operator/overlap.py` (or equivalent) computes an
+  overlap score between a proposed verb+watches spec and the existing
+  registry.
+- Yield-handler subagent prompt (`.planning/agent-prompts/yield-handler.md`)
+  includes the overlap report and a "prefer edit-existing when overlap
+  exceeds X" instruction.
+- Subagent's final JSON summary records the decision (new vs edit +
+  overlap score).
+- Tests: overlap score matches intuition on synthetic cases; integration
+  test exercises the subagent decision path.
+
+**Status:** Active (carried from v1.1)
+**Source:** v1.1 REQ-EMERGE-05; MORNING-HANDOFF "Still pending in v1.1"
+**Target phase:** TBD
+
+### REQ-V12-EMERGE-02 — Operator decision-log enrichment (carried from v1.1)
+
+Originally REQ-EMERGE-07 under v1.1 — did not land before v1.1 close.
+`<universe>/operator-log.jsonl` today contains only yield/resolve
+events; each authoring subagent's final JSON summary (reasoning,
+overlap-check outcome, test-pass/fail history, cost) should also land
+there so emergence runs are fully audit-trailed.
+
+**Rationale:** explicit carry-forward from v1.1. Completes the
+observability loop — without the subagent's reasoning in the log, you
+cannot retrospectively diagnose why a given mechanic took the shape it
+took.
+
+**Acceptance criteria:**
+- Subagent final JSON (reasoning + overlap + test history + cost) is
+  appended to `<universe>/operator-log.jsonl` on every yield resolution.
+- Existing yield/resolve events preserved (schema additive).
+- CLI `token-world yield <slug> --history` optionally surfaces the log.
+- Tests: end-to-end yield run verifies the log entry contains the
+  expected fields.
+
+**Status:** Active (carried from v1.1)
+**Source:** v1.1 REQ-EMERGE-07; MORNING-HANDOFF "Still pending in v1.1"
+**Target phase:** TBD
+
+### REQ-V12-OPS-01 — `run_unattended.py` prints visible `.stop` warning at startup
+
+Session 6 hit a stale `<universe>/.stop` kill-switch that silently
+halted the first run attempt. The runner currently exits without a
+loud log message when `.stop` is present at startup. Fix: print
+`WARNING: .stop file present; delete before running` and exit with
+non-zero. Prevents the confusing silent-halt failure mode when a
+previous run left the file behind.
+
+**Rationale:** small ops win; saved the author a 5-minute diagnosis
+during session 6. Follow-up captured in SESSION-6-REPORT "Remaining
+Work".
+
+**Acceptance criteria:**
+- `scripts/run_unattended.py` detects `<universe>/.stop` at startup.
+- Prints a warning line (stderr) naming the file path.
+- Exits with code != 0.
+- Tests: fixture universe with `.stop` present; assert stderr + exit code.
+
+**Status:** Active
+**Source:** SESSION-6-REPORT "Remaining Work" section
+**Target phase:** TBD
+
+### REQ-V12-OPS-02 — Historical tick-summary migration script (OPTIONAL)
+
+SESSION-6-REPORT flagged that willowbrook ticks 22, 34, and 38 may have
+the same false-EXECUTED record as tick 34 did before REQ-V12-ENGINE-01
+landed (`status=executed, refused=false, matched_mechanic_id=X,
+mutations=0` for ticks where the mechanic's `check()` actually refused).
+A migration script can re-run those historical ticks through the fixed
+engine logic and rewrite their tick-summary JSON files to reflect the
+honest `refused=true` state.
+
+**Rationale:** optional because the bug is forward-only fixed; historical
+records are archaeological. Still worth having the script available
+because downstream KPIs + playtest scorer will double-count those false
+EXECUTED records as "zero mutations + low groundedness" forever
+otherwise.
+
+**Acceptance criteria:**
+- `scripts/migrate_tick_summaries.py <slug>` walks every tick summary
+  whose primary-mechanic check would have failed under current engine
+  logic; rewrites the summary JSON with honest `refused=true`.
+- Dry-run mode (default) prints the planned changes without writing.
+- `--apply` flag commits the rewrites.
+- Idempotent — re-running against already-migrated summaries is a no-op.
+- Tests: fixture with mixed honest + false-EXECUTED records; assert
+  correct classification.
+
+**Status:** Active (optional)
+**Source:** SESSION-6-REPORT "Remaining Work" section
+**Target phase:** TBD
+
+### REQ-V12-TOOLING-02 — `seed_starter_universe.py --preserve-mechanics` flag
+
+Anti-pattern 6 (captured in MORNING-HANDOFF §L): re-running the seed
+script on an existing universe silently deletes any mechanics the
+authored subagents landed since the last seed. The fix is covered by
+REQ-V12-SEEDS-01's acceptance criteria but promoted to its own REQ
+entry because it defends against a distinct failure mode (destructive
+re-seed) independent of the seed-corpus refinement work itself. An
+operator can ship the preserve flag without touching the agnostic-seed
+promotion lane.
+
+**Rationale:** anti-pattern 6 protection; independent of the
+seed-corpus refinement. Agents who re-seed should get a clear opt-in
+for preservation rather than discovering they wiped a day's authoring.
+
+**Acceptance criteria:**
+- `scripts/seed_starter_universe.py --preserve-mechanics` leaves any
+  existing mechanic modules in `<universe>/mechanics/` untouched.
+- Without the flag, behaviour unchanged (back-compat); but script
+  prints a loud warning naming every mechanic that would be
+  overwritten, with a "pass --preserve-mechanics to keep" hint.
+- Tests: fixture universe with authored mechanics; assert preserve
+  mode leaves them; assert default mode warns.
+
+**Status:** Active
+**Source:** MORNING-HANDOFF §L anti-pattern 6; covered also by
+REQ-V12-SEEDS-01 acceptance criteria
 **Target phase:** TBD
 
 ---
@@ -594,24 +872,35 @@ owned by the v2+ backlog.)
 | Requirement | Phase | Status | Commit / Plan |
 |---|---|---|---|
 | REQ-V12-ENGINE-01 | TBD | done | `afc5c73` |
+| REQ-V12-ENGINE-02 | TBD | done | `e110e2c` |
 | REQ-V12-DASHBOARD-01 | TBD | done | `d31090d` |
-| REQ-V12-CLI-01 | TBD | done | `fa68200` |
 | REQ-V12-DASHBOARD-02 | TBD | done | `d31090d` |
 | REQ-V12-DASHBOARD-03 | TBD | done | `d31090d` |
 | REQ-V12-DASHBOARD-04 | TBD | done | `6101da0` |
+| REQ-V12-CLI-01 | TBD | done | `fa68200` |
+| REQ-V12-CLI-02 | TBD | done | `7435536` |
 | REQ-V12-PLAYTEST-01 | TBD | done | `0fcd614` |
-| REQ-V12-ECONOMY-01 | TBD | done | (Willowbrook `_economy.py` landed) |
+| REQ-V12-ECONOMY-01 | TBD | done | (Willowbrook `_economy.py` landed; universe commit `ce671cd`) |
 | REQ-V12-QUALITY-01 | TBD | done | `890b464` |
 | REQ-V12-DOCS-01 | TBD | done | `3eec1c5` |
 | REQ-V12-TOOLING-01 | TBD | done | `958a28b` |
-| REQ-V12-CLI-02 | TBD | active | — |
-| REQ-V12-DASHBOARD-05 | TBD | active | — |
-| REQ-V12-QUALITY-02 | TBD | active | — |
-| REQ-V12-ENGINE-02 | TBD | active | — |
 | REQ-V12-ENGINE-03 | TBD | active | — |
-| REQ-V12-SEEDS-01 | TBD | active | — |
 | REQ-V12-ENGINE-04 | TBD | active | — |
+| REQ-V12-ENGINE-05 | TBD | active | — |
+| REQ-V12-DASHBOARD-05 | TBD | active | — |
 | REQ-V12-DASHBOARD-06 | TBD | active | — |
+| REQ-V12-DASHBOARD-07 | TBD | active | — |
+| REQ-V12-DASHBOARD-08 | TBD | active | — |
+| REQ-V12-DASHBOARD-09 | TBD | active | — |
+| REQ-V12-CLI-03 | TBD | active | — |
+| REQ-V12-CLI-04 | TBD | active | — |
+| REQ-V12-QUALITY-02 | TBD | active | — |
+| REQ-V12-SEEDS-01 | TBD | active | — |
+| REQ-V12-EMERGE-01 | TBD | active | — |
+| REQ-V12-EMERGE-02 | TBD | active | — |
+| REQ-V12-OPS-01 | TBD | active | — |
+| REQ-V12-OPS-02 | TBD | active | — (optional) |
+| REQ-V12-TOOLING-02 | TBD | active | — |
 | REQ-V12-GRAPH-01 | TBD | active | — |
 | REQ-V12-GRAPH-02 | TBD | active | — |
 | REQ-V12-GRAPH-03 | TBD | active | — |
@@ -619,6 +908,8 @@ owned by the v2+ backlog.)
 
 ---
 
-*Last updated: 2026-04-14 (v1.2 assembly session, post-session-5
-feedback). Source-of-truth handoff:
-[../MORNING-HANDOFF.md](../MORNING-HANDOFF.md) §I + §J.*
+*Last updated: 2026-04-14 (v1.2 milestone formally opened; inclusive scope
+pass per user's session-6 mandate). Source-of-truth handoff:
+[../MORNING-HANDOFF.md](../MORNING-HANDOFF.md) §§F/I/J + SESSION-6-REPORT.
+Far-fetched items parked at
+[backlog/v2.0-REQUIREMENTS.md](backlog/v2.0-REQUIREMENTS.md) as REQ-V20-*.*

@@ -34,39 +34,73 @@ The simulation engine reliably interprets agent actions, yields to the operator 
 - [x] Playtest runner with adversarial scenario injection + quality scoring — v1.0 (Phase 6)
 - [x] Pluggable LLM backend (AnthropicSDK default + ClaudeCLI for zero-cost UAT) — v1.0 (Phase 7.1)
 
-## Current Milestone: v1.1 Emergence Tooling
+### Validated (v1.1)
 
-**Goal:** Make unattended universe runs real + legible; give humans a shareable view.
+- [x] External-operator mode (file-based yield protocol, subagent-as-operator, $0 marginal) — v1.1 (Phase 08, commit `8f1f18e`)
+- [x] Seed starter universe (Willowbrook) + unattended runner — v1.1 (Phase 08, commit `0a95763`)
+- [x] Operator CLI query surface (`inspect`, `tick`, `trace`, `stats`, `mechanics`, `watch`, `agents`, `diff`) — v1.1 (Phase 09)
+- [x] NiceGUI dashboard — 4 panels (tick stream, graph canvas, stats strip, causal chain) — v1.1 (Phase 11)
+- [x] Unattended Willowbrook overnight run — 11 novel mechanics authored autonomously — v1.1 (Phase 12, experiment)
+- [x] Warm-up burn-down of v1.0 Known Gaps (04.1 SC-2, traceability/roadmap CI, research-doc refresh, `BatchSummary.agent_id`) — v1.1 (Phase 10)
+- [x] Classifier permissive-verb prompt + markdown-fence stripper — v1.1 (commits `3ffb9f5`, `f84c9b2`; required for emergence)
+- [x] Seed-mechanic pruning + bootstrap scenario + yield-handler subagent prompt — v1.1 (commit `ee0284b`)
+
+## Current Milestone: v1.2 Quality + Depth
+
+**Goal:** Harden the truthfulness of the emergence loop (engine bugs, observability,
+energy economy, dashboard UX) and open the door to richer play (composite actions,
+multi-agent scaffold, KPIs) — taking everything remaining across the project into
+one inclusive milestone before v2.
 
 **Target features:**
-- External-operator mode (file-based yield protocol, subagent-as-operator, $0 marginal)
-- Operator CLI query surface (`inspect`, `tick`, `trace`, `stats`, `mechanics`, `watch`)
-- NiceGUI dashboard (tick stream, graph canvas, stats strip, causal chain)
-- Unattended Willowbrook 200-tick run with real emergence data
-- Warm-up: close dangling v1.0 items + friction reducers
+- Truthful engine (primary-check-fail → RefuseDecision; observer grounded to mutations; `locked`/`blocked`/`inventory_full` emergent, not engine-coded; composite actions)
+- Grounded observer (outcome-consistent with mutations; no stale descriptions; double-wrap templates fixed)
+- Dashboard UX + multi-agent scaffold + run-status indicator + agent inspector drawer + mechanic timeline
+- Richer play via composite actions + Willowbrook seed refinement + mutation-chain visibility
+- Quality KPIs subpackage + CLI + dashboard panel + CI gating + QA checklists
+- Graph conventions codified (door, container, portal, fungible amount)
+- Seed corpus expansion (examine / pet / sharpen / hum / drop promoted; `--preserve-mechanics` flag)
+- Ops & tooling (visible `.stop` warning, historical tick-migration, operator decision-log enrichment, overlap detector)
 
-Full scope: `.planning/REQUIREMENTS.md`.
+Full scope: `.planning/REQUIREMENTS.md` (REQ-V12-* namespace, inclusive of all
+remaining requirements across the project).
 
-### Active (v1.1)
+### Active (v1.2)
 
-- [x] Phase 08 substrate (ExternalOperator + seed + runner) — direct-edit commits `8f1f18e`, `0a95763`
-- [ ] Phase 09 Operator CLI — direct subagent in flight
-- [ ] Phase 10 Warm-up + automation — direct subagent in flight
-- [ ] Phase 11 NiceGUI Dashboard — GSD phase plan pending
-- [ ] Phase 12 Overnight Orchestration + Experiment — direct (experiment, not shippable)
+- [x] REQ-V12-ENGINE-01 primary-check-fail → RefuseDecision (shipped warm-up `afc5c73`)
+- [x] REQ-V12-ENGINE-02 observer grounding to mutation list (shipped warm-up `e110e2c`)
+- [x] REQ-V12-DASHBOARD-01..04 dashboard UX cluster (shipped warm-up `d31090d`, `6101da0`)
+- [x] REQ-V12-CLI-01..02 inspect headers + `token-world yield` CLI (shipped warm-up `fa68200`, `7435536`)
+- [x] REQ-V12-PLAYTEST-01 Mira prompt tightening + auto-halt (shipped warm-up `0fcd614`)
+- [x] REQ-V12-ECONOMY-01 Willowbrook `_economy.py` (shipped warm-up, universe commit `ce671cd`)
+- [x] REQ-V12-QUALITY-01 dashboard QA + sim-quality rubric docs (shipped warm-up `890b464`)
+- [x] REQ-V12-DOCS-01 tooling-surfaces.md allocation principle (shipped warm-up `3eec1c5`)
+- [x] REQ-V12-TOOLING-01 `commit.sh` explicit paths (shipped warm-up `958a28b`)
+- [ ] REQ-V12-ENGINE-03..05, REQ-V12-DASHBOARD-05..09, REQ-V12-CLI-03..04, REQ-V12-QUALITY-02, REQ-V12-SEEDS-01, REQ-V12-GRAPH-01..04, REQ-V12-EMERGE-01..02, REQ-V12-OPS-01..02, REQ-V12-TOOLING-02 — active, phases TBD (roadmapper pending)
 
-### Out of Scope (reaffirmed at v1.0 close)
+See `.planning/REQUIREMENTS.md` for full REQ-V12 detail.
 
-- Multi-agent scaling (hundreds/thousands) — v1 is single agent + engine; MULTI-01..03 explicitly v2+
-- Review agents / bird's eye monitoring — requires multi-agent which is v2+ (MON-01..03)
-- Sandboxed mechanic execution (RestrictedPython) — deferred for hobby-project scope; CVE-2025-22153 to revisit in v2 (HARD-01)
+### Out of Scope (reaffirmed)
+
+The following items stay project-level out of scope — permanent, not merely
+"later". v2 far-fetched candidates live in `.planning/backlog/v2.0-REQUIREMENTS.md`.
+
 - Game adaptation / playable game — v1 is a simulation, not a game
-- Multimodal output (images, maps, 8-bit graphics) — text-first; visuals v2+
+- Multimodal output (images, maps, 8-bit graphics) — text-first
 - Civic simulation scenarios (UBI, economics) — requires mature mechanics ecosystem
 - Real-time simulation — turn-based is simpler and sufficient
 - Authentication / multi-user — local hobby project
 - Plugin system for mechanics — framework IS the plugin API
-- Distributed graph / sharding — graph stays small for years
+- Cloud-hosted / public dashboard URL — local only
+- Agent SDK overnight runs — explicitly forbidden per §L cost rails; subagents under the subscription are the blessed shape
+
+The following items are **deferred to v2.0** (not out of scope, just far-fetched):
+
+- Multi-agent simulation engine (MULTI-01..03, reframed as REQ-V20-MULTI-01)
+- Review agents / bird's-eye monitoring (MON-01..03, reframed as REQ-V20-MULTI-02)
+- Sandboxed mechanic execution / RestrictedPython (HARD-01, CVE-2025-22153, reframed as REQ-V20-HARD-01)
+- Distributed graph / sharding (reframed as REQ-V20-DIST-01)
+- All 12 phase-03 gap deferrals not promoted to v1.2 Graph Conventions
 
 ## Context
 
@@ -136,4 +170,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-14 after v1.0 milestone close*
+*Last updated: 2026-04-14 at v1.2 milestone open (retroactively archived v1.1).*

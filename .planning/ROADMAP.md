@@ -2,14 +2,16 @@
 
 ## Overview
 
-Token World is a universe simulator where LLM-powered resident agents inhabit a text-based world whose rules are procedurally authored on-the-fly. The v1.0 milestone shipped the full end-to-end loop: knowledge graph, mechanic framework, operator-authored mechanics under inversion of control, simulation engine with grounded observations, resident agent with memory, and composable attention/consciousness mechanics.
+Token World is a universe simulator where LLM-powered resident agents inhabit a text-based world whose rules are procedurally authored on-the-fly. v1.0 shipped the full end-to-end loop; v1.1 delivered the emergence tooling (Operator CLI + NiceGUI dashboard + ExternalOperator substrate) that proved unattended mechanic authoring works.
 
-The next milestone (v1.1) is not yet scoped — definition pending via `/gsd-new-milestone`.
+v1.2 (Quality + Depth) is the current milestone, opened 2026-04-14 — absorbing every remaining requirement across the project except the handful of truly far-fetched multi-agent / transactional / distributed items parked in `backlog/v2.0-REQUIREMENTS.md`.
 
 ## Milestones
 
 - ✅ **v1.0 MVP** — Phases 0..7, 04.1 + 07.1 inserted (shipped 2026-04-14)
-- 📋 **v1.1** — (not yet scoped)
+- ✅ **v1.1 Emergence Tooling** — Phases 08..12 (shipped 2026-04-14, retroactively archived)
+- 🟢 **v1.2 Quality + Depth** — opened 2026-04-14, phases TBD (roadmapper pending)
+- 📋 **v2.0 Far-Fetched** — stub at `backlog/v2.0-REQUIREMENTS.md` (multi-agent engine, distributed/transactional primitives, sandboxing)
 
 ## Phases
 
@@ -33,15 +35,39 @@ The next milestone (v1.1) is not yet scoped — definition pending via `/gsd-new
 
 </details>
 
-### 🟢 v1.1 Emergence Tooling (started 2026-04-15)
+<details>
+<summary>✅ v1.1 Emergence Tooling (Phases 08..12) — SHIPPED 2026-04-14</summary>
 
-**Vision:** Make unattended universe runs real + legible. Tracks A/B/C from MORNING-HANDOFF.
+- [x] Phase 08: Emergence Substrate (3/3 plans retroactive) — ExternalOperator + seed Willowbrook + unattended runner
+- [x] Phase 09: Operator CLI Surface (6/6 plans retroactive) — `inspect/tick/trace/mechanics/stats/watch` + P1 `agents/diff`
+- [x] Phase 10: Warm-up Backlog + Automation (direct-edit; no PLANs) — 6 v1.0 Known Gaps burned down
+- [x] Phase 11: NiceGUI Dashboard (5/5 plans — full GSD) — 4 panels, 26 tests
+- [x] Phase 12: Overnight Orchestration (experiment; no PLANs) — 11 mechanics authored autonomously
 
-- [ ] Phase 08: **Emergence Substrate** (Track C groundwork) — ExternalOperator + seed Willowbrook + unattended runner. `8f1f18e`, `0a95763` already committed under direct-edit mode; scaffolding retroactive.
-- [ ] Phase 09: **Operator CLI Surface** (Track A) — `token-world inspect/tick/trace/stats/mechanics/watch`. Running as direct subagent; retroactively phased on completion.
-- [ ] Phase 10: **Warm-up Backlog + Automation** — Phase 04.1 SC-2 close, traceability scripts, research-doc refresh, friction reducers. Running as direct subagent.
-- [ ] Phase 11: **NiceGUI Dashboard** (Track B) — read-only observer: tick stream, graph canvas, stats strip, causal chain. Full GSD phase.
-- [ ] Phase 12: **Overnight Orchestration + Experiment** — orchestration loop (Claude Code polls inbox, spawns authoring subagents), 200-tick Willowbrook run, emergence-data capture. Run-as-experiment, not a shippable phase.
+**Full details:** [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
+**Requirements snapshot:** [milestones/v1.1-REQUIREMENTS.md](milestones/v1.1-REQUIREMENTS.md)
+**Summary entry:** [MILESTONES.md](MILESTONES.md)
+
+</details>
+
+### 🟢 v1.2 Quality + Depth (opened 2026-04-14)
+
+**Vision:** Harden truthfulness of the emergence loop (engine bugs, observer grounding, dashboard UX) and open the door to richer play (composite actions, multi-agent scaffold, quality KPIs). Inclusive milestone — every remaining requirement across the project lives here unless truly far-fetched.
+
+**Warm-up delivered (sessions 4–6 direct-edit, pre-formal-scaffolding):** 11 REQ-V12-* items shipped. See `milestones/v1.2` REQUIREMENTS (the live `.planning/REQUIREMENTS.md` until milestone close).
+
+**Phases TBD — roadmapper subagent will fill in when spawned against REQUIREMENTS.md.** Active scope spans:
+
+- Engine truthfulness completion (REQ-V12-ENGINE-03..05)
+- Dashboard UX + multi-agent scaffold + run-status + agent inspector + mechanic timeline (REQ-V12-DASHBOARD-05..09)
+- Operator CLI extensions (REQ-V12-CLI-03..04)
+- Quality KPIs subpackage + CLI + panel (REQ-V12-QUALITY-02)
+- Seed corpus expansion + Willowbrook refinement (REQ-V12-SEEDS-01, REQ-V12-TOOLING-02)
+- Graph conventions codification (REQ-V12-GRAPH-01..04)
+- Emergence tooling carried from v1.1 (REQ-V12-EMERGE-01..02)
+- Ops (REQ-V12-OPS-01..02)
+
+See `.planning/REQUIREMENTS.md` for the full REQ-V12 table; phase breakdown follows.
 
 ## Progress
 
@@ -63,16 +89,19 @@ Phases execute in numeric order within each milestone. Decimal phases (e.g., 04.
 | 7. Attention & Consciousness | v1.0 | 7/7 | Complete | 2026-04-13 |
 | 07.1. claude-cli LLM Backend (INSERTED) | v1.0 | 2/2 | Complete | 2026-04-14 |
 
-### v1.1 (In Progress — started 2026-04-15)
+### v1.1 (Shipped 2026-04-14 — retroactively archived)
+
+Full phase detail moved to [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md). v1.1 ran in hybrid mode; most phases (08, 09, 10, 12) have no PLAN.md/SUMMARY.md files because the work landed as direct-edit + retroactive scaffolding. The lone fully-GSD-scaffolded phase is listed here so the roadmap-progress checker doesn't flag it as unmentioned:
 
 | Phase | Milestone | Plans Complete | Status   | Notes |
 |-------|-----------|----------------|----------|-------|
-| 08. Emergence Substrate | v1.1 | 3/— | In Progress | ExternalOperator + seed + runner already committed (direct mode) |
-| 09. Operator CLI Surface | v1.1 | —/6 | In Progress | Subagent running; retroactive phasing at completion |
-| 10. Warm-up + Automation | v1.1 | —/11 | In Progress | Subagent running; retroactive phasing at completion |
-| 11. NiceGUI Dashboard | v1.1 | 0/6 | Planning | GSD phase-plan pending |
-| 12. Overnight Orchestration | v1.1 | 0/— | Planning | Runs during this session; experiment, not shippable |
+| 11. NiceGUI Dashboard | v1.1 | 1/1 | Complete | Only v1.1 phase with formal PLAN.md; SUMMARY.md retroactive |
+
+### v1.2 (Active — opened 2026-04-14)
+
+Phases TBD — roadmapper subagent will fill in against `.planning/REQUIREMENTS.md` (20 active REQ-V12-* items; 11 warm-up items already shipped). The first plan lands when roadmapper runs.
 
 ---
 
 _For the full v1.0 phase breakdown, see [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)._
+_For v1.1, see [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)._
