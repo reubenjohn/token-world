@@ -33,16 +33,15 @@ The next milestone (v1.1) is not yet scoped — definition pending via `/gsd-new
 
 </details>
 
-### 📋 v1.1 (Not Yet Scoped)
+### 🟢 v1.1 Emergence Tooling (started 2026-04-15)
 
-Milestone v1.1 is pending. Kick off via `/gsd-new-milestone`. Candidate themes surfaced during v1.0 close (see PROJECT.md § Active):
+**Vision:** Make unattended universe runs real + legible. Tracks A/B/C from MORNING-HANDOFF.
 
-- Close Phase 04.1 SC-2 interactive smoke test (now zero-cost via `ClaudeCLIBackend`)
-- Refresh stale research docs on Opus-vs-Sonnet model routing
-- Populate `agent_id` correctly in BatchSummary
-- Second-agent experimentation (precursor to v2's MULTI-01)
-- Cost monitoring / circuit breakers (HARD-03)
-- Dashboard / graph visualizer (previously out-of-scope; reconsider)
+- [ ] Phase 08: **Emergence Substrate** (Track C groundwork) — ExternalOperator + seed Willowbrook + unattended runner. `8f1f18e`, `0a95763` already committed under direct-edit mode; scaffolding retroactive.
+- [ ] Phase 09: **Operator CLI Surface** (Track A) — `token-world inspect/tick/trace/stats/mechanics/watch`. Running as direct subagent; retroactively phased on completion.
+- [ ] Phase 10: **Warm-up Backlog + Automation** — Phase 04.1 SC-2 close, traceability scripts, research-doc refresh, friction reducers. Running as direct subagent.
+- [ ] Phase 11: **NiceGUI Dashboard** (Track B) — read-only observer: tick stream, graph canvas, stats strip, causal chain. Full GSD phase.
+- [ ] Phase 12: **Overnight Orchestration + Experiment** — orchestration loop (Claude Code polls inbox, spawns authoring subagents), 200-tick Willowbrook run, emergence-data capture. Run-as-experiment, not a shippable phase.
 
 ## Progress
 
@@ -64,9 +63,15 @@ Phases execute in numeric order within each milestone. Decimal phases (e.g., 04.
 | 7. Attention & Consciousness | v1.0 | 7/7 | Complete | 2026-04-13 |
 | 07.1. claude-cli LLM Backend (INSERTED) | v1.0 | 2/2 | Complete | 2026-04-14 |
 
-### v1.1 (Planning)
+### v1.1 (In Progress — started 2026-04-15)
 
-TBD — run `/gsd-new-milestone` to scope.
+| Phase | Milestone | Plans Complete | Status   | Notes |
+|-------|-----------|----------------|----------|-------|
+| 08. Emergence Substrate | v1.1 | 3/— | In Progress | ExternalOperator + seed + runner already committed (direct mode) |
+| 09. Operator CLI Surface | v1.1 | —/6 | In Progress | Subagent running; retroactive phasing at completion |
+| 10. Warm-up + Automation | v1.1 | —/11 | In Progress | Subagent running; retroactive phasing at completion |
+| 11. NiceGUI Dashboard | v1.1 | 0/6 | Planning | GSD phase-plan pending |
+| 12. Overnight Orchestration | v1.1 | 0/— | Planning | Runs during this session; experiment, not shippable |
 
 ---
 

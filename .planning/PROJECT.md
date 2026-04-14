@@ -34,14 +34,26 @@ The simulation engine reliably interprets agent actions, yields to the operator 
 - [x] Playtest runner with adversarial scenario injection + quality scoring — v1.0 (Phase 6)
 - [x] Pluggable LLM backend (AnthropicSDK default + ClaudeCLI for zero-cost UAT) — v1.0 (Phase 7.1)
 
-### Active (carried into v1.1+)
+## Current Milestone: v1.1 Emergence Tooling
 
-- [ ] v1.1 milestone definition — pending `/gsd-new-milestone` kickoff
-- [ ] (Candidate) Close Phase 04.1 SC-2 interactive smoke test now that `ClaudeCLIBackend` makes it $0 to run
-- [ ] (Candidate) Refresh stale research docs (STACK.md, ARCHITECTURE.md, SUMMARY.md) on Opus-vs-Sonnet model routing
-- [ ] (Candidate) Populate `agent_id` correctly in BatchSummary (currently stubbed to `"unknown"`)
-- [ ] (Candidate) Dashboard / graph visualizer web UI — previously out-of-scope; reconsider given v1.0 scale
-- [ ] (Candidate) Cost monitoring / circuit breakers for LLM usage (HARD-03)
+**Goal:** Make unattended universe runs real + legible; give humans a shareable view.
+
+**Target features:**
+- External-operator mode (file-based yield protocol, subagent-as-operator, $0 marginal)
+- Operator CLI query surface (`inspect`, `tick`, `trace`, `stats`, `mechanics`, `watch`)
+- NiceGUI dashboard (tick stream, graph canvas, stats strip, causal chain)
+- Unattended Willowbrook 200-tick run with real emergence data
+- Warm-up: close dangling v1.0 items + friction reducers
+
+Full scope: `.planning/REQUIREMENTS.md`.
+
+### Active (v1.1)
+
+- [x] Phase 08 substrate (ExternalOperator + seed + runner) — direct-edit commits `8f1f18e`, `0a95763`
+- [ ] Phase 09 Operator CLI — direct subagent in flight
+- [ ] Phase 10 Warm-up + automation — direct subagent in flight
+- [ ] Phase 11 NiceGUI Dashboard — GSD phase plan pending
+- [ ] Phase 12 Overnight Orchestration + Experiment — direct (experiment, not shippable)
 
 ### Out of Scope (reaffirmed at v1.0 close)
 
