@@ -20,6 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Simulation Engine** - Action classification (Haiku), mechanic matching, execution, grounded observation synthesis (Sonnet), conservation enforcement, tick summaries. Under inversion of control: when no mechanic matches, the engine yields to the operator — it does NOT generate code. (completed 2026-04-13)
 - [x] **Phase 6: Resident Agent & End-to-End Loop** - Agent with personality and memory, playtesting, quality scoring, regression suite (completed 2026-04-13)
 - [x] **Phase 7: Attention & Consciousness** - Duration-aware actions and reusable interruption threshold pattern (completed 2026-04-13)
+- [x] **Phase 07.1: claude-cli LLM backend** (INSERTED) - Pluggable `LLMBackend` protocol + `AnthropicSDKBackend` (default) + `ClaudeCLIBackend` (zero-cost live UAT via user's Claude subscription). Refactored Classifier/Observer/ResidentAgent to route via backend. Unblocks Phase 6 live-API UAT items. (completed 2026-04-14)
 
 ## Phase Details
 
@@ -219,3 +220,14 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 5. Simulation Engine | 9/9 | Complete   | 2026-04-13 |
 | 6. Resident Agent & End-to-End Loop | 7/7 | Complete   | 2026-04-13 |
 | 7. Attention & Consciousness | 7/7 | Complete   | 2026-04-13 |
+
+### Phase 07.1: claude-cli LLM backend — zero-cost live playtesting via user's Claude subscription (INSERTED)
+
+**Goal:** Deliver a pluggable LLM backend protocol with two implementations (AnthropicSDKBackend default + ClaudeCLIBackend for zero-cost live UAT via user's Claude subscription), refactor the 3 LLM-calling classes (Classifier, Observer, ResidentAgent) to use the abstraction backward-compatibly, and land integration tests. Enables Phase 6 VERIFICATION live-API UAT items to run at $0 marginal cost.
+**Requirements**: INFRA-01 (post-hoc — see CONTEXT.md Claude's Discretion section)
+**Depends on:** Phase 7
+**Plans:** 2 plans
+
+Plans:
+- [ ] 07.1-01-PLAN.md — llm_backend.py module (LLMBackend Protocol, AnthropicSDKBackend, ClaudeCLIBackend, get_backend factory, _strip_markdown_fences) + 15+ unit tests with mocked subprocess
+- [ ] 07.1-02-PLAN.md — Refactor Classifier + Observer + ResidentAgent to route LLM calls through LLMBackend (backward-compatible) + integration tests covering env-var dispatch and CLI fence stripping
