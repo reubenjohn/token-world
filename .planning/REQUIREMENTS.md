@@ -894,7 +894,7 @@ owned by the v2+ backlog.)
 | REQ-V12-DASHBOARD-09 | Phase 17 | active | — |
 | REQ-V12-CLI-03 | Phase 17 | active | — |
 | REQ-V12-CLI-04 | Phase 17 | active | — |
-| REQ-V12-QUALITY-02 | Phase 13 | active | — |
+| REQ-V12-QUALITY-02 | Phase 13 | done | `44361da` |
 | REQ-V12-SEEDS-01 | Phase 14 | active | — |
 | REQ-V12-EMERGE-01 | Phase 17 | active | — |
 | REQ-V12-EMERGE-02 | Phase 17 | active | — |
