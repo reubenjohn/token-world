@@ -461,6 +461,108 @@ class TestBeliefOverlay:
         assert result["room_1"]["properties"].get("name") == "Common Room"
         assert result["chair"]["properties"].get("hp") == 100
 
+    def test_belief_cannot_override_structural_type_key(self) -> None:
+        """Phase 5 IN-02 fix (2026-04-14): `type` key is structural, not belief-override-able.
+
+        An agent's belief that a target's `type` is something else MUST NOT mutate
+        the projection's `type` field — that would let beliefs reclassify nodes
+        (e.g., agent → entity) and downstream mechanics/observer would trust the
+        hallucinated type. Beliefs CAN still override named properties like
+        `subtype` (a drink labeled as "poison" in the agent's mind is legitimate).
+        """
+        kg = make_kg()
+        kg.add_node(
+            "alice",
+            node_type="agent",
+            name="Alice",
+            beliefs={
+                "chest": {
+                    "type": "agent",  # ← belief claims chest is an agent
+                    "subtype": "treasure",  # ← legitimate: override allowed
+                    "locked": False,  # ← legitimate: override allowed
+                }
+            },
+        )
+        kg.add_node("room_1", node_type="entity", illumination=1.0)
+        kg.add_node("chest", node_type="entity", locked=True)
+        kg.add_edge("alice", "room_1", type="location")
+        kg.add_edge("room_1", "chest", type="contains")
+        proj = VisibilityProjector(kg)
+        result = proj.project_for("alice")
+        # Structural `type` key must NOT be overridden
+        assert result["chest"]["type"] == "entity"
+        # Non-structural keys CAN be overridden by beliefs
+        assert result["chest"]["properties"].get("subtype") == "treasure"
+        assert result["chest"]["properties"].get("locked") is False
+
+    def test_belief_cannot_override_hidden_properties_key(self) -> None:
+        """`hidden_properties` is the projector's own list — beliefs cannot mutate it."""
+        kg = make_kg()
+        kg.add_node(
+            "alice",
+            node_type="agent",
+            beliefs={
+                "secret_box": {
+                    "hidden_properties": [],  # ← belief tries to unhide
+                    "color": "red",  # ← legitimate override
+                }
+            },
+        )
+        kg.add_node("room_1", node_type="entity", illumination=1.0)
+        kg.add_node(
+            "secret_box",
+            node_type="entity",
+            color="blue",
+            secret_code=1234,
+            hidden_properties=["secret_code"],
+        )
+        kg.add_edge("alice", "room_1", type="location")
+        kg.add_edge("room_1", "secret_box", type="contains")
+        proj = VisibilityProjector(kg)
+        result = proj.project_for("alice")
+        # hidden_properties must stay the projector's own list — secret_code still stripped
+        assert "secret_code" not in result["secret_box"]["properties"]
+        # Named properties DO get overridden
+        assert result["secret_box"]["properties"].get("color") == "red"
+
+    def test_belief_cannot_override_beliefs_key_recursively(self) -> None:
+        """`beliefs` key is structural — forbids one actor rewriting another's beliefs via overlay.
+
+        Uses an NPC entity (which appears in containment projection) rather than
+        a second agent — co-location doesn't imply visibility between agents.
+        """
+        kg = make_kg()
+        kg.add_node(
+            "alice",
+            node_type="agent",
+            beliefs={
+                "npc": {
+                    # Alice's belief claims NPC has specific beliefs. Allowing this
+                    # would let the overlay forge property dicts that leak into
+                    # downstream code trusting the projection.
+                    "beliefs": {"alice": {"trustworthy": False}},
+                    "mood": "happy",
+                }
+            },
+        )
+        kg.add_node("room_1", node_type="entity", illumination=1.0)
+        kg.add_node(
+            "npc",
+            node_type="entity",
+            subtype="npc",
+            beliefs={"alice": {"trustworthy": True}},
+            mood="anxious",
+        )
+        kg.add_edge("alice", "room_1", type="location")
+        kg.add_edge("room_1", "npc", type="contains")
+        proj = VisibilityProjector(kg)
+        result = proj.project_for("alice")
+        # NPC's `beliefs` must remain the ground-truth value (not Alice's forged overlay)
+        npc_beliefs = result["npc"]["properties"].get("beliefs")
+        assert npc_beliefs == {"alice": {"trustworthy": True}}
+        # Non-structural `mood` override still applies
+        assert result["npc"]["properties"].get("mood") == "happy"
+
 
 # ---------------------------------------------------------------------------
 # WR-04 regression: _outgoing_edges error handling

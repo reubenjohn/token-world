@@ -278,6 +278,14 @@ class VisibilityProjector:
     # Stage 4: Belief overlay
     # ------------------------------------------------------------------
 
+    # Structural property keys that belief overlay MUST NOT override (Phase 5 IN-02
+    # deferred fix, 2026-04-14). `type` classifies the node; `hidden_properties` is
+    # the projector's own list; `beliefs` is the actor's belief dict itself and
+    # allowing it would let one actor's beliefs recursively rewrite another's.
+    # Everything else (location, subtype, named properties) remains override-able —
+    # agents CAN believe a drink is a poison or a book is in another room.
+    _BELIEF_STRUCTURAL_KEYS: frozenset[str] = frozenset({"type", "hidden_properties", "beliefs"})
+
     def _apply_belief_overlay(
         self,
         projection: dict[str, dict[str, Any]],
@@ -286,6 +294,9 @@ class VisibilityProjector:
         """Overlay actor's beliefs onto ground truth for already-projected nodes.
 
         Beliefs for nodes NOT in the projection are silently ignored (no phantoms).
+        Structural property keys (`type`, `hidden_properties`, `beliefs`) are
+        filtered out of each believed_props dict before merging — beliefs cannot
+        override the projector's own bookkeeping or the node's classification.
         """
         actor_entry = projection.get(actor_id)
         if actor_entry is None:
@@ -301,9 +312,15 @@ class VisibilityProjector:
                 continue  # no phantoms (GAP-GRAPH04)
             if not isinstance(believed_props, dict):
                 continue  # silently ignore non-dict belief values
+            # Strip structural keys — beliefs cannot override them (IN-02 fix)
+            safe_believed_props = {
+                k: v for k, v in believed_props.items() if k not in self._BELIEF_STRUCTURAL_KEYS
+            }
+            if not safe_believed_props:
+                continue
             merged_entry = dict(new_projection[node_id])
             merged_props = dict(merged_entry.get("properties", {}))
-            merged_props.update(believed_props)
+            merged_props.update(safe_believed_props)
             merged_entry["properties"] = merged_props
             new_projection[node_id] = merged_entry
 
