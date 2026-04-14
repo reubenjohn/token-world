@@ -120,6 +120,41 @@ are NOT re-emitted. Ctrl-C to exit. The output line shape is:
 [tick_id] timestamp status (N mut) observation_excerpt
 ```
 
+## `agents`
+
+Inspect agent-typed nodes. Without `--id`, summarises every agent in
+the graph. With `--id alice`, returns the full property bundle for
+that single agent.
+
+```
+token-world agents demo-tavern
+token-world agents demo-tavern --id alice
+token-world agents demo-tavern --format json
+```
+
+Properties are bucketed into well-known groups: `personality`,
+`persona_text`, `memory_entries`, `current_long_action`,
+`attention_state` (D-12 nested in the LRA `payload`), plus
+`other_properties` for everything else. Exit code `4` when `--id`
+doesn't match any agent (distinct from `1` = universe not found).
+
+## `diff`
+
+Show graph changes between two ticks via `graph_events` replay.
+
+```
+token-world diff demo-tavern 10 20
+token-world diff demo-tavern 100 50    # auto-swapped to 50..100
+token-world diff demo-tavern 10 20 --format json
+```
+
+Reports: nodes added/removed, edges added/removed, property changes
+(`old -> new`). When the same property is mutated multiple times in
+the window, the change row is marked `(multi)` to signal that
+intermediate values were elided. The half-open interval is
+`(tick_a, tick_b]` so events at `tick_a` are excluded — they
+established the baseline, not the diff.
+
 ## Composing commands
 
 The JSON output of each command is the stable consumer contract. To
