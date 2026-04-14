@@ -1,14 +1,45 @@
 # Morning Handoff — Token World
 
-**Current as of**: 2026-04-15 post-demo (session 4 closed, session 5 feedback captured, NOT yet implemented)
+**Current as of**: 2026-04-14 post-session-6 (dark-factories night; all §J top-5 + bonuses shipped)
 **Last coordinator**: Claude Opus 4.6 (1M context)
-**Master HEAD**: `0ff528d` — all session-4 work pushed and CI green
-**Milestone:** v1.1 Emergence Tooling — **substrate live**, **dashboard live**, **first emergence captured**
-**v1.2 scope**: driven by §"Session 5 Feedback — Next Mandate" below; nothing in that section is shipped yet.
+**Master HEAD**: `c5b4931` — 13 session-6 commits pushed, CI green, 1952 tests passing
+**Milestone:** v1.1 closed; **v1.2 warm-up delivered** — see `.planning/REQUIREMENTS.md` for REQ-V12 table
 
 ---
 
-## TL;DR — What Shipped Overnight
+## SESSION 6 CLOSE — See `.planning/SESSION-6-REPORT.md` for full detail
+
+**§J top-5 shipped + bonus fix**:
+- **E6** engine records check-fail as `refused:true` (was lying as `EXECUTED`). Live-verified via willowbrook tick 61.
+- **A7** dashboard scroll preservation across poll cycles (Playwright-verified 400→400 / 100→100).
+- **A1+A2+A5+A5a** tick expansion redesigned — 6 structured sections, side-effect chain tree, causal_chain → property_history rename.
+- **A3+A4** graph labels escape fixed (`mira : agent`), located_in pseudo-edges synthesised.
+- **A6** inspect table has column headers now.
+- **E4 bonus**: observer grounding bug — observer was narrating from `action_text` (intent), not mutations. Now gets per-mutation bullets + OUTCOME CONSISTENCY clause. Commit `e110e2c`.
+
+**Supporting**: C Mira prompt tightening + auto-halt (§C), E5 `_economy.py` extraction in Willowbrook, K1+K2 quality docs, G tooling-surfaces doc, F1 yield CLI + Active Yield banner, I v1.2 REQUIREMENTS assembly, commit.sh accepts explicit paths.
+
+### Demo it in 3 commands
+
+```bash
+# 1. Inspect the truth
+uv run token-world inspect willowbrook --last 15     # header row + honest refuses
+uv run token-world tick willowbrook 61 --format json # refused:true, mechanic_check_failed
+
+# 2. See the dashboard hold its shape
+uv run token-world dashboard willowbrook --port 8080 # scroll inside any panel, wait, stays put
+
+# 3. Look at a yield / property history / side-effect chain
+uv run token-world yield willowbrook --pending       # new CLI
+```
+
+**Remaining for next session (REQ-V12-*)**: B multi-agent dashboard scaffold, D quality KPIs panel, E3 locked/blocked/inventory_full audit, H Willowbrook refinement + seed extraction, E1 composite actions (architectural). Minor follow-ups: doubled "You try, but" in refuse observation; `.stop` warning in run_unattended startup.
+
+---
+
+## v1.1 Close (Session 4) — Historical Context Below
+
+## TL;DR — What Shipped Overnight (Session 4)
 
 **11 mechanics authored autonomously by Claude Code subagents in the
 Willowbrook starter universe.** Mira (the resident agent) examined a
