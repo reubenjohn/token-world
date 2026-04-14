@@ -19,6 +19,12 @@ from __future__ import annotations
 from token_world.engine.compressor import TickCompressor
 from token_world.engine.conservation import ConservationChecker, ConservationVerdict
 from token_world.engine.engine import SimulationEngine, TickResult
+from token_world.engine.llm_backend import (
+    AnthropicSDKBackend,
+    ClaudeCLIBackend,
+    LLMBackend,
+    get_backend,
+)
 from token_world.engine.long_running import (
     LongRunningAction,
     ThresholdEvaluator,
@@ -48,9 +54,12 @@ from token_world.engine.observer import Observer
 from token_world.engine.summary_writer import TickSummaryWriter, build_tick_summary
 
 __all__ = [
+    "AnthropicSDKBackend",
     "BatchSummary",
     "ClassifiedAction",
+    "ClaudeCLIBackend",
     "HookResult",
+    "LLMBackend",
     "LongRunningAction",
     "LongRunningHook",
     "ThresholdEvaluator",
@@ -78,4 +87,5 @@ __all__ = [
     "VerdictOk",
     "YieldDecision",
     "build_tick_summary",
+    "get_backend",
 ]
