@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Quality + Depth
-status: active
-stopped_at: v1.2 roadmap scaffolded (Phases 12.5 + 13..19); warm-up already shipped; Phase 13 ready to plan
-last_updated: "2026-04-14T00:00:00.000Z"
-last_activity: 2026-04-14 -- roadmapper laid down v1.2 phase structure; 21/21 active REQ-V12 items mapped; traceability + progress checks green
+status: Ready to execute
+stopped_at: Completed 13-01-PLAN.md
+last_updated: "2026-04-14T19:09:06.667Z"
 progress:
-  total_phases: 8
-  completed_phases: 1
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 13
+  completed_phases: 11
+  total_plans: 68
+  completed_plans: 67
+  percent: 99
 ---
 
 # Project State
@@ -21,15 +20,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-14 at v1.2 milestone open)
 
 **Core value:** The simulation engine reliably interprets agent actions, yields to the operator for novel situations, and maintains a consistent knowledge graph — so from a resident agent's perspective, the world feels fully real and its rules emerge coherently.
-**Current focus:** v1.2 Quality + Depth — truthful engine, grounded observer, richer play via composite actions + multi-agent scaffold, quality KPIs + CI gating, seed corpus expansion, graph conventions codification.
+**Current focus:** Phase 13 — quality-kpis-substrate
 
 ## Current Position
 
+Phase: 13 (quality-kpis-substrate) — EXECUTING
+Plan: 2 of 2
 Milestone v1.2 opened 2026-04-14 — see `.planning/REQUIREMENTS.md` for REQ-V12-* detail.
 
 **Phase structure laid down** (this pass): Phase 12.5 (warm-up, complete) + 7 active phases (13..19). 13 warm-up items shipped pre-scaffolding; 21 active REQ-V12-* items mapped across Phases 13..19, each requirement in exactly one phase.
 
 Active backlog by phase:
+
 - **Phase 13** Quality KPIs substrate (1 REQ — QUALITY-02)
 - **Phase 14** Engine polish + seed corpus hygiene (3 REQs — ENGINE-05, SEEDS-01, TOOLING-02)
 - **Phase 15** Multi-agent dashboard scaffold (1 REQ — DASHBOARD-05)
@@ -70,6 +72,7 @@ Tests: 1952 passing at milestone open (up from 1687 at v1.0 close, 1885 at v1.1 
 ### Decisions (v1.2 — pending)
 
 Placeholder; decisions for v1.2 will be tracked here as they land:
+
 - D-01 (v1.2) TBD — composite-action decomposition choice (§E1 options 1/2/3 — recommended option 1); Phase 16 design wave will land this.
 - D-02 (v1.2) TBD — locked/blocked/inventory_full audit conventions (surfaces into `docs/design/graph-conventions.md`); Phase 18 will land this.
 - D-03 (v1.2) TBD — engine treats "check failed at execution time" as hard refusal (partially landed via REQ-V12-ENGINE-01; remaining scope on sibling check-fail paths observed during Phase 14 work).
@@ -84,8 +87,8 @@ Placeholder; decisions for v1.2 will be tracked here as they land:
 
 ## Session Continuity
 
-Last session: 2026-04-14 session 6 close + v1.2 milestone open + roadmapper laid down Phases 13..19
-Stopped at: v1.2 ROADMAP scaffolded; 21/21 active REQs mapped; traceability + progress checks green; Phase 13 ready to plan
-Resume file: `.planning/ROADMAP.md` §v1.2 + `.planning/REQUIREMENTS.md`
+Last session: 2026-04-14T19:09:01.463Z
+Stopped at: Completed 13-01-PLAN.md
+Resume file: None
 
 **Next action:** `/gsd-plan-phase 13` — kick off Phase 13 (Quality KPIs substrate, REQ-V12-QUALITY-02).
