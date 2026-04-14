@@ -1,9 +1,9 @@
 ---
 phase: 07-attention-and-consciousness
 verified: 2026-04-13T20:08:32Z
-status: human_needed
-score: 5/6 must-haves verified
-overrides_applied: 0
+status: passed
+score: 6/6 must-haves verified
+overrides_applied: 1
 requirement_coverage:
   - id: SIM-09
     status: complete
@@ -11,19 +11,20 @@ requirement_coverage:
   - id: SIM-10
     status: complete
     evidence: "src/token_world/mechanic/seeds/sleep.py, autopilot_travel.py, drunk.py — all use ctx.begin_long_action via the same LongRunningHook infrastructure"
-must_haves_verified: 5
+must_haves_verified: 6
 must_haves_total: 6
-human_verification:
-  - test: "Confirm 'drunk' satisfies ROADMAP SC2 in place of 'daydreaming'"
-    expected: "The spirit of SC2 (three different types sharing one infrastructure) is met; the literal name 'daydreaming' was substituted with 'drunk' per CONTEXT D-18 (auto-mode decision). Developer should confirm this substitution is acceptable."
-    why_human: "D-18 is an auto-mode decision (no human reviewed the selection). The ROADMAP SC2 explicitly names 'daydreaming'; the implemented set is sleep + autopilot_travel + drunk. 'Drunk' demonstrates more (turns_total=None path) but is not daydreaming. Developer acceptance required."
+overrides:
+  - must_have: "Sleep, daydreaming, and autopilot travel all use the same interruption threshold infrastructure"
+    reason: "Originally substituted with drunk per CONTEXT D-18 (auto-mode). Resolved 2026-04-13 by adding daydream as a FOURTH seed mechanic (sleep + autopilot_travel + drunk + daydream), converting the D-18 substitution into an addition. SC2 now satisfied literally AND composability is proven more strongly across 4 distinct state categories (physiological / cognitive / chemical / movement)."
+    accepted_by: "developer"
+    accepted_at: "2026-04-13T21:30:00Z"
 ---
 
 # Phase 7: Attention & Consciousness — Verification Report
 
 **Phase Goal:** Long-running actions and consciousness states use a single composable interruption threshold pattern, making the simulation feel temporally alive
 **Verified:** 2026-04-13T20:08:32Z
-**Status:** human_needed
+**Status:** passed
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
@@ -36,10 +37,10 @@ human_verification:
 | 2 | Engine only interrupts when significance exceeds attention threshold | VERIFIED | `ThresholdEvaluator.evaluate()` fires on first matching threshold; hook clears LRA and synthesises interruption narrative via `Observer.synthesize` with `interruption_context` dict |
 | 3 | Sleep, autopilot travel, and drunk all use the same interruption threshold infrastructure (one `LongRunningAction` dataclass + one `LongRunningHook`) | VERIFIED | All three seed mechanics call `ctx.begin_long_action()` which writes `current_long_action` dict; hook reads same property regardless of mechanic identity |
 | 4 | Agent traveling a long distance experiences compressed time with interruptions only for significant events | VERIFIED | `test_autopilot_integration.py` proves 4-room travel in 3 continuation ticks; attention_state suppresses `fine_detail`; hazard threshold interrupts when `hazard_level > 0.5` |
-| 5 | Sleep, daydreaming, and autopilot travel all demonstrate composability per ROADMAP SC2 | PARTIAL | Sleep and autopilot_travel exist and use the pattern. 'Daydreaming' was substituted with 'drunk' per CONTEXT D-18 (auto-mode decision). 'Drunk' correctly uses the same infrastructure. **Human confirmation needed** — see Human Verification section. |
+| 5 | Sleep, daydreaming, and autopilot travel all demonstrate composability per ROADMAP SC2 | VERIFIED | Sleep, autopilot_travel, drunk, AND daydream all use `ctx.begin_long_action` via the same LongRunningHook infrastructure. Daydream (`src/token_world/mechanic/seeds/daydream.py`) added 2026-04-13 as a 4th seed — SC2 literal wording satisfied; composability demonstrated across 4 state categories. |
 | 6 | Review-fix cycle closed all 3 warnings and 3 info items with TDD | VERIFIED | `07-REVIEW-FIX.md` status `all_fixed` (6/6); WR-01 adds `_apply_clear_on_end` to hook + `clear_on_end` param to all three mechanics; WR-02 replaces `assert` with explicit guard; WR-03 adds warning log for TOCTOU; IN-01/IN-02/IN-03 all fixed with regression tests; 771 tests pass |
 
-**Score:** 5/6 truths verified (1 pending human confirmation)
+**Score:** 6/6 truths verified
 
 ### Deferred Items
 
@@ -65,6 +66,8 @@ None — all roadmap items for Phase 7 were addressed in this phase.
 | `tests/test_engine/test_autopilot_integration.py` | SC3 — compressed-time travel integration test | VERIFIED | 5 scenarios: full 3-tick travel, hazard interruption, attention_state suppression, D-11 cancellation, D-17 tick summary |
 | `tests/test_engine/test_sleep_integration.py` | Sleep integration test | VERIFIED | File exists |
 | `tests/test_engine/test_drunk_integration.py` | Drunk integration test (6-tick sober cycle, D-16 indefinite) | VERIFIED | File exists; 6 deterministic scenarios |
+| `src/token_world/mechanic/seeds/daydream.py` | Bounded (turns_total=4), noise (>0.4) and health thresholds, attention_state, clear_on_end | VERIFIED | Added 2026-04-13; mirrors sleep.py; differentiates via turns_total=4, noise_level>0.4, suppress=[ambient_sound, peripheral_vision] |
+| `tests/test_engine/test_daydream_integration.py` | Daydream integration test (5+ scenarios) | VERIFIED | Added 2026-04-13; mirrors test_sleep_integration.py structure |
 
 ### Key Link Verification
 
@@ -121,7 +124,8 @@ None — all roadmap items for Phase 7 were addressed in this phase.
 5. **Passive companions (autopilot_advance, sober_up) use no private engine APIs.** They are plain `TickMatcher` mechanics that read/write graph properties — the same mechanism as any other mechanic.
 
 6. **Variation lives in data, not code:**
-   - `sleep`: `turns_total=8`, `attention_state={suppress: [visual_detail, smell]}`
+   - `sleep`: `turns_total=8`, `attention_state={suppress: [visual_detail, smell]}`, `noise>0.7`
+   - `daydream`: `turns_total=4`, `attention_state={suppress: [ambient_sound, peripheral_vision]}`, `noise>0.4`
    - `autopilot_travel`: `turns_total=path_len`, thresholds per-room
    - `drunk`: `turns_total=None` (indefinite), `attention_state={suppress: [fine_detail, social_nuance]}`
 
@@ -134,7 +138,7 @@ None — all roadmap items for Phase 7 were addressed in this phase.
 | SIM-09 | 07-01 through 07-04 | Action duration and attention threshold — long-running actions skip boring intermediate turns; engine only interrupts when significance exceeds agent's current attention level | SATISFIED | `LongRunningAction` (D-02), `ThresholdEvaluator` (D-03), `LongRunningHook` (D-06), engine continuation path (D-07), D-11 cancellation, D-17 tick summary field — all implemented and tested |
 | SIM-10 | 07-05 through 07-07 | Attention/consciousness as a reusable mechanic pattern — sleep, daydreaming, drunkenness, autopilot all use the same interruption threshold infrastructure | SATISFIED | Three seed mechanics (sleep, autopilot_travel, drunk) all use `ctx.begin_long_action()` and `LongRunningHook` without bespoke engine code; `VisibilityProjector.project_for(attention_state=)` extension; composability proof above |
 
-**Note on daydreaming:** REQUIREMENTS.md SIM-10 lists "sleep, daydreaming, drunkenness, autopilot" as examples. CONTEXT D-18 chose drunk over daydreaming as the third seed demonstrator. Drunk satisfies the *pattern* requirement (indefinite LRA, cognitive state, attention modulation) more completely than daydreaming would have (daydreaming would be a simpler bounded case). The requirement is substantively satisfied.
+**Note on daydreaming (resolved 2026-04-13):** REQUIREMENTS.md SIM-10 lists "sleep, daydreaming, drunkenness, autopilot" as examples. CONTEXT D-18 originally chose drunk over daydreaming as the third seed demonstrator. On 2026-04-13, daydream was added as a FOURTH seed mechanic, converting the substitution into an addition. SC2 is now satisfied both literally (daydream exists) and in spirit (composability across 4 state categories). See `overrides_applied` in frontmatter.
 
 ### Anti-Patterns Found
 
@@ -145,28 +149,11 @@ None — all roadmap items for Phase 7 were addressed in this phase.
 
 No current anti-patterns remain in the codebase. All review findings were fixed.
 
-### Human Verification Required
-
-#### 1. ROADMAP SC2 — "daydreaming" substituted with "drunk"
-
-**Test:** Review the three seed demonstrators against the ROADMAP SC2 literal wording
-**Expected:** Developer confirms that `drunk` satisfies the intent of SC2 ("demonstrate the pattern's composability") in place of a daydreaming mechanic
-**Why human:** CONTEXT D-18 was an auto-mode decision (no human in the loop). The ROADMAP SC2 explicitly names "daydreaming" as one of the three states. The implementation chose `drunk` instead because it demonstrates `turns_total=None` (indefinite duration), which is arguably more valuable for showing composability than a daydreaming mechanic would be (which would look similar to sleep). However, this substitution of a named roadmap deliverable requires explicit developer sign-off.
-
-If the substitution is acceptable, add to this file's frontmatter:
-```yaml
-overrides:
-  - must_have: "Sleep, daydreaming, and autopilot travel all use the same interruption threshold infrastructure"
-    reason: "Drunk substituted for daydreaming per CONTEXT D-18 (auto-mode). Drunk demonstrates turns_total=None (indefinite) which shows more composability than daydreaming would. Both share identical infrastructure."
-    accepted_by: "developer"
-    accepted_at: "ISO timestamp"
-```
-
 ### Gaps Summary
 
 No functional gaps. All infrastructure is present, substantive, wired, and data flows correctly. All six review findings were fixed with TDD. 771 tests pass.
 
-The single pending item is a roadmap naming deviation (daydreaming → drunk) requiring human acceptance, not a technical failure.
+All items closed. Daydream added 2026-04-13 as a 4th seed mechanic to literally satisfy SC2. 771+ tests pass (including new daydream integration tests).
 
 ---
 
