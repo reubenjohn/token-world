@@ -20,13 +20,16 @@ Hook points for downstream plans (Wave 4+):
 from __future__ import annotations
 
 import asyncio
+import random
 import time
 import uuid
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from token_world.playtest.adversarial import AdversarialBank
 from token_world.playtest.report import AggregateScores, PlaytestReport, TurnRecord
 from token_world.playtest.scenarios import InjectionSampler, Scenario
 from token_world.playtest.scorer import TurnScore, TurnScorer
@@ -70,6 +73,14 @@ class PlaytestRunner:
     hash_check_fn: Callable | None = None
     progress_fn: Callable[[str], None] = field(default=print)
 
+    def __post_init__(self) -> None:
+        # _rng is (re-)seeded at the start of every run() using the scenario
+        # seed. We still initialize here so that _determine_action can be
+        # called standalone (e.g. from unit tests) without crashing on
+        # AttributeError before run() has executed.
+        self._rng: random.Random = random.Random(0)  # noqa: S311 -- deterministic, not security-sensitive
+        self._adversarial_bank: AdversarialBank = AdversarialBank()
+
     def run(
         self,
         universe_dir: Path,
@@ -102,6 +113,15 @@ class PlaytestRunner:
         sampler_seed = seed if seed is not None else (scenario.seed if scenario else 0)
         sampler = InjectionSampler(sampler_seed)
 
+        # Independent RNG for the adversarial_rate coin-flip. We offset the seed
+        # by a constant so the coin-flip stream is decorrelated from the
+        # sampler's own _rng stream — same `seed` still gives reproducible
+        # runs, but adding/removing an auto-injection doesn't shift the
+        # nonsense/edge_case outputs used by scripted inject turns.
+        self._rng = random.Random(sampler_seed + 0x9E3779B9)  # noqa: S311
+        # _adversarial_bank is built once in __post_init__; do NOT rebuild
+        # here so tests can replace it with a custom instance pre-run().
+
         # Initialize tracking state
         action_history: list[str] = []
         non_refusal_count = 0
@@ -122,11 +142,12 @@ class PlaytestRunner:
             # Marker text keeps memory's alternating user/assistant rolling window
             # consistent (Pitfall 2 mitigation).
             _lra_check = getattr(self.engine, "has_active_long_action", None)
+            adversarial_injected = False
             if _lra_check is not None and _lra_check(self.agent_id) is True:  # type: ignore[misc]
                 action: str | None = None
                 action_for_memory = "[long_running_continuation]"
             else:
-                action = self._determine_action(
+                action, adversarial_injected = self._determine_action(
                     turn_num=turn_num,
                     scenario=scenario,
                     sampler=sampler,
@@ -180,6 +201,7 @@ class PlaytestRunner:
                 tick_id=result.tick_id,
                 kind=result.kind,
                 score=score.model_dump(),
+                adversarial_injected=adversarial_injected,
             )
             turn_records.append(record)
             turn_scores.append(score)
@@ -219,26 +241,84 @@ class PlaytestRunner:
         scenario: Scenario | None,
         sampler: InjectionSampler,
         action_history: list[str],
-    ) -> str:
+    ) -> tuple[str, bool]:
         """Determine the action text for a given turn.
 
         Priority:
             1. Scripted action from scenario
             2. Inject: sampler generates text
-            3. Agent: call agent.run_turn()
+            3. Agent-decide: optionally auto-inject adversarial before falling
+               through to ``agent.run_turn()`` — if ``scenario.adversarial_rate``
+               is positive and the runner's coin-flip fires, the action is
+               drawn from ``AdversarialBank`` (filtered by
+               ``scenario.adversarial_categories`` if provided). This closes
+               Phase 6 IN-03 — before this method the field was inert.
+
+        Returns:
+            Tuple of ``(action_text, adversarial_injected)``. The flag is
+            ``True`` only for turns produced by the auto-injection pathway;
+            scripted or ``inject:`` turns and vanilla agent-decide turns
+            remain ``False``.
         """
         if scenario is not None:
             kind, payload = scenario.next_turn(turn_num)
             if kind == "action" and payload is not None:
-                return payload
+                return payload, False
             elif kind == "inject" and payload is not None:
-                return sampler.sample(
-                    payload,
-                    previous_action=action_history[-1] if action_history else "",
-                    turn_number=turn_num,
+                return (
+                    sampler.sample(
+                        payload,
+                        previous_action=action_history[-1] if action_history else "",
+                        turn_number=turn_num,
+                    ),
+                    False,
                 )
-            # kind == "agent" or action with None payload -> fall through to agent
+            # kind == "agent" or action with None payload -> fall through
 
-        # Agent decides
+            # Auto-inject adversarial on agent-decide turns when the scenario
+            # opts in via adversarial_rate > 0 (IN-03).
+            if scenario.adversarial_rate > 0.0:
+                injected = self._maybe_sample_adversarial(scenario)
+                if injected is not None:
+                    return injected, True
+
+        # Agent decides (no scenario, or scenario did not substitute)
         result: str = self.agent.run_turn()  # type: ignore[attr-defined]
-        return result
+        return result, False
+
+    def _maybe_sample_adversarial(self, scenario: Scenario) -> str | None:
+        """Roll the adversarial coin and return a sampled entry on success.
+
+        Uses ``self._rng`` (initialized in ``run()``) so the decision stream is
+        reproducible under the scenario seed. If the rate does not fire,
+        returns ``None``. If the rate does fire but the filtered corpus is
+        empty, emits a ``RuntimeWarning`` and returns ``None`` (graceful
+        no-op rather than crashing the run).
+        """
+        if self._rng.random() >= scenario.adversarial_rate:
+            return None
+
+        categories = scenario.adversarial_categories or []
+        # Pick a category: caller's whitelist if provided, else all categories
+        # (None lets AdversarialBank sample across every category).
+        chosen_category = self._rng.choice(categories) if categories else None
+
+        try:
+            # AdversarialBank.sample expects a Category literal or None. The
+            # whitelist is already validated at scenario load time, so the
+            # cast here is safe at runtime.
+            return self._adversarial_bank.sample(
+                self._rng,
+                category=chosen_category,  # type: ignore[arg-type]
+            )
+        except ValueError:
+            warnings.warn(
+                (
+                    f"adversarial_rate={scenario.adversarial_rate} fired but "
+                    f"AdversarialBank has no entries for category={chosen_category!r}; "
+                    "falling back to agent.run_turn() for this turn"
+                ),
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            return None

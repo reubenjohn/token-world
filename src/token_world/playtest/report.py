@@ -33,6 +33,11 @@ class TurnRecord(BaseModel):
         tick_id: Engine tick id for this turn.
         kind: "ok" | "yielded" | "refused"
         score: TurnScore.model_dump() dict for this turn.
+        adversarial_injected: True if this turn's action was produced by the
+            runner's adversarial auto-injection pathway
+            (``scenario.adversarial_rate > 0`` triggered an
+            ``AdversarialBank`` draw). Scripted actions and agent-decide turns
+            that did not fire the coin remain ``False``.
     """
 
     turn_number: int
@@ -41,6 +46,7 @@ class TurnRecord(BaseModel):
     tick_id: str
     kind: str
     score: dict[str, Any]
+    adversarial_injected: bool = False
 
 
 class AggregateScores(BaseModel):

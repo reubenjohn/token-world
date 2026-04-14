@@ -4,6 +4,7 @@ Schema (D-11):
     name: str
     description: str
     adversarial_rate: float = 0.0
+    adversarial_categories: list[str] | None = None
     seed: int = 0
     turns: list[dict]  -- each turn is one of:
         {action: "<str>"}       -- scripted free-text action
@@ -11,6 +12,8 @@ Schema (D-11):
         {inject: "<type>"}      -- injection sampled by InjectionSampler
 
 Valid inject types: nonsense, adversarial, repeat_last, edge_case
+Valid adversarial categories (used by ``PlaytestRunner.adversarial_rate`` auto-
+injection): nonsense, rule_violation, boundary_probe, role_break, recursive_meta.
 """
 
 from __future__ import annotations
@@ -28,6 +31,12 @@ from token_world.playtest.adversarial import AdversarialBank
 # Whitelist of valid inject types (D-11)
 _VALID_INJECT_TYPES = frozenset({"nonsense", "adversarial", "repeat_last", "edge_case"})
 
+# Whitelist of valid AdversarialBank categories (must match
+# ``token_world.playtest.adversarial.Category`` literal).
+_VALID_ADVERSARIAL_CATEGORIES = frozenset(
+    {"nonsense", "rule_violation", "boundary_probe", "role_break", "recursive_meta"}
+)
+
 # Edge case pool for cycle-through (D-11)
 _EDGE_CASES = [
     "",  # empty string
@@ -43,7 +52,14 @@ class Scenario:
     Attributes:
         name: Human-readable scenario name.
         description: Description of what this scenario tests.
-        adversarial_rate: Fraction of free turns to auto-inject adversarial (0.0 = none).
+        adversarial_rate: Fraction of agent-decide turns to auto-inject adversarial
+            (0.0 = none). Consumed by ``PlaytestRunner``: when a turn would
+            otherwise call ``agent.run_turn()`` and ``random() < adversarial_rate``,
+            the runner substitutes an ``AdversarialBank`` entry instead.
+        adversarial_categories: Optional whitelist of ``AdversarialBank``
+            categories to draw from when auto-injecting. ``None`` or empty means
+            all categories are eligible. Invalid categories are rejected at load
+            time.
         seed: RNG seed for reproducibility.
         turns: List of turn dicts (action/inject/null).
     """
@@ -51,6 +67,7 @@ class Scenario:
     name: str
     description: str
     adversarial_rate: float = 0.0
+    adversarial_categories: list[str] | None = None
     seed: int = 0
     turns: list[dict[str, Any]] = field(default_factory=list)
 
@@ -65,7 +82,7 @@ class Scenario:
             A validated Scenario instance.
 
         Raises:
-            ValueError: If any inject type is invalid.
+            ValueError: If any inject type or adversarial category is invalid.
             FileNotFoundError: If the file doesn't exist.
         """
         content = Path(path).read_text(encoding="utf-8")
@@ -76,6 +93,24 @@ class Scenario:
         adversarial_rate = float(data.get("adversarial_rate", 0.0))
         seed = int(data.get("seed", 0))
         turns = data.get("turns", [])
+
+        # Parse + validate adversarial_categories (optional)
+        raw_categories = data.get("adversarial_categories")
+        adversarial_categories: list[str] | None
+        if raw_categories is None:
+            adversarial_categories = None
+        else:
+            if not isinstance(raw_categories, list):
+                raise ValueError(
+                    f"adversarial_categories must be a list, got {type(raw_categories).__name__}"
+                )
+            adversarial_categories = [str(c) for c in raw_categories]
+            for cat in adversarial_categories:
+                if cat not in _VALID_ADVERSARIAL_CATEGORIES:
+                    raise ValueError(
+                        f"Invalid adversarial_categories entry {cat!r}. "
+                        f"Valid: {sorted(_VALID_ADVERSARIAL_CATEGORIES)}"
+                    )
 
         # Validate inject types
         for i, turn in enumerate(turns):
@@ -91,6 +126,7 @@ class Scenario:
             name=name,
             description=description,
             adversarial_rate=adversarial_rate,
+            adversarial_categories=adversarial_categories,
             seed=seed,
             turns=turns,
         )
