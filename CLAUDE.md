@@ -128,12 +128,17 @@ Run quick test after every change. Run full suite before commits.
 | `token-world create "Name"` | Create a new universe with scaffolding |
 | `token-world list` | List all universes with metadata |
 | `token-world delete slug` | Delete a universe |
+| `token-world playtest <slug> [--turns N] [--judge]` | Run N-turn simulation, write JSON report; add `--judge` for Sonnet rubric |
+| `token-world cost <slug> [--since N] [--format table\|json]` | Aggregate per-universe LLM cost + token counts from `tick_summaries/`; auto-detects backend (anthropic-sdk / claude-cli / mixed) |
+| `TOKEN_WORLD_BACKEND=claude-cli token-world playtest ...` | Route LLM calls through `claude -p` subprocess (zero marginal cost via Claude subscription) — see `docs/guides/claude-cli-backend.md` |
 | `uv run pytest -x -q` | Quick test run |
 | `uv run pytest -v` | Full verbose test run |
 | `uv run ruff check src/` | Lint check |
 | `uv run ruff format src/` | Auto-format |
 | `uv run mypy src/token_world/graph/` | Type check graph module |
 | `uv run python scripts/phase_waves.py <phase>` | Report wave structure + files_modified overlap for a phase (pre-execution safety check) |
+| `uv run python scripts/inspect_playtest_report.py <path>` | Pretty-print a playtest report JSON: turns, aggregate scores, judge block |
+| `uv run python scripts/update_prompt_hashes.py <universe_slug>` | Refresh `<universe>/prompts.sha256.json` baseline after reverting experimental prompt edits (preserves personality-bound `agent_system_prompt` hash) |
 
 ## Bash Hygiene for Agents
 
