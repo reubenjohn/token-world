@@ -1576,3 +1576,62 @@ def mechanics_browser(slug: str, author: str | None, fmt: str) -> None:
         click.echo(render_mechanics_json(report), nl=False)
     else:
         click.echo(render_mechanics_table(report), nl=False)
+
+
+@cli.command("trace")
+@click.argument("slug")
+@click.argument("node_id")
+@click.argument("property")
+@click.option(
+    "--hops",
+    "hop_limit",
+    type=int,
+    default=10,
+    show_default=True,
+    help="Maximum number of mutation hops to walk before truncating.",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["table", "json"]),
+    default="table",
+    show_default=True,
+    help="Output format.",
+)
+def trace_property(slug: str, node_id: str, property: str, hop_limit: int, fmt: str) -> None:
+    """Walk the causal chain that produced ``<node>.<property>``.
+
+    Reads ``<universe>/universe.db`` ``graph_events`` table, finds the
+    most-recent mutations affecting the property, then enriches each hop
+    with the surrounding tick context (action, classification, mechanic,
+    observation). Hops are emitted oldest-first so the output reads as
+    a forward-in-time chain.
+    """
+    from token_world.inspect.trace import (
+        render_json as render_trace_json,
+    )
+    from token_world.inspect.trace import (
+        render_table as render_trace_table,
+    )
+    from token_world.inspect.trace import (
+        trace as trace_aggregate,
+    )
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(slug)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    report = trace_aggregate(
+        universe_dir,
+        slug=slug,
+        node_id=node_id,
+        property=property,
+        hop_limit=hop_limit,
+    )
+    if fmt == "json":
+        click.echo(render_trace_json(report), nl=False)
+    else:
+        click.echo(render_trace_table(report), nl=False)
