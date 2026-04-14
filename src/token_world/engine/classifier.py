@@ -17,6 +17,11 @@ from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
 
+from token_world.engine.llm_backend import (
+    AnthropicSDKBackend,
+    LLMBackend,
+    get_backend,
+)
 from token_world.engine.models import (
     ClassifierVerdict,
     VerdictLowConfidence,
@@ -52,9 +57,18 @@ _VERDICT_ADAPTER: TypeAdapter[ClassifierVerdict] = TypeAdapter(ClassifierVerdict
 class Classifier:
     """Haiku-backed classifier with retry-once-on-malformed."""
 
-    client: Any  # anthropic.Anthropic | a test fake with .messages.create
+    client: Any = None  # deprecated; kept for backward compatibility (D-02)
     model: str = _MODEL
     max_tokens: int = 1024
+    backend: LLMBackend | None = None
+
+    def __post_init__(self) -> None:
+        """Wrap client / default to get_backend() if no backend injected (D-02, D-10)."""
+        if self.backend is None:
+            if self.client is not None:
+                object.__setattr__(self, "backend", AnthropicSDKBackend(self.client))
+            else:
+                object.__setattr__(self, "backend", get_backend())
 
     @classmethod
     def system_prompt_text(cls) -> str:
@@ -127,13 +141,13 @@ class Classifier:
         )
 
     def _send(self, user_prompt: str, *, tick_diag_ctx: Any, attempt: int = 1) -> str:
-        response = self.client.messages.create(
+        assert self.backend is not None  # __post_init__ guarantees this
+        raw = self.backend.call(
             model=self.model,
-            max_tokens=self.max_tokens,
             system=_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
+            prompt=user_prompt,
+            max_tokens=self.max_tokens,
         )
-        raw = response.content[0].text if response.content else ""
         if tick_diag_ctx is not None:
             tick_diag_ctx.write_response(
                 "classification",
