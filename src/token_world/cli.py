@@ -1481,3 +1481,51 @@ def inspect_universe(slug: str, last_n: int, fmt: str) -> None:
         click.echo(render_json(report), nl=False)
     else:
         click.echo(render_table(report), nl=False)
+
+
+@cli.command("tick")
+@click.argument("slug")
+@click.argument("tick_id")
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["table", "json"]),
+    default="table",
+    show_default=True,
+    help="Output format. ``table`` is an indent-tree; ``json`` is the raw payload.",
+)
+def tick_detail(slug: str, tick_id: str, fmt: str) -> None:
+    """Pretty-print a single tick's full detail tree.
+
+    Loads ``<universe>/tick_summaries/ticks/tick_<tick_id>.json`` and walks
+    action -> classification -> mechanic -> mutations -> observation.
+    """
+    from token_world.inspect.tick import (
+        TickNotFoundError,
+        load_tick,
+        render_tree,
+    )
+    from token_world.inspect.tick import (
+        render_json as render_tick_json,
+    )
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(slug)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    try:
+        payload = load_tick(universe_dir, tick_id)
+    except TickNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(2) from e
+    except _json.JSONDecodeError as e:
+        click.echo(f"Error: tick file is not valid JSON: {e}", err=True)
+        raise SystemExit(3) from e
+
+    if fmt == "json":
+        click.echo(render_tick_json(payload), nl=False)
+    else:
+        click.echo(render_tree(payload), nl=False)
