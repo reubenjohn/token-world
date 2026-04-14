@@ -46,8 +46,8 @@ def test_create_app_runs_against_populated_universe_through_cli(
 
 def test_panel_modules_all_importable() -> None:
     """Every panel module's public mount fn exists and is callable."""
-    from token_world.dashboard.panels.causal_chain import mount_causal_chain_panel
     from token_world.dashboard.panels.graph_canvas import mount_graph_panel
+    from token_world.dashboard.panels.property_history import mount_property_history_panel
     from token_world.dashboard.panels.stats import mount_stats_strip
     from token_world.dashboard.panels.tick_stream import mount_tick_stream_panel
 
@@ -55,9 +55,19 @@ def test_panel_modules_all_importable() -> None:
         mount_stats_strip,
         mount_tick_stream_panel,
         mount_graph_panel,
-        mount_causal_chain_panel,
+        mount_property_history_panel,
     ):
         assert callable(fn)
+
+
+def test_old_causal_chain_import_is_gone() -> None:
+    """Regression: the old ``causal_chain`` module must not resolve (§A5a)."""
+    import importlib
+
+    import pytest
+
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("token_world.dashboard.panels.causal_chain")
 
 
 @pytest.mark.parametrize(

@@ -1,10 +1,16 @@
-"""Tests for the causal chain panel (Plan 11-04)."""
+"""Tests for the property history panel (Plan 11-04 + §A5a rename).
+
+Formerly ``test_causal_chain.py`` — renamed alongside the panel on
+2026-04-14 when the "causal chain" surface was split into two distinct
+views: this one (property_history, backward walk) and a new sibling
+(side_effect_chain, forward walk within a single tick).
+"""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from token_world.dashboard.panels.causal_chain import (
+from token_world.dashboard.panels.property_history import (
     _hop_summary,
     report_to_view_model,
     run_trace,

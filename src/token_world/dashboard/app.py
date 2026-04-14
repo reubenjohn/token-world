@@ -72,14 +72,14 @@ def create_app(slug: str, *, dark: bool = True) -> Any:
 
             mount_stats_strip(universe_dir, slug)
 
-            # --- Main body (tick stream | graph | causal chain) --------------
+            # --- Main body (tick stream | graph | property history) ----------
             _mount_main_body(ui, universe_dir, slug)
 
     return ui
 
 
 def _mount_main_body(ui: Any, universe_dir: Path, slug: str) -> None:
-    """Mount the main split pane (tick stream / graph / causal chain).
+    """Mount the main split pane (tick stream / graph / property history).
 
     Layout at 1280px+:
 
@@ -87,13 +87,13 @@ def _mount_main_body(ui: Any, universe_dir: Path, slug: str) -> None:
         |                 |  Graph canvas   |
         |  Tick stream    |                 |
         |  (live)         +-----------------+
-        |                 |  Causal chain   |
+        |                 | Property history|
         +-----------------+-----------------+
 
     Below 1024px the columns flex-wrap to a single column.
     """
-    from token_world.dashboard.panels.causal_chain import mount_causal_chain_panel
     from token_world.dashboard.panels.graph_canvas import mount_graph_panel
+    from token_world.dashboard.panels.property_history import mount_property_history_panel
     from token_world.dashboard.panels.tick_stream import mount_tick_stream_panel
 
     with ui.row().classes("w-full gap-4 items-stretch flex-wrap"):
@@ -104,8 +104,8 @@ def _mount_main_body(ui: Any, universe_dir: Path, slug: str) -> None:
             ui.label("Graph canvas").classes("text-lg font-semibold text-slate-200")
             mount_graph_panel(universe_dir, slug)
             ui.separator()
-            ui.label("Causal chain").classes("text-lg font-semibold text-slate-200")
-            mount_causal_chain_panel(universe_dir, slug)
+            ui.label("Property history").classes("text-lg font-semibold text-slate-200")
+            mount_property_history_panel(universe_dir, slug)
 
 
 def run_app(slug: str, *, port: int = 8080, dark: bool = True, show: bool = True) -> None:

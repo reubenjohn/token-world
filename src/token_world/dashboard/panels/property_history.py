@@ -1,4 +1,11 @@
-"""Causal chain viewer panel (Plan 11-04).
+"""Property history viewer panel (Plan 11-04 + §A5a rename).
+
+# Renamed from ``panels/causal_chain.py`` on 2026-04-14 (§A5a handoff).
+# The dashboard UI label is now "Property history". The ``token-world
+# trace`` CLI intentionally keeps its name — same underlying walker,
+# different surface. The sibling panel ``side_effect_chain.py`` shows
+# the forward, within-tick side-effect tree; this one walks *backward*
+# in time through mutations on a single property.
 
 Input: a node id + a property name. Output: a vertical tree of hops
 showing which tick / mechanic / action mutated the property, oldest first.
@@ -52,8 +59,13 @@ def _hop_summary(hop: dict[str, Any]) -> str:
     )
 
 
-def mount_causal_chain_panel(universe_dir: Path, slug: str) -> Any:
-    """Mount the causal-chain input + result tree."""
+def mount_property_history_panel(universe_dir: Path, slug: str) -> Any:
+    """Mount the property-history input + result tree.
+
+    Renamed from ``mount_causal_chain_panel`` (§A5a). The walker direction
+    is *backward in time* — given a ``(node, property)`` pair, trace every
+    tick that mutated it, oldest hop first.
+    """
     from nicegui import ui
 
     container = ui.column().classes("w-full gap-2")
