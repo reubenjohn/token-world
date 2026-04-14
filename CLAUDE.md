@@ -147,6 +147,7 @@ A few rough edges worth knowing:
 - **Use absolute paths, not `$HOME`** — a Claude Code permission-prompt bug mis-handles `$HOME` in commands, rejecting tool uses that would otherwise auto-approve. Write `/home/reuben/.claude/...` explicitly. Same applies to `~/`.
 - **Avoid inline `python3 -c` / heredoc pipelines** — they look opaque in permission prompts and aren't reviewable after the fact. If you need to parse JSON, pipe to `jq`. If the logic is more than a one-liner, promote it to a script in `scripts/` (see `phase_waves.py` for the pattern).
 - **Avoid long chained pipelines that assert invariants** — if bash is computing something you'll want to re-run later, it belongs in a committed `scripts/` file (grounding rule #4, "ad-hoc bash is a missing-tool signal").
+- **Use `scripts/commit.sh <msg-file>` for commits** — 3-line wrapper for `git add -A && git commit -F <msg-file> && git push origin master`. Avoids the `deny-ad-hoc-bash.js` hook that blocks 300+ char bash commands with inline heredocs. Write the commit body to a unique path under `/tmp/commit_<topic>.txt` (the `Write` tool refuses to overwrite unread files, so reusing `/tmp/commit_msg.txt` across sessions fails).
 
 ## Critical Constraints
 
