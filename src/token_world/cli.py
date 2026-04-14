@@ -1106,47 +1106,20 @@ def agent_turn(slug: str, agent_id: str | None, no_operator: bool) -> None:
     memory = AgentMemory(db_path)
     sessions = SessionManager(db_path)
 
-    session_id: str
-
-    # (g-h) Resolve or auto-create agent
-    if agent_id is None:
-        existing_agents = sessions.list_agents()
-        if not existing_agents:
-            # Auto-create: generate personality, create graph node, start session
-            universe_desc = world_rules.split("\n")[0] or "a fantasy world"
-            personality = PersonalityGenerator().generate(universe_desc, client=client)
-            agent_id = kg.claim_id("resident")
-            create_agent_node(kg, agent_id, personality)
-            session_id = sessions.create_session(agent_id, personality)
-        else:
-            agent_id = existing_agents[0]
-            existing_sessions = sessions.list_sessions(agent_id)
-            session_id = existing_sessions[-1]  # most recent
-    else:
-        existing_sessions = sessions.list_sessions(agent_id)
-        if not existing_sessions:
-            click.echo(f"Error: no sessions found for agent '{agent_id}'", err=True)
-            raise SystemExit(1)
-        session_id = existing_sessions[-1]
-
-    # (i) Load personality from session
-    session_row = sessions.get_session(session_id)
-    if session_row and session_row.get("agent_personality"):
-        personality = PersonalityBundle.model_validate_json(session_row["agent_personality"])
-    else:
-        # Fallback: personality is stored on graph node
-        node_props = kg.query(agent_id)
-        personality = PersonalityBundle.model_validate(node_props.get("personality", {}))
-
-    # (j) Construct agent
-    agent = ResidentAgent(
-        agent_id=agent_id,
-        session_id=session_id,
-        personality=personality,
-        memory=memory,
-        client=client,
-        world_rules=world_rules,
-    )
+    # (g-j) Resolve or auto-create agent via the shared helper.
+    try:
+        agent, agent_id, session_id = _load_or_create_agent(
+            universe_dir,
+            kg,
+            memory,
+            sessions,
+            client,
+            world_rules,
+            agent_id=agent_id,
+        )
+    except LookupError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
 
     # (k) Generate action
     action = agent.run_turn()
@@ -1196,47 +1169,76 @@ def _load_or_create_agent(
     sessions: SessionManager,
     client: object,
     world_rules: str,
+    *,
+    agent_id: str | None = None,
 ) -> tuple[ResidentAgent, str, str]:
     """Load the most-recent agent+session from a universe, or auto-create one.
 
-    Shared by agent-turn and playtest commands (D-29: auto-create if none exists).
+    Shared by ``agent-turn`` and ``playtest`` commands (D-29: auto-create if
+    none exists).
+
+    Args:
+        universe_dir: Root of the universe directory (reserved for future use).
+        kg: Loaded KnowledgeGraph for the universe.
+        memory: AgentMemory adapter bound to the universe DB.
+        sessions: SessionManager adapter bound to the universe DB.
+        client: LLM client passed through to PersonalityGenerator and the
+            returned ResidentAgent.
+        world_rules: Universe CLAUDE.md text used as the agent's world context.
+        agent_id: If provided, load this specific agent's most-recent session
+            rather than picking the first existing agent or auto-creating.
+            Raises ``LookupError`` when the id has no sessions.
 
     Returns:
-        Tuple of (ResidentAgent, agent_id, session_id).
-    """
-    session_id: str
-    agent_id_local: str
+        Tuple of ``(ResidentAgent, agent_id, session_id)``.
 
-    existing_agents = sessions.list_agents()
-    if not existing_agents:
-        # Auto-create: generate personality, create graph node, start session
-        universe_desc = world_rules.split("\n")[0] or "a fantasy world"
-        personality = PersonalityGenerator().generate(universe_desc, client=client)
-        agent_id_local = kg.claim_id("resident")
-        create_agent_node(kg, agent_id_local, personality)
-        session_id = sessions.create_session(agent_id_local, personality)
+    Raises:
+        LookupError: when ``agent_id`` is provided but no sessions exist for
+            that id. Callers convert this to a CLI error.
+    """
+    del universe_dir  # reserved for future use
+
+    session_id: str
+    resolved_agent_id: str
+
+    if agent_id is not None:
+        # Explicit agent id: must already exist with at least one session.
+        existing_sessions = sessions.list_sessions(agent_id)
+        if not existing_sessions:
+            raise LookupError(f"no sessions found for agent '{agent_id}'")
+        resolved_agent_id = agent_id
+        session_id = existing_sessions[-1]
     else:
-        agent_id_local = existing_agents[0]
-        existing_sessions = sessions.list_sessions(agent_id_local)
-        session_id = existing_sessions[-1]  # most recent
+        existing_agents = sessions.list_agents()
+        if not existing_agents:
+            # Auto-create: generate personality, create graph node, start session
+            universe_desc = world_rules.split("\n")[0] or "a fantasy world"
+            new_personality = PersonalityGenerator().generate(universe_desc, client=client)
+            resolved_agent_id = kg.claim_id("resident")
+            create_agent_node(kg, resolved_agent_id, new_personality)
+            session_id = sessions.create_session(resolved_agent_id, new_personality)
+        else:
+            resolved_agent_id = existing_agents[0]
+            existing_sessions = sessions.list_sessions(resolved_agent_id)
+            session_id = existing_sessions[-1]  # most recent
 
     # Load personality from session
     session_row = sessions.get_session(session_id)
     if session_row and session_row.get("agent_personality"):
         personality = PersonalityBundle.model_validate_json(session_row["agent_personality"])
     else:
-        node_props = kg.query(agent_id_local)
+        node_props = kg.query(resolved_agent_id)
         personality = PersonalityBundle.model_validate(node_props.get("personality", {}))
 
     agent = ResidentAgent(
-        agent_id=agent_id_local,
+        agent_id=resolved_agent_id,
         session_id=session_id,
         personality=personality,
         memory=memory,
         client=client,
         world_rules=world_rules,
     )
-    return agent, agent_id_local, session_id
+    return agent, resolved_agent_id, session_id
 
 
 @cli.command("playtest")
