@@ -12,6 +12,7 @@ tests mock subprocess.run — zero real CLI invocations.
 
 from __future__ import annotations
 
+import subprocess
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -123,6 +124,110 @@ class TestAnthropicSDKBackend:
         backend = AnthropicSDKBackend(client)
         result = backend.call(model="m", system="s", prompt="p", max_tokens=1)
         assert result == '```json\n{"a":1}\n```'  # fences preserved
+
+
+# ---- ClaudeCLIBackend behavior (subprocess mocked — no real claude invocation) ----
+
+
+class TestClaudeCLIBackend:
+    def test_default_timeout_is_120(self) -> None:
+        # D-05: default timeout 120s (8x safety margin over ~15s measured latency)
+        backend = ClaudeCLIBackend()
+        assert backend._timeout == 120
+
+    def test_custom_timeout(self) -> None:
+        backend = ClaudeCLIBackend(timeout=30)
+        assert backend._timeout == 30
+
+    def test_invokes_subprocess_with_correct_argv(self) -> None:
+        # D-06: argv = ["claude", "--model", <model>, "-p", <system>\n\n<prompt>]
+        mock_result = MagicMock()
+        mock_result.stdout = "ok"
+        with patch(
+            "token_world.engine.llm_backend.subprocess.run", return_value=mock_result
+        ) as mock_run:
+            backend = ClaudeCLIBackend()
+            backend.call(
+                model="claude-haiku-4-5-20251001",
+                system="SYSTEM_PROMPT",
+                prompt="USER PROMPT",
+                max_tokens=512,
+            )
+        mock_run.assert_called_once()
+        args, kwargs = mock_run.call_args
+        assert args[0] == [
+            "claude",
+            "--model",
+            "claude-haiku-4-5-20251001",
+            "-p",
+            "SYSTEM_PROMPT\n\nUSER PROMPT",
+        ]
+        # D-05: subprocess kwargs are fully locked
+        assert kwargs["capture_output"] is True
+        assert kwargs["text"] is True
+        assert kwargs["timeout"] == 120
+        assert kwargs["check"] is True
+
+    def test_timeout_from_constructor_is_used(self) -> None:
+        mock_result = MagicMock()
+        mock_result.stdout = "ok"
+        with patch(
+            "token_world.engine.llm_backend.subprocess.run", return_value=mock_result
+        ) as mock_run:
+            backend = ClaudeCLIBackend(timeout=45)
+            backend.call(model="m", system="s", prompt="p", max_tokens=1)
+        assert mock_run.call_args.kwargs["timeout"] == 45
+
+    def test_max_tokens_not_passed_to_argv(self) -> None:
+        # CLI does not accept --max-tokens — the parameter is advisory only.
+        mock_result = MagicMock()
+        mock_result.stdout = "ok"
+        with patch(
+            "token_world.engine.llm_backend.subprocess.run", return_value=mock_result
+        ) as mock_run:
+            backend = ClaudeCLIBackend()
+            backend.call(model="m", system="s", prompt="p", max_tokens=9999)
+        argv = mock_run.call_args[0][0]
+        assert "9999" not in argv
+        assert "--max-tokens" not in argv
+        assert "max_tokens" not in argv
+
+    def test_strips_markdown_fences_from_subprocess_output(self) -> None:
+        # D-03: CLI path MUST strip fences (claude -p wraps JSON in ```json even when told not to)
+        mock_result = MagicMock()
+        mock_result.stdout = '```json\n{"verb":"pickup","actor":"alice"}\n```'
+        with patch("token_world.engine.llm_backend.subprocess.run", return_value=mock_result):
+            backend = ClaudeCLIBackend()
+            result = backend.call(model="m", system="s", prompt="p", max_tokens=1)
+        assert result == '{"verb":"pickup","actor":"alice"}'
+
+    def test_passes_through_unfenced_output(self) -> None:
+        mock_result = MagicMock()
+        mock_result.stdout = "Working"
+        with patch("token_world.engine.llm_backend.subprocess.run", return_value=mock_result):
+            backend = ClaudeCLIBackend()
+            result = backend.call(model="m", system="s", prompt="p", max_tokens=1)
+        assert result == "Working"
+
+    def test_called_process_error_propagates(self) -> None:
+        # D-05 loud failure: non-zero exit -> CalledProcessError propagates unwrapped
+        with patch(
+            "token_world.engine.llm_backend.subprocess.run",
+            side_effect=subprocess.CalledProcessError(1, ["claude"]),
+        ):
+            backend = ClaudeCLIBackend()
+            with pytest.raises(subprocess.CalledProcessError):
+                backend.call(model="m", system="s", prompt="p", max_tokens=1)
+
+    def test_timeout_expired_propagates(self) -> None:
+        # D-05: TimeoutExpired propagates so callers' retry/error logic sees the failure
+        with patch(
+            "token_world.engine.llm_backend.subprocess.run",
+            side_effect=subprocess.TimeoutExpired(["claude"], 120),
+        ):
+            backend = ClaudeCLIBackend()
+            with pytest.raises(subprocess.TimeoutExpired):
+                backend.call(model="m", system="s", prompt="p", max_tokens=1)
 
 
 # ---- get_backend() env-var dispatch ----
