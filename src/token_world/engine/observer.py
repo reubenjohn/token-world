@@ -22,6 +22,11 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from token_world.engine.llm_backend import (
+    AnthropicSDKBackend,
+    LLMBackend,
+    get_backend,
+)
 from token_world.mechanic.trace import ExecutionTrace, TraceNode
 
 logger = logging.getLogger(__name__)
@@ -50,6 +55,45 @@ _SYSTEM_PROMPT = (
 
 # Darkness fallback text returned without an LLM call when projection is empty.
 _DARKNESS_FALLBACK = "You can sense nothing — only darkness and silence."
+
+
+class _UsageCapturingSDKBackend(AnthropicSDKBackend):
+    """SDK backend wrapper that captures the most-recent usage block (D-24).
+
+    Used by :class:`Observer` to preserve ``last_input_tokens`` /
+    ``last_output_tokens`` telemetry under the Phase 07.1 ``LLMBackend``
+    abstraction. The CLI backend and direct-LLMBackend injection do not
+    populate ``_last_usage``; Observer's token counters remain at 0 for those
+    paths per CONTEXT D-07 (CLI subscription = no token visibility).
+
+    This subclass lives in ``observer.py`` (not ``llm_backend.py``) because
+    Plan 01 owns the backend module and this token-capture escape hatch is
+    Observer-specific — the classifier and resident agent do not need it.
+    """
+
+    def __init__(self, client: Any) -> None:
+        super().__init__(client)
+        self._last_usage: dict[str, int] | None = None
+
+    def call(self, *, model: str, system: str, prompt: str, max_tokens: int) -> str:
+        resp = self._client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        usage = getattr(resp, "usage", None)
+        if usage is not None:
+            self._last_usage = {
+                "input_tokens": int(getattr(usage, "input_tokens", 0)),
+                "output_tokens": int(getattr(usage, "output_tokens", 0)),
+            }
+        else:
+            self._last_usage = None
+        if not resp.content:
+            return ""
+        text: str = resp.content[0].text
+        return text
 
 
 def _flatten_mutations(trace: ExecutionTrace) -> list[Any]:
@@ -91,11 +135,26 @@ class Observer:
         last_output_tokens: Populated after each ``synthesize()`` call (D-24).
     """
 
-    client: Any  # anthropic.Anthropic | test fake with .messages.create
+    client: Any = None  # deprecated; kept for backward compatibility (D-02)
     model: str = _MODEL
     max_tokens: int = 1024
     last_input_tokens: int = 0  # populated after each synthesize() for tick-summary cost
     last_output_tokens: int = 0
+    backend: LLMBackend | None = None
+
+    def __post_init__(self) -> None:
+        """Wrap client / default to get_backend() if no backend injected (D-02, D-10).
+
+        Uses :class:`_UsageCapturingSDKBackend` for the auto-wrap path so SDK-backed
+        tests continue to see ``last_input_tokens`` / ``last_output_tokens`` populated
+        (D-24). The CLI backend and direct-injection paths leave the counters at 0
+        per CONTEXT D-07.
+        """
+        if self.backend is None:
+            if self.client is not None:
+                object.__setattr__(self, "backend", _UsageCapturingSDKBackend(self.client))
+            else:
+                object.__setattr__(self, "backend", get_backend())
 
     @classmethod
     def system_prompt_text(cls) -> str:
@@ -176,21 +235,23 @@ class Observer:
         )
         full_prompt = _SYSTEM_PROMPT + "\n\n---\n\n" + user_prompt
 
-        # ---- Call Sonnet (exactly once per synthesize — no internal retry) --
-        response = self.client.messages.create(
+        # ---- Call Sonnet via LLMBackend (exactly once — no internal retry) --
+        assert self.backend is not None  # __post_init__ guarantees this
+        text = self.backend.call(
             model=self.model,
-            max_tokens=self.max_tokens,
             system=_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
+            prompt=user_prompt,
+            max_tokens=self.max_tokens,
         )
 
-        # ---- Capture token usage (D-24) ------------------------------------
-        usage = getattr(response, "usage", None)
-        if usage is not None:
-            self.last_input_tokens = getattr(usage, "input_tokens", 0)
-            self.last_output_tokens = getattr(usage, "output_tokens", 0)
-
-        text = response.content[0].text if response.content else ""
+        # ---- Capture token usage (D-24, adjusted for LLMBackend abstraction) -
+        # Only _UsageCapturingSDKBackend (the SDK auto-wrap path) exposes
+        # _last_usage; CLI / direct-injection backends leave counters at 0
+        # per CONTEXT D-07 (CLI subscription does not expose token counts).
+        last_usage = getattr(self.backend, "_last_usage", None)
+        if last_usage is not None:
+            self.last_input_tokens = int(last_usage.get("input_tokens", 0))
+            self.last_output_tokens = int(last_usage.get("output_tokens", 0))
 
         # ---- Diagnostics (D-22, D-23) ------------------------------------
         if tick_diag_ctx is not None:
