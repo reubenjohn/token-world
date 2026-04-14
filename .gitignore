@@ -61,3 +61,6 @@ site/
 
 # Claude Code runtime state
 .claude/scheduled_tasks.lock
+
+# Playwright MCP artefacts (screenshots, traces)
+.playwright-mcp/
