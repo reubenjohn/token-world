@@ -1439,3 +1439,45 @@ def cost(slug: str, since: int | None, fmt: str) -> None:
         click.echo(render_json(report), nl=False)
     else:
         click.echo(render_table(report), nl=False)
+
+
+@cli.command("inspect")
+@click.argument("slug")
+@click.option(
+    "--last",
+    "last_n",
+    type=int,
+    default=10,
+    show_default=True,
+    help="Number of most-recent ticks to include in the recent-ticks list.",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["table", "json"]),
+    default="table",
+    show_default=True,
+    help="Output format.",
+)
+def inspect_universe(slug: str, last_n: int, fmt: str) -> None:
+    """Universe-at-a-glance: graph shape, mechanics, recent ticks, LRAs, yields.
+
+    Pure read-only aggregator over ``<universe>/universe.db``,
+    ``<universe>/mechanics/``, ``<universe>/tick_summaries/`` and (if
+    present) ``<universe>/operator-log.jsonl``. JSON output is the stable
+    contract consumed by the dashboard.
+    """
+    from token_world.inspect.universe import aggregate, render_json, render_table
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(slug)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    report = aggregate(universe_dir, slug=slug, last_n=last_n)
+    if fmt == "json":
+        click.echo(render_json(report), nl=False)
+    else:
+        click.echo(render_table(report), nl=False)
