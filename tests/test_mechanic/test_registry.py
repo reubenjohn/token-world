@@ -243,6 +243,7 @@ class TestSeedUniverse:
             "contagion",
             "cooperate",
             "craft",
+            "daydream",
             "decay_tick",
             "degrade",
             "drunk",
