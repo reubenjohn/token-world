@@ -270,10 +270,11 @@ class TestDeterministicMatcher:
         assert result.score == 3  # only verb match
 
     def test_candidates_in_no_match_result(self) -> None:
-        """NoMatchResult.candidates lists mechanics that scored > 0 but didn't win.
+        """NoMatchResult.candidates surfaces top-K closest mechanic IDs (D-11).
 
-        Here no mechanic matches verb "fly", so all score 0 and candidates is empty.
-        The candidates field is on NoMatchResult (feeds YieldSignal.candidate_mechanic_ids).
+        When no mechanic matches verb "fly", the matcher returns NoMatchResult with
+        ``candidates`` populated by verb-name similarity so the operator subagent
+        has useful context. Ordering is deterministic (similarity desc, id asc).
         """
         m_pickup = _make_mechanic("pickup", verb="pickup")
         m_drop = _make_mechanic("drop", verb="drop")
@@ -284,8 +285,9 @@ class TestDeterministicMatcher:
         result = DeterministicMatcher().match(classified, registry, graph)
 
         assert isinstance(result, NoMatchResult)
-        # All scored 0 (no verb match) so candidates is empty
-        assert result.candidates == []
+        # D-11: candidates populated with up to TOP_K_CANDIDATES mechanic IDs.
+        assert len(result.candidates) >= 1
+        assert set(result.candidates) <= {"pickup", "drop"}
 
     def test_winner_clear_with_positive_runner_up(self) -> None:
         """Winner score 5, runner-up score 3: MatchedResult returned with clear reasoning."""
@@ -309,3 +311,113 @@ class TestDeterministicMatcher:
         assert result.score == 5
         # Clear winner (score 5 vs 3) → reasoning says "clear winner"
         assert "clear winner" in result.reasoning
+
+
+# ---------------------------------------------------------------------------
+# D-11 tech-debt closure (IN-01): NoMatchResult.candidates populated with top-K
+# closest-matching mechanic IDs by verb-name similarity. See matcher module
+# docstring for full design rationale.
+# ---------------------------------------------------------------------------
+
+
+class TestNoMatchCandidates:
+    """D-11: NoMatchResult.candidates surfaces top-K closest mechanic IDs."""
+
+    def test_empty_registry_candidates_is_empty(self) -> None:
+        """No mechanics in registry → candidates is empty (no crash)."""
+        registry = _make_registry([])
+        graph = _make_graph()
+        classified = ClassifiedAction(verb="fly", actor="alice")
+
+        result = DeterministicMatcher().match(classified, registry, graph)
+
+        assert isinstance(result, NoMatchResult)
+        assert result.candidates == []
+
+    def test_candidates_ranked_by_verb_similarity(self) -> None:
+        """When no exact match, candidates ordered by verb-name similarity desc.
+
+        Classified verb "pickup" has no match, but "picku" (typo-close) should
+        outrank "drop" (very different) purely by SequenceMatcher ratio.
+        """
+        m_typo = _make_mechanic("typo_mech", verb="picku")
+        m_far = _make_mechanic("far_mech", verb="drop")
+        registry = _make_registry([m_far, m_typo])  # reversed input order
+        graph = _make_graph()
+        classified = ClassifiedAction(verb="pickup", actor="alice")
+
+        result = DeterministicMatcher().match(classified, registry, graph)
+
+        assert isinstance(result, NoMatchResult)
+        # "picku" is 5/6 character overlap with "pickup" → higher similarity
+        assert result.candidates[0] == "typo_mech"
+        assert "far_mech" in result.candidates
+
+    def test_candidates_truncated_to_top_k(self) -> None:
+        """When registry has more than K mechanics, only top-K are returned."""
+        from token_world.engine.matcher import TOP_K_CANDIDATES
+
+        # Five mechanics, all with different verbs — none match "fly"
+        mechs = [_make_mechanic(f"m{i}", verb=f"verb{i}") for i in range(5)]
+        registry = _make_registry(mechs)
+        graph = _make_graph()
+        classified = ClassifiedAction(verb="fly", actor="alice")
+
+        result = DeterministicMatcher().match(classified, registry, graph)
+
+        assert isinstance(result, NoMatchResult)
+        assert len(result.candidates) == TOP_K_CANDIDATES
+
+    def test_candidates_deterministic_ordering_on_tie(self) -> None:
+        """When similarity scores tie, mechanics sort alphabetically by id.
+
+        All three mechanics declare the same verb "ski", so the similarity
+        to "fly" is identical for each — ties must be broken by id asc.
+        """
+        m_c = _make_mechanic("c_mech", verb="ski")
+        m_a = _make_mechanic("a_mech", verb="ski")
+        m_b = _make_mechanic("b_mech", verb="ski")
+        # Registry returns in non-alphabetical order to prove the sort.
+        registry = _make_registry([m_c, m_a, m_b])
+        graph = _make_graph()
+        classified = ClassifiedAction(verb="fly", actor="alice")
+
+        result = DeterministicMatcher().match(classified, registry, graph)
+
+        assert isinstance(result, NoMatchResult)
+        assert result.candidates == ["a_mech", "b_mech", "c_mech"]
+
+    def test_candidates_fallback_when_no_verbmatcher(self) -> None:
+        """When no mechanic declares a VerbMatcher, fall back to alphabetical top-K.
+
+        Design: a trivial similarity metric that scores everything equally at
+        0.0 adds no operator value; surfacing an alphabetical menu at least
+        gives them a starting point.
+        """
+        # verb=None → _make_mechanic emits no VerbMatcher
+        m_z = _make_mechanic("z_mech")
+        m_a = _make_mechanic("a_mech")
+        m_b = _make_mechanic("b_mech")
+        registry = _make_registry([m_z, m_a, m_b])
+        graph = _make_graph()
+        classified = ClassifiedAction(verb="fly", actor="alice")
+
+        result = DeterministicMatcher().match(classified, registry, graph)
+
+        assert isinstance(result, NoMatchResult)
+        # Fallback: alphabetical order, truncated to K (here K=3).
+        assert result.candidates == ["a_mech", "b_mech", "z_mech"]
+
+    def test_candidates_empty_when_match_succeeds(self) -> None:
+        """Sanity: MatchedResult path does not populate candidates (separate model)."""
+        mechanic = _make_mechanic("pickup", verb="pickup")
+        registry = _make_registry([mechanic])
+        graph = _make_graph()
+        classified = ClassifiedAction(verb="pickup", actor="alice")
+
+        result = DeterministicMatcher().match(classified, registry, graph)
+
+        assert isinstance(result, MatchedResult)
+        # MatchedResult has no candidates field — this is just confirming the
+        # successful-match path doesn't accidentally route through the D-11 branch.
+        assert result.mechanic_id == "pickup"
