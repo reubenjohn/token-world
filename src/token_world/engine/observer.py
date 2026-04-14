@@ -27,7 +27,7 @@ from token_world.engine.llm_backend import (
     LLMBackend,
     get_backend,
 )
-from token_world.mechanic.trace import ExecutionTrace, TraceNode
+from token_world.mechanic.trace import ExecutionTrace, collect_mutations
 
 logger = logging.getLogger(__name__)
 
@@ -94,18 +94,6 @@ class _UsageCapturingSDKBackend(AnthropicSDKBackend):
             return ""
         text: str = resp.content[0].text
         return text
-
-
-def _flatten_mutations(trace: ExecutionTrace) -> list[Any]:
-    """Recursively collect all mutations from a trace tree."""
-
-    def _collect(node: TraceNode) -> list[Any]:
-        result = list(node.mutations)
-        for child in node.children:
-            result.extend(_collect(child))
-        return result
-
-    return _collect(trace.root)
 
 
 def _render_chain_truncation_note(trace: ExecutionTrace) -> str:
@@ -328,7 +316,7 @@ class Observer:
         ]
 
         if trace is not None:
-            mutation_count = len(_flatten_mutations(trace))
+            mutation_count = len(collect_mutations(trace))
             lines += [
                 f"  - Mechanic: {trace.root.mechanic_id} "
                 f"(executed {trace.total_mechanics_executed} mechanics, "

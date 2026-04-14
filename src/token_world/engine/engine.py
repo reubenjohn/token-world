@@ -59,7 +59,7 @@ from token_world.mechanic.matchers import (
     WorldPropertyMatcher,
 )
 from token_world.mechanic.registry import MechanicRegistry
-from token_world.mechanic.trace import ExecutionTrace, TraceNode
+from token_world.mechanic.trace import ExecutionTrace, TraceNode, collect_mutations
 from token_world.operator.yield_signal import YieldSignal
 
 logger = logging.getLogger(__name__)
@@ -459,11 +459,11 @@ class SimulationEngine:
 
         # Write diagnostics: trace + mutations
         tick_ctx.write_execution_trace(_trace_to_dict(primary_trace))
-        for mutation in _flatten_mutations(primary_trace):
+        for mutation in collect_mutations(primary_trace):
             tick_ctx.append_mutation(_mutation_to_dict(mutation))
 
         # Conservation check on primary trace mutations (D-16)
-        primary_mutations = _flatten_mutations(primary_trace)
+        primary_mutations = collect_mutations(primary_trace)
         cons_verdict = self._conservation.verify(primary_mutations)
         if cons_verdict.is_violation:
             # restore() sets _current_tick = snapshot's tick_id = next_tick, so the
@@ -998,19 +998,6 @@ class SimulationEngine:
 # ---------------------------------------------------------------------------
 # Pure helpers
 # ---------------------------------------------------------------------------
-
-
-def _flatten_mutations(trace: ExecutionTrace | None) -> list:
-    """Walk a trace tree and return all Mutations across primary + chain children."""
-    if trace is None:
-        return []
-    out = []
-    stack = [trace.root]
-    while stack:
-        node = stack.pop()
-        out.extend(node.mutations)
-        stack.extend(node.children)
-    return out
 
 
 def _trace_with_sweep(primary: ExecutionTrace, sweep_nodes: list[TraceNode]) -> ExecutionTrace:

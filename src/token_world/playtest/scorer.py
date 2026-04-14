@@ -17,6 +17,8 @@ from math import sqrt
 
 from pydantic import BaseModel
 
+from token_world.mechanic.trace import collect_mutations
+
 
 class TurnScore(BaseModel):
     """Scores for a single playtest turn. All metrics in [0.0, 1.0].
@@ -129,13 +131,9 @@ class TurnScorer:
             # yielded path also has no trace
             return 0.5
 
-        # Walk the trace tree to count all mutations
-        total = 0
-        stack = [trace.root]
-        while stack:
-            node = stack.pop()
-            total += len(node.mutations)
-            stack.extend(node.children)
+        # Walk the trace tree to count all mutations — delegates to the shared
+        # mechanic.trace walker (IN-02 dedup, 2026-04-14).
+        total = len(collect_mutations(trace))
 
         return 1.0 if total > 0 else 0.5
 

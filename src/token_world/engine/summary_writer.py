@@ -29,7 +29,7 @@ from token_world.engine.models import (
 )
 from token_world.graph import Mutation
 from token_world.mechanic.diagnostics import _atomic_write_json
-from token_world.mechanic.trace import ExecutionTrace, TraceNode
+from token_world.mechanic.trace import ExecutionTrace, collect_mutations
 
 # Per-million-token USD rates — D-24 visibility, no circuit breaker.
 # Adjust in source if Anthropic pricing changes; verify in tests then bump.
@@ -59,26 +59,6 @@ def _stage_cost_usd(stage: str, input_tokens: int, output_tokens: int) -> float:
         # Unknown stage: zero cost (forward-compat for future stages)
         return 0.0
     return (input_tokens * in_rate + output_tokens * out_rate) / 1_000_000
-
-
-def _flatten_trace_mutations(trace: ExecutionTrace | None) -> list[Mutation]:
-    """Walk trace tree and collect every Mutation recorded by every TraceNode.
-
-    Args:
-        trace: The execution trace, or None (yield/refuse path with no mechanic).
-
-    Returns:
-        Flat list of all Mutations from all nodes in the trace tree.
-    """
-    if trace is None:
-        return []
-    result: list[Mutation] = []
-    stack: list[TraceNode] = [trace.root]
-    while stack:
-        node = stack.pop()
-        result.extend(node.mutations)
-        stack.extend(node.children)
-    return result
 
 
 def _mutations_to_json_list(mutations: list[Mutation]) -> list[list[Any]]:
@@ -136,7 +116,7 @@ def build_tick_summary(
     matched_id = decision.mechanic_id if isinstance(decision, ExecuteDecision) else None
     refusal_reason = decision.reason_code if isinstance(decision, RefuseDecision) else None
 
-    raw_mutations = _flatten_trace_mutations(trace)
+    raw_mutations = collect_mutations(trace)
     mutations_field: dict[str, Any] = {
         "count": len(raw_mutations),
         "list": _mutations_to_json_list(raw_mutations),

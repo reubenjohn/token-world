@@ -22,7 +22,12 @@ from token_world.mechanic.matchers import (
 )
 from token_world.mechanic.protocol import CheckResult, Mechanic
 from token_world.mechanic.registry import MechanicInfo, MechanicRegistry, MechanicVersion
-from token_world.mechanic.trace import ExecutionTrace, TraceNode
+from token_world.mechanic.trace import (
+    ExecutionTrace,
+    TraceNode,
+    collect_mutations,
+    walk_trace,
+)
 
 __all__ = [
     "SCHEMA_VERSION",
@@ -45,6 +50,8 @@ __all__ = [
     "TraceNode",
     "VerbMatcher",
     "WorldPropertyMatcher",
+    "collect_mutations",
     "discover_mechanic_modules",
     "load_mechanic_classes",
+    "walk_trace",
 ]
