@@ -444,3 +444,145 @@ def test_llm_called_at_most_once_per_synthesize(mock_anthropic_sonnet, simple_kg
     assert len(mock_anthropic_sonnet.messages.calls) == 1, (
         f"Expected exactly 1 LLM call; got {len(mock_anthropic_sonnet.messages.calls)}"
     )
+
+
+# ---------------------------------------------------------------------------
+# E4 regression: mutation content + outcome-consistency in observer prompt
+#
+# Willowbrook tick 35 drift (2026-04-14): the force mechanic emitted
+# ``old_chest.locked: True -> False`` yet the observation narrated
+# "The old iron-bound chest remains locked and silent". Symmetrically, tick
+# 32 emitted NO locked-mutation (failed attempt) yet the observer narrated
+# "The chest is no longer locked." Both failures share one root cause: the
+# observer user prompt included only a mutation *count*, never the mutation
+# content, so the LLM narrated outcomes from intent (action_text) rather
+# than ground truth. These tests lock in the fix.
+# ---------------------------------------------------------------------------
+
+
+def _trace_with_mutations(mutations: list) -> ExecutionTrace:
+    """Build a one-node trace carrying the given Mutation list."""
+    root = TraceNode(
+        mechanic_id="force",
+        actor="mira",
+        target="old_chest",
+        check_result=CheckResult(passed=True, reasons=["ok"]),
+        mutations=list(mutations),
+        children=[],
+    )
+    return ExecutionTrace(
+        root=root,
+        total_mechanics_executed=1,
+        max_depth_reached=1,
+        truncated=False,
+    )
+
+
+def _user_prompt_of(client) -> str:
+    """Extract the user-role content from the most recent MockAnthropicClient call."""
+    last_call = client.messages.calls[-1]
+    return "".join(
+        m.get("content", "") for m in last_call.get("messages", []) if m.get("role") == "user"
+    )
+
+
+def test_mutation_target_property_and_values_appear_in_user_prompt():
+    """E4: observer user prompt must include mutation target.property: old -> new.
+
+    Without this the LLM only sees a bare count ("3 graph changes") and can
+    narrate outcomes contradicting the graph. Tick 35 force-unlock regression.
+    """
+    from tests.test_engine.conftest import MockAnthropicClient
+    from token_world.graph import Mutation
+
+    client = MockAnthropicClient(["The lock gives way."])
+    observer = Observer(client=client)
+
+    kg = KnowledgeGraph(db_path=None)
+    kg.add_node("mira", node_type="agent")
+    kg.add_node("room_1", node_type="entity", illumination=1.0)
+    kg.add_node("old_chest", node_type="entity", locked=False)
+    kg.add_edge("mira", "room_1", type="location")
+    kg.add_edge("room_1", "old_chest", type="contains")
+
+    mutation = Mutation(
+        type="set_property",
+        target="old_chest",
+        property="locked",
+        old_value=True,
+        new_value=False,
+    )
+
+    projection = VisibilityProjector(kg).project_for("mira")
+    observer.synthesize(
+        projection=projection,
+        trace=_trace_with_mutations([mutation]),
+        actor_id="mira",
+        action_text="force the chest",
+    )
+
+    prompt = _user_prompt_of(client)
+    assert "old_chest.locked" in prompt, (
+        f"Mutation target.property missing from observer prompt. Prompt was:\n{prompt}"
+    )
+    assert "True" in prompt and "False" in prompt, (
+        f"Mutation old/new values missing from observer prompt. Prompt was:\n{prompt}"
+    )
+
+
+def test_empty_mutations_dont_claim_state_change_in_prompt():
+    """E4: when no mutations happened the prompt must not list any mutation bullets.
+
+    Tick 32 regression: a failed force attempt produced no ``locked`` mutation,
+    yet the observer narrated "The chest is no longer locked" — because the
+    prompt never told it which property changed. A zero-mutation trace must
+    not contain a ``.locked:`` bullet that could be misread as a state change.
+    """
+    from tests.test_engine.conftest import MockAnthropicClient
+
+    client = MockAnthropicClient(["The lock resists. Nothing gives."])
+    observer = Observer(client=client)
+
+    kg = KnowledgeGraph(db_path=None)
+    kg.add_node("mira", node_type="agent")
+    kg.add_node("room_1", node_type="entity", illumination=1.0)
+    kg.add_node("old_chest", node_type="entity", locked=True)
+    kg.add_edge("mira", "room_1", type="location")
+    kg.add_edge("room_1", "old_chest", type="contains")
+
+    projection = VisibilityProjector(kg).project_for("mira")
+    observer.synthesize(
+        projection=projection,
+        trace=_trace_with_mutations([]),  # failed attempt: zero mutations
+        actor_id="mira",
+        action_text="force the chest",
+    )
+
+    prompt = _user_prompt_of(client)
+    # Zero mutations = zero per-mutation bullets. Look specifically for the
+    # ``target.property:`` bullet shape that would signal a state change.
+    assert "  - old_chest.locked:" not in prompt, (
+        "Zero-mutation trace must not emit a ``old_chest.locked:`` bullet — "
+        f"that would mislead the observer. Prompt was:\n{prompt}"
+    )
+    assert "0 graph changes" in prompt, (
+        f"Mutation count should reflect zero changes. Prompt was:\n{prompt}"
+    )
+
+
+def test_system_prompt_contains_outcome_consistency_clause():
+    """E4: system prompt must direct the LLM to treat mutations as ground truth.
+
+    Locks in the OUTCOME CONSISTENCY clause added alongside the user-prompt
+    mutation-detail fix. The action_text is only intent; the mutation list is
+    what actually happened. Both sides of the fix are needed: data (user
+    prompt) + instruction (system prompt).
+    """
+    assert "OUTCOME CONSISTENCY" in _SYSTEM_PROMPT, (
+        "Observer system prompt must carry an OUTCOME CONSISTENCY clause "
+        "instructing the LLM to treat mutations as ground truth."
+    )
+    # Specifically the action_text-is-intent / mutations-are-truth distinction.
+    assert "ground truth" in _SYSTEM_PROMPT.lower(), (
+        "Outcome-consistency clause should name mutations as ground truth."
+    )

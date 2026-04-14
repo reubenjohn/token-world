@@ -50,6 +50,15 @@ _SYSTEM_PROMPT = (
     "properties, or sensory details. If the projection is sparse (dark room, no\n"
     "items), describe only the absence — never invent atmosphere.\n"
     "\n"
+    "OUTCOME CONSISTENCY: when the execution trace lists graph mutations, the\n"
+    "narrative outcome MUST match those mutations. Mutations are ground truth:\n"
+    "the action_text is only an intent, the mutations are what actually happened.\n"
+    "If a mutation sets ``locked: true -> false`` the object is now unlocked and\n"
+    "your narrative must reflect success, even if the action_text sounded hesitant.\n"
+    "If a mutation list is empty (no ``locked`` change, no state change to the\n"
+    "attempted target), the attempt failed and your narrative must reflect\n"
+    "failure — do not invent a positive outcome the graph does not record.\n"
+    "\n"
     "Output the observation text directly. No prefix, no suffix, no JSON wrapping."
 )
 
@@ -102,6 +111,46 @@ def _render_chain_truncation_note(trace: ExecutionTrace) -> str:
         f"Note: chain truncated at depth {trace.max_depth_reached} — "
         "Time blurs as events cascade beyond perception."
     )
+
+
+def _format_mutation(mut: Any) -> str:
+    """Render a single Mutation as a one-line bullet for the observer prompt.
+
+    Truncates very long values (nested lists of history dicts) so one chatty
+    mutation can't blow the Sonnet context budget. We care that the LLM sees
+    the *kind* of change (e.g. ``locked: True -> False``), not the full list
+    of every past tampering attempt. Short scalar values pass through
+    unmodified so boolean flips remain legible.
+
+    Args:
+        mut: A :class:`token_world.graph.Mutation` instance (duck-typed to
+            avoid an import cycle inside the observer module).
+
+    Returns:
+        A single bullet line like ``  - old_chest.locked: True -> False``
+        or ``  - mira.inventory: <list of 3> -> <list of 4>`` for bulky lists.
+    """
+    target = getattr(mut, "target", "?")
+    prop = getattr(mut, "property", None)
+    old_value = getattr(mut, "old_value", None)
+    new_value = getattr(mut, "new_value", None)
+    mtype = getattr(mut, "type", "set_property")
+
+    if mtype != "set_property" or prop is None:
+        # Structural mutation (add_node/add_edge/remove_*) — render as a label.
+        return f"  - {mtype}: {target}"
+
+    def _brief(val: Any) -> str:
+        if isinstance(val, list):
+            return f"<list of {len(val)}>"
+        if isinstance(val, dict):
+            return f"<dict with {len(val)} keys>"
+        rendered = repr(val)
+        if len(rendered) > 80:
+            return rendered[:77] + "..."
+        return rendered
+
+    return f"  - {target}.{prop}: {_brief(old_value)} -> {_brief(new_value)}"
 
 
 @dataclass(slots=True)
@@ -316,14 +365,21 @@ class Observer:
         ]
 
         if trace is not None:
-            mutation_count = len(collect_mutations(trace))
+            mutations = collect_mutations(trace)
             lines += [
                 f"  - Mechanic: {trace.root.mechanic_id} "
                 f"(executed {trace.total_mechanics_executed} mechanics, "
                 f"depth {trace.max_depth_reached})",
-                f"  - Mutations: {mutation_count} graph changes",
-                f"  - Truncated: {trace.truncated}",
+                f"  - Mutations: {len(mutations)} graph changes",
             ]
+            # E4 grounding fix: include actual mutation content so the LLM can
+            # narrate success vs failure from ground truth instead of guessing
+            # from the action_text. Without this, the observer saw only a
+            # count ("3 graph changes") and could freely invent outcomes
+            # contradicting the graph (willowbrook tick 32/35 drift).
+            for mut in mutations:
+                lines.append(_format_mutation(mut))
+            lines.append(f"  - Truncated: {trace.truncated}")
             if trace.truncated:
                 lines.append(_render_chain_truncation_note(trace))
         else:
