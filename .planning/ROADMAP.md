@@ -62,7 +62,7 @@ Phase list:
 
 - [x] Phase 12.5: v1.2 Warm-up (13/13 items — shipped pre-scaffolding)
 - [x] Phase 13: Quality KPIs substrate (1 REQ) (completed 2026-04-14)
-- [ ] Phase 14: Engine polish + seed corpus hygiene (3 REQs)
+- [x] Phase 14: Engine polish + seed corpus hygiene (3 REQs) (completed 2026-04-14)
 - [ ] Phase 15: Multi-agent dashboard scaffold (1 REQ)
 - [ ] Phase 16: Composite actions (1 REQ, architectural — design + implementation waves)
 - [ ] Phase 17: Operator & dev ergonomics (8 REQs)
@@ -103,11 +103,11 @@ Success criteria:
 **Goal:** Close the last small engine-truthfulness follow-ups, promote the five universe-agnostic mechanics the overnight run authored, and stop the seed script from silently deleting them on re-seed.
 **Depends on:** Phase 12.5 (ENGINE-01 shipped; refuse-observation path now exercised in production, surfacing the doubled-wrapper bug)
 **Requirements:** REQ-V12-ENGINE-05, REQ-V12-SEEDS-01, REQ-V12-TOOLING-02
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 14-01-PLAN.md — ENGINE-05 refusal wrapper regression test + fix
 - [x] 14-02-PLAN.md — 5 seed mechanics (examine/pet/sharpen/hum/drop) + _KEEP_MECHANICS
-- [ ] 14-03-PLAN.md — SC-3 entities (bench/coop/gate) + --preserve-mechanics flag
+- [x] 14-03-PLAN.md — SC-3 entities (bench/coop/gate) + --preserve-mechanics flag
 
 Success criteria:
 1. SC-1: A refused tick's observation text contains the "You try, but" refuse wrapper exactly once (regression test on willowbrook tick 61 or equivalent fixture; grep confirms a single source-of-truth for the wrapper string).
@@ -213,7 +213,7 @@ Full phase detail moved to [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.
 | Phase | Milestone | Plans Complete | Status   | Notes |
 |-------|-----------|----------------|----------|-------|
 | 13. Quality KPIs substrate | v1.2 | 2/2 | Complete   | 2026-04-14 |
-| 14. Engine polish + seed corpus hygiene | v1.2 | 2/3 | In Progress|  |
+| 14. Engine polish + seed corpus hygiene | v1.2 | 3/3 | Complete   | 2026-04-14 |
 | 15. Multi-agent dashboard scaffold | v1.2 | 0/0 | Planning | DASHBOARD-05 — dashboard-only; engine stays single-agent |
 | 16. Composite actions | v1.2 | 0/0 | Planning | ENGINE-04 — architectural; design wave + implementation wave |
 | 17. Operator & dev ergonomics | v1.2 | 0/0 | Planning | CLI-03/04, DASHBOARD-07/08/09, EMERGE-01/02, OPS-01 |
