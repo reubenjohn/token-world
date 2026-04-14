@@ -1859,6 +1859,70 @@ def diff_ticks(slug: str, tick_a: str, tick_b: str, fmt: str) -> None:
         click.echo(render_diff_table(report), nl=False)
 
 
+@cli.command("yield")
+@click.argument("slug")
+@click.option(
+    "--pending",
+    is_flag=True,
+    default=False,
+    help="List every unresolved yield in the operator inbox (default when no flag given).",
+)
+@click.option(
+    "--tick",
+    "tick_id",
+    default=None,
+    help="Show the yield for a specific tick id (resolved or not).",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["table", "json"]),
+    default="table",
+    show_default=True,
+    help="Output format.",
+)
+def yield_inspector(slug: str, pending: bool, tick_id: str | None, fmt: str) -> None:
+    """Inspect the operator inbox for pending yields (and resolve-none-of-them).
+
+    A "pending" yield is a ``<universe>/operator_inbox/<tick>.yield.json`` file
+    with no sibling ``.resolved`` or ``.rejected`` marker. With ``--tick N``,
+    inspect one specific yield regardless of resolution state. Without any
+    flag, behaviour defaults to ``--pending``.
+    """
+    from token_world.inspect.yields import (
+        aggregate as aggregate_yields,
+    )
+    from token_world.inspect.yields import (
+        render_json as render_yields_json,
+    )
+    from token_world.inspect.yields import (
+        render_table as render_yields_table,
+    )
+
+    if pending and tick_id is not None:
+        click.echo("Error: --pending and --tick are mutually exclusive.", err=True)
+        raise SystemExit(2)
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(slug)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    report = aggregate_yields(universe_dir, slug=slug, tick_id=tick_id)
+
+    if fmt == "json":
+        click.echo(render_yields_json(report), nl=False)
+    else:
+        click.echo(render_yields_table(report), nl=False)
+
+    # Exit 4 when --tick was passed and the yield file doesn't exist —
+    # matches the "agents --id ghost" convention (soft-fail with payload).
+    if report.not_found_tick is not None:
+        raise SystemExit(4)
+
+
 @cli.command("dashboard")
 @click.argument("slug")
 @click.option(

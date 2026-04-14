@@ -67,6 +67,11 @@ def create_app(slug: str, *, dark: bool = True) -> Any:
                     ).classes("text-xs text-slate-300")
                 return
 
+            # --- Active yield banner (sticky, hidden when no pending yields) -
+            from token_world.dashboard.panels.active_yield import mount_active_yield_banner
+
+            mount_active_yield_banner(universe_dir, ui.column().classes("w-full"))
+
             # --- Header strip -------------------------------------------------
             from token_world.dashboard.panels.stats import mount_stats_strip
 
