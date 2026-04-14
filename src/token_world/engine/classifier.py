@@ -44,13 +44,41 @@ _SYSTEM_PROMPT = (
     '{"kind":"no_such_target","target_text":"<text for which the graph has no node>"}\n'  # noqa: E501
     '{"kind":"low_confidence","reason":"<why>","best_guess":{...classified...},"confidence":0.0-1.0}\n'  # noqa: E501
     "\n"
-    "Use ONLY verbs from the provided list. Use ONLY actor/target node IDs from the\n"
-    "provided list. If the input is gibberish or otherwise unprocessable, emit\n"
-    '"no_viable_action". If you can identify a target TEXT but it maps to no known\n'
-    'node ID, emit "no_such_target". Emit ONLY the JSON object -- no prose.\n'
+    "Prefer verbs from the provided list when one naturally describes the action.\n"
+    "If no listed verb fits (the list may be empty, short, or simply miss the right\n"
+    "one), propose the most natural single verb for the action — the engine's\n"
+    "matcher will then either find a mechanic that handles it or yield to the\n"
+    "operator to author one. Use ONLY actor/target node IDs from the provided list.\n"
+    "If the input is genuinely gibberish or otherwise unprocessable, emit\n"
+    '"no_viable_action" (an empty verb list is NOT sufficient reason on its own).\n'
+    "If you can identify a target TEXT but it maps to no known node ID, emit\n"
+    '"no_such_target". Emit ONLY the JSON object -- no prose.\n'
 )
 
 _VERDICT_ADAPTER: TypeAdapter[ClassifierVerdict] = TypeAdapter(ClassifierVerdict)
+
+
+def _strip_markdown_fence(raw: str) -> str:
+    """Strip ```[lang]\\n...\\n``` fences from a response.
+
+    The ``claude-cli`` backend (Phase 7.1) sometimes wraps JSON in markdown
+    code fences even when the system prompt says "JSON only." Handles both
+    language-tagged (```json) and bare (```) fences, plus multiple stacked
+    fences (rare). Returns ``raw`` unchanged when no fence is found.
+    """
+    s = raw.strip()
+    # Repeatedly peel leading/trailing fences. Common case: one pair.
+    for _ in range(3):  # bound iterations — defense against pathological input
+        if s.startswith("```"):
+            # drop first line (``` or ```json)
+            newline = s.find("\n")
+            s = s[newline + 1 :] if newline != -1 else s[3:]
+            s = s.strip()
+        if s.endswith("```"):
+            s = s[:-3].rstrip()
+        else:
+            break
+    return s
 
 
 @dataclass(slots=True)
@@ -157,7 +185,7 @@ class Classifier:
         return raw
 
     def _parse(self, raw: str) -> ClassifierVerdict | None:
-        raw_stripped = raw.strip()
+        raw_stripped = _strip_markdown_fence(raw).strip()
         if not raw_stripped:
             return None
         try:

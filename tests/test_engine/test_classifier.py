@@ -117,6 +117,42 @@ class TestClassifierBasicVerdicts:
         assert isinstance(result, VerdictLowConfidence)
 
 
+class TestClassifierMarkdownFence:
+    """Classifier strips markdown code fences (claude-cli backend quirk)."""
+
+    def test_json_fenced_with_lang(self) -> None:
+        fenced = f"```json\n{_OK_RESPONSE}\n```"
+        clf, _ = _clf([fenced])
+        result = clf.classify(
+            "pick up rock",
+            "alice",
+            available_verbs=["pickup"],
+            known_node_ids=["alice", "rock_1"],
+        )
+        assert isinstance(result, VerdictOk)
+
+    def test_json_fenced_bare(self) -> None:
+        fenced = f"```\n{_OK_RESPONSE}\n```"
+        clf, _ = _clf([fenced])
+        result = clf.classify(
+            "pick up rock",
+            "alice",
+            available_verbs=["pickup"],
+            known_node_ids=["alice", "rock_1"],
+        )
+        assert isinstance(result, VerdictOk)
+
+    def test_unfenced_still_parses(self) -> None:
+        clf, _ = _clf([_OK_RESPONSE])
+        result = clf.classify(
+            "pick up rock",
+            "alice",
+            available_verbs=["pickup"],
+            known_node_ids=["alice", "rock_1"],
+        )
+        assert isinstance(result, VerdictOk)
+
+
 class TestClassifierRetry:
     """Classifier retries once on malformed JSON."""
 
