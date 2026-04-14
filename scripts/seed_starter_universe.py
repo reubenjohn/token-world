@@ -98,14 +98,24 @@ def _prune_seed_mechanics(universe_dir: Path) -> None:
     ones (``daydream``, ``sleep``, ``autopilot_*``, ``drunk``) that starve a
     starter universe of turns. We keep only the primitives a resident needs
     to orient herself; operator-authored mechanics fill everything else.
+
+    Prints a loud warning to stderr listing every file that will be removed,
+    so operators who re-seed an existing universe notice before data is lost.
+    Use ``--preserve-mechanics`` to skip this call entirely.
     """
     mech_dir = universe_dir / "mechanics"
-    removed: list[str] = []
-    for py in sorted(mech_dir.glob("*.py")):
-        if py.name not in _KEEP_MECHANICS:
-            py.unlink()
-            removed.append(py.name)
-    logger.info("Pruned {} seed mechanics; kept {}", len(removed), sorted(_KEEP_MECHANICS))
+    to_remove = sorted(py for py in mech_dir.glob("*.py") if py.name not in _KEEP_MECHANICS)
+    if to_remove:
+        print(
+            "WARNING: seed_starter_universe.py will overwrite the following "
+            "mechanics (use --preserve-mechanics to keep them):",
+            file=sys.stderr,
+        )
+        for py in to_remove:
+            print(f"  {py.name}", file=sys.stderr)
+    for py in to_remove:
+        py.unlink()
+    logger.info("Pruned {} seed mechanics; kept {}", len(to_remove), sorted(_KEEP_MECHANICS))
 
 
 def _seed_graph(kg: KnowledgeGraph) -> dict[str, str]:
@@ -207,6 +217,35 @@ def _seed_graph(kg: KnowledgeGraph) -> dict[str, str]:
     )
     kg.add_edge(garden, whetstone, relation="contains")
 
+    bench = kg.claim_id("bench")
+    kg.add_node(bench, node_type="entity")
+    kg.set(bench, "subtype", "furniture")
+    kg.set(bench, "material", "wood")
+    kg.set(bench, "weathered", True)
+    kg.set(bench, "planks_intact", 5)
+    kg.set(bench, "description", "A low wooden bench beside the whetstone, darkened by weather.")
+    kg.add_edge(garden, bench, relation="contains")
+
+    chicken_coop = kg.claim_id("chicken_coop")
+    kg.add_node(chicken_coop, node_type="entity")
+    kg.set(chicken_coop, "subtype", "structure")
+    kg.set(chicken_coop, "chickens_inside", 3)
+    kg.set(chicken_coop, "door_latched", True)
+    kg.set(chicken_coop, "eggs_today", 0)
+    kg.set(chicken_coop, "feed_level", 0.6)
+    kg.set(chicken_coop, "description", "A small coop of wattle and thatch; clucking from within.")
+    kg.add_edge(garden, chicken_coop, relation="contains")
+
+    broken_gate = kg.claim_id("broken_gate")
+    kg.add_node(broken_gate, node_type="entity")
+    kg.set(broken_gate, "subtype", "gate")
+    kg.set(broken_gate, "broken", True)
+    kg.set(broken_gate, "latched", False)
+    kg.set(broken_gate, "repair_progress", 0.0)
+    kg.set(broken_gate, "material", "wood")
+    kg.set(broken_gate, "description", "The garden gate hangs at an angle, one hinge torn loose.")
+    kg.add_edge(garden, broken_gate, relation="contains")
+
     # --- Mira's inventory -------------------------------------------------
     knife = kg.claim_id("pocket_knife")
     kg.add_node(knife, node_type="entity")
@@ -238,13 +277,21 @@ def _seed_graph(kg: KnowledgeGraph) -> dict[str, str]:
         well=well,
         bed=bed,
         whetstone=whetstone,
+        bench=bench,
+        chicken_coop=chicken_coop,
+        broken_gate=broken_gate,
         knife=knife,
         mira=mira_id,
     )
     return ids
 
 
-def seed(slug: str = DEFAULT_SLUG, *, overwrite: bool = False) -> Path:
+def seed(
+    slug: str = DEFAULT_SLUG,
+    *,
+    overwrite: bool = False,
+    preserve_mechanics: bool = False,
+) -> Path:
     """Create (or re-create) the starter universe; return its path."""
     manager = UniverseManager()
     if overwrite:
@@ -257,7 +304,11 @@ def seed(slug: str = DEFAULT_SLUG, *, overwrite: bool = False) -> Path:
     universe_dir = manager.create("Willowbrook")
     logger.info("Scaffolded universe at {}", universe_dir)
 
-    _prune_seed_mechanics(universe_dir)
+    if not preserve_mechanics:
+        _prune_seed_mechanics(universe_dir)
+    else:
+        print("--preserve-mechanics set; skipping mechanic pruning.", file=sys.stderr)
+        logger.info("--preserve-mechanics set; skipping mechanic pruning")
 
     kg = KnowledgeGraph(db_path=universe_dir / "universe.db")
     ids = _seed_graph(kg)
@@ -287,10 +338,19 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--slug", default=DEFAULT_SLUG)
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument(
+        "--preserve-mechanics",
+        action="store_true",
+        default=False,
+        help=(
+            "Skip pruning of mechanics/*.py files. Use when re-seeding a universe "
+            "that has operator-authored mechanics you want to preserve."
+        ),
+    )
     args = parser.parse_args()
 
     try:
-        seed(args.slug, overwrite=args.overwrite)
+        seed(args.slug, overwrite=args.overwrite, preserve_mechanics=args.preserve_mechanics)
     except FileExistsError as e:
         print(f"Error: {e}  (pass --overwrite to recreate)", file=sys.stderr)
         return 2
