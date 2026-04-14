@@ -1,9 +1,40 @@
 # Morning Handoff — Token World
 
-**Current as of**: 2026-04-14 post-session-6 (dark-factories night; all §J top-5 + bonuses shipped)
-**Last coordinator**: Claude Opus 4.6 (1M context)
-**Master HEAD**: `c5b4931` — 13 session-6 commits pushed, CI green, 1952 tests passing
-**Milestone:** v1.1 closed; **v1.2 warm-up delivered** — see `.planning/REQUIREMENTS.md` for REQ-V12 table
+**Current as of**: 2026-04-14 post-session-7 (Phase 13 complete; Phases 14-19 remain)
+**Last coordinator**: Claude Sonnet 4.6
+**Master HEAD**: `8a0ea13` — session-7 commits pushed, CI green, 1973 tests passing
+**Milestone:** v1.2 active — Phase 13 shipped (Quality KPIs substrate)
+
+---
+
+## SESSION 7 CLOSE — See `.planning/SESSION-7-REPORT.md` for full detail
+
+**Phase 13 shipped:**
+- `token-world quality <slug>` CLI: 8-dimension scorecard (groundedness, character stability, action coherence, refusal clustering, vocabulary growth, conservation drift, graph fan-out, novel subtype rate)
+- Dashboard "Quality" panel: Python import (no subprocess), 10s refresh, coloured cells
+- CI gate: `scripts/check_quality_thresholds.py` — exits 1 with named dimension on FAIL verdict; pytest-wired via tests/test_meta/test_quality_thresholds.py
+- 21 new tests; 1973 total passing
+
+**Infra fixes:**
+- `OPERATOR_MODEL` env var: set `OPERATOR_MODEL=sonnet` to use Sonnet instead of Opus for mechanic authoring
+- ROADMAP.md: phase headings fixed from `Phase N —` to `Phase N:` (gsd-tools parser compatibility)
+
+**Demo:**
+```bash
+uv run token-world quality willowbrook --last 50
+uv run token-world quality willowbrook --format json | jq .verdict
+uv run python scripts/check_quality_thresholds.py willowbrook
+```
+
+**Next action: `/gsd-plan-phase 14`** — Engine polish + seed corpus hygiene
+- Phase 14: REQ-V12-ENGINE-05 (refuse wrapper once), REQ-V12-SEEDS-01 (seed mechanics), REQ-V12-TOOLING-02 (preserve mechanics flag)
+- Phase 15: Multi-agent dashboard scaffold (DASHBOARD-05)
+- Phase 16: Composite actions — DECIDED: ordered sequence, serial execution (no new node types)
+- Phase 17-19: Ergonomics, graph conventions, optional migration
+
+**SC-4 still needed (manual):** `uv run token-world quality willowbrook` on local willowbrook data before merging Phase 13
+
+**Traceability note:** `scripts/check_requirements_traceability.py --milestone active` shows drift for phases 14-19 requirements — pre-existing, not introduced by Phase 13. Phase 13 QUALITY-02 is clean.
 
 ---
 
