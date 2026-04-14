@@ -1,109 +1,130 @@
 # Morning Handoff — Token World
 
-**Current as of**: 2026-04-14 ~03:30 UTC
+**Current as of**: 2026-04-14 ~05:45 UTC (end of session 3)
 **Last coordinator**: Claude Opus 4.6 (1M context), balanced profile
-**Master HEAD**: `4021de6` — pushed to `origin/master`, CI ✅ GREEN
-
----
-
-## Your Mandate
-
-The user ("GSD to take over from here. It will have until tomorrow morning again.") wants you to continue work autonomously overnight. You have one full cycle (~12-20 hours) before the next morning check-in.
-
-**Autonomy rules** (unchanged from prior session):
-- **Take action.** Don't ask "should I proceed?" — just proceed.
-- **Document decisions.** If a choice isn't in PROJECT.md/CONTEXT.md, pick the pragmatic option and record it in the relevant artifact. Only surface genuinely ambiguous or high-stakes decisions via BLOCKER.md.
-- **Self-correct.** Diagnose and fix your own mistakes. Only bubble up problems you've tried and failed to resolve.
-- **Only stop for**: architectural forks that lock in a hard direction, corrupted state you cannot safely recover from, rate-limit ceilings `ScheduleWakeup` can't clear.
-
-**Profile**: `balanced` (Opus orchestrator + planner; Sonnet executors + verifier + reviewer). Do not switch without reason.
+**Master HEAD**: `1ef16d8` — pushed to `origin/master`, CI ✅ GREEN
+**Git tag**: `v1.0` — milestone v1.0 shipped and archived
 
 ---
 
 ## TL;DR (Read First)
 
-**Milestone v1.0 is feature-complete** — all 9 phases verified:
+**Milestone v1.0 is SHIPPED, TAGGED, and ARCHIVED.** All 10 phases verified, 1743 tests passing, 5 deferred tech-debt items closed tonight, 3 live UAT items run via the new claude-cli backend, and full retrospective + archive artifacts written.
+
+**The project is now between milestones.** Next action is `/gsd-new-milestone` to scope v1.1 — the user's call on which candidate themes to prioritize.
+
+**Session 3's narrative:** `.planning/OVERNIGHT-REPORT-20260414.md` (read this if you're the next Claude session).
+
+---
+
+## Your Mandate (If The User Hands You Autonomous Time Again)
+
+**Autonomy rules** (unchanged from prior sessions):
+- **Take action.** Don't ask "should I proceed?" — just proceed on routine decisions.
+- **Document decisions.** If a choice isn't in PROJECT.md / CONTEXT.md, pick pragmatic and record it. Only surface truly ambiguous high-stakes decisions.
+- **Self-correct.** Fix your own mistakes. Only bubble up what you've tried and failed to resolve.
+- **Only stop for**: architectural forks that lock in a hard direction, corrupted state you cannot safely recover from, rate-limit ceilings `ScheduleWakeup` can't clear.
+
+**Profile**: `balanced` (Opus orchestrator + planner; Sonnet executors + verifier + reviewer). Do not switch without reason.
+
+**Default budget stance:** The user confirmed in session 3 to **leave UAT as human_needed if CLI path fails** — do NOT fall back to direct SDK for expensive (>~$0.50) runs without explicit permission. CLI backend is the standard path now.
+
+**Push policy:** Push to master as you go (the user approved this in session 3). Green CI before next commit. No need to stage branches for review.
+
+---
+
+## Current State
+
+**Phases (all verified):**
 
 | Phase | Status | Key Deliverable |
 |-------|--------|-----------------|
-| 00–04, 04.1 | ✅ Done in prior sessions | Infrastructure, graph, mechanic framework, LLM mechanic generation, operator harness |
-| **05** | ✅ Passed | SimulationEngine.run_tick pipeline (classify → match → decide → execute → conservation → sweep → observe → tick_summary), MCP tools |
-| **06** | ✅ human_needed | ResidentAgent + PlaytestRunner + TickCompressor + regression suite (3 live-API UAT items open) |
-| **07** | ✅ human_needed | Composable interruption-threshold pattern (sleep, autopilot, drunk seed mechanics) |
+| 0–4, 04.1 | ✅ Passed | Infrastructure, graph, mechanic framework, LLM mechanic generation, operator harness |
+| 5 | ✅ Passed | SimulationEngine.run_tick pipeline + MCP tools |
+| 6 | ✅ Passed (live UAT closed 2026-04-14) | ResidentAgent + PlaytestRunner + TickCompressor + regression suite |
+| 7 | ✅ Passed | Composable interruption-threshold pattern (sleep + daydream + autopilot + drunk = 4 seeds) |
+| 07.1 | ✅ Passed | claude-cli LLM backend (zero-cost UAT via user's Claude subscription) |
 
-**Test suite**: 1640 passing, 14 skipped, 36 regression-marker-deselected. Zero regressions. ruff + mypy clean. CI green.
+**Test suite:** 1743 passing, 14 skipped, 36 regression-marker-deselected. Zero regressions. ruff + mypy clean. CI green across the session's 13 commits.
 
-**What's NOT done** (your backlog — see "Prioritized Work" below):
-1. 3 Phase 6 live-API UAT items (need real LLM calls — see §4)
-2. Phase 7 "daydream" vs "drunk" substitution note (trivial — either write daydream seed or accept substitution)
-3. `/gsd-complete-milestone` to archive v1.0
-4. Optional: 5+ "going beyond" ideas from `.planning/OVERNIGHT-REPORT.md`
+**Uncommitted changes:** None (aside from runtime `.claude/scheduled_tasks.lock`, expected).
 
 ---
 
-## Prioritized Work (What To Tackle, In Order)
+## If The User Says "Scope v1.1"
 
-### Priority 1 — Close the last two verifications
+Run `/gsd-new-milestone`. Candidate themes surfaced during v1.0 close are pre-populated in:
+- `.planning/PROJECT.md` §Active
+- `.planning/ROADMAP.md` §v1.1 (Not Yet Scoped) section
 
-**Phase 6 UAT** (status `human_needed` on 3 live-API items):
-1. `token-world playtest <slug> --turns 5 --no-operator` — verify personality-coherent actions + JSON report written
-2. Modify a classifier/observer prompt, re-run playtest → verify `.planning/prompt-regression-history.jsonl` gains a triggered entry
-3. `token-world playtest <slug> --judge` — verify report contains coherence/personality_consistency/world_rule_adherence scores
+**Pre-scoped candidate themes (rank by ROI before picking):**
+1. **Close Phase 04.1 SC-2 interactive smoke test** — now zero-cost via `ClaudeCLIBackend`. Probably 1 plan, <1h.
+2. **Second-agent experimentation** — precursor to v2's MULTI-01 (multi-agent). This is where the belief overlay structural-key filter (closed tonight) pays off.
+3. **Use-case regression green-up** — 35 seed mechanics to flip the regression suite from 0/35 → 35/35 pass. Scope-heavy (several hours); split across multiple phases if attempted.
+4. **Cost monitoring / circuit breakers** — HARD-03; builds on tonight's `token-world cost` CLI.
+5. **Dashboard / graph visualizer** — builds on existing `viz-graph` CLI from Phase 3.
+6. **Populate `agent_id` correctly in BatchSummary** — small tech debt; ties to second-agent work.
+7. **Refresh stale research docs** on Opus-vs-Sonnet model routing — housekeeping.
 
-**⚠ Budget gate for UAT**: these hit real Anthropic API. The user flagged in the final conversation that they'd like us to explore `claude --model haiku-4-5 -p "..."` subprocess as a zero-direct-cost alternative (uses their Claude subscription). **Do NOT run the live UAT via raw SDK without confirming the user is OK with the API cost** (estimate ~$0.50 per 5-turn playtest). Safer route: implement the claude-cli subprocess backend first (see §5), then run UAT through it.
-
-**Phase 7 substitution** (status `human_needed` on 1 trivial item):
-- ROADMAP SC2 names "sleep, daydreaming, autopilot travel" as the composability proof. I (prior coordinator) substituted **drunk** for **daydreaming** via 07-CONTEXT D-18. Options:
-  - (a) Accept the substitution — update `07-VERIFICATION.md` status to `passed` with a rationale comment, done.
-  - (b) Write a `daydream` seed mechanic — ~30 min executor work, one new seed file following the pattern in `07-CONTEXT.md` and the three existing seeds.
-- Recommend (b) if API budget is tight (deterministic, no LLM calls) — it literally exercises the same `ctx.begin_long_action()` primitive.
-
-### Priority 2 — Close milestone v1.0
-
-After Priority 1:
-- `/gsd-complete-milestone` (archive v1.0, prep v1.1)
-- Update PROJECT.md "Current focus" line
-- Create `.planning/archive/v1.0/` folder per GSD convention
-
-### Priority 3 — "Going Beyond" (from OVERNIGHT-REPORT.md)
-
-Pick 1-2 based on remaining budget. All are small and self-contained:
-
-1. **`claude --model haiku -p` subprocess backend** (~1h) — See §5. Makes live UAT run-for-free via user's Claude subscription. HIGH LEVERAGE — unblocks real E2E testing.
-2. **Cost dashboard CLI** (`token-world cost <universe>`) — aggregate per-tick USD from `tick_summaries/`. ~30min, pure-Python, no LLM.
-3. **Close technical debt** (from review-fix deferrals — see §6). Trace-tree walker dedup, `NoMatchResult.candidates`, CLI `_load_or_create_agent` dedup, etc.
-4. **Use-case regression green-up** — implement 35 seed mechanics matching the UC manifests so the regression suite flips from 0/35 to 35/35. SCOPE-HEAVY (multiple hours) — don't start without quick feasibility check per UC category first. Suggest `/gsd-add-phase` for a new phase `8` (or polish phase `07.1`) if you proceed.
-5. **Mermaid architecture diagrams** — already added `docs/design/simulation-pipeline.md`. Could add per-module diagrams (ResidentAgent state machine, PlaytestRunner lifecycle, TickCompressor hierarchy). Low-value; skip unless bored.
+The `.planning/RETROSPECTIVE.md` from v1.0 close has more detail on what worked / what to avoid in v1.1.
 
 ---
 
-## ⚠ Critical Context (Gotchas That Burned The Previous Session)
+## If The User Says "Something Else" — Starter Moves
 
-### Anti-Pattern 1 — Worktree base-mismatch BUG in the GSD workflow
+### "Show me what you did overnight"
+→ `cat .planning/OVERNIGHT-REPORT-20260414.md` (full session 3 narrative)
 
-The `execute-phase` workflow's `<worktree_branch_check>` fallback uses `git reset --soft` which leaves the working tree stale after a base mismatch. The executor then commits post-HEAD files as DELETIONS.
+### "Run the UAT again"
+```bash
+export TOKEN_WORLD_BACKEND=claude-cli
+uv run token-world playtest uatworld --turns 5 --no-operator
+uv run token-world playtest uatworld --turns 3 --no-operator --judge
+```
+(The `uatworld` universe is the one created for session 3's UAT. See `docs/guides/claude-cli-backend.md`.)
 
-**Symptom**: Executor's first commit shows large numbers of unrelated files being deleted (PLAN.md files, CONTEXT.md, MORNING-HANDOFF.md, etc.).
+### "Look at costs"
+```bash
+uv run token-world cost uatworld
+```
+(New CLI subcommand added tonight.)
 
-**Mitigation used**: Ran all executors in **no-worktree sequential mode** on main tree (omit `isolation="worktree"` from Task calls). Slower but correct. A proper fix to the workflow is out-of-scope for you — just avoid worktrees until/unless this is fixed upstream.
+### "Delete the test universe"
+```bash
+uv run token-world delete uatworld
+```
 
-**If you see the bug**: `git checkout <pre-execution-SHA> -- <missing-file>` to restore, then commit a `chore` message acknowledging the restoration.
+### "What was deferred?"
+All 5 Phase-5/Phase-6 §6 tech-debt items are CLOSED tonight. The remaining deferrals (from `.planning/milestones/v1.0-REQUIREMENTS.md` + RETROSPECTIVE):
+- RestrictedPython CVE review (v2 sandboxing concern — PROJECT.md blocker)
+- Research docs mention Sonnet for mechanic gen, but user's decision is Opus — research docs are stale
+- Phase 04.1 SC-2 interactive smoke (now unblocked via claude-cli)
+
+---
+
+## ⚠ Critical Context (Anti-Patterns — DO NOT REPEAT)
+
+### Anti-Pattern 1 — Worktree base-mismatch BUG in GSD executor spawn
+
+Still unresolved. `execute-phase` workflow's `<worktree_branch_check>` fallback uses `git reset --soft` which leaves working tree stale. Executor commits post-HEAD files as DELETIONS.
+
+**Mitigation:** spawn all executors in **no-worktree sequential mode** on main tree — omit `isolation="worktree"` from Task calls. Session 3 used this throughout (11 commits, zero file-deletion incidents).
 
 ### Anti-Pattern 2 — Executors sneak edits outside plan scope
 
-Multiple times the Sonnet executor touched files not in its `files_modified` list (registry.py, REQUIREMENTS.md, pre-existing tests). All were caught via `git diff --cached --stat` checks before commit.
+Still observed occasionally — session 3's trace-walker dedup subagent found a 4th call site in `playtest/scorer.py` that wasn't in the original plan. It correctly noted the deviation in the commit message. That's the right behavior — not a bug.
 
-**Mitigation**: Every executor prompt now includes a `<CRITICAL_FILE_SCOPE_GUARDRAIL>` block enumerating forbidden files. Keep this pattern — without it, silent scope violations happen.
+**Mitigation pattern (keep using):** Every executor prompt must include a `<CRITICAL_FILE_SCOPE_GUARDRAIL>` block enumerating forbidden files. Without it, silent scope violations happen.
 
-### Anti-Pattern 3 — Stale `roadmap_complete` flags break `/gsd-autonomous`
+### Anti-Pattern 3 — Re-using `/tmp/commit_msg.txt` across sessions
 
-Phase 04.1 has `disk_status: complete` but `roadmap_complete: false` because the ROADMAP markdown text wasn't updated. `/gsd-autonomous` would re-execute 04.1. Avoid by using `/gsd-autonomous --from N` or invoking discuss→plan→execute manually per phase.
+Session 3 caught this: the `Write` tool refuses to overwrite a file not-yet-read in the current session. Solution: use UNIQUE tmp paths per commit (`/tmp/commit_wave1.txt`, `/tmp/commit_belief.txt`, etc.) OR `Read` the file first before `Write`.
 
-### Anti-Pattern 4 — `uv run` with parallel worktrees races on `.git/config.lock`
+### Anti-Pattern 4 — Heredoc commit messages are blocked by a hook
 
-If you DO use worktrees for parallel executor spawn, dispatch the `Task()` calls one-at-a-time with `run_in_background: true` — never multiple in a single message. Otherwise `git worktree add` deadlocks on the config lock.
+There's a `deny-ad-hoc-bash.js` hook that blocks any bash command over ~300 chars with inline `<<HEREDOC`. Use `Write` to a tmp file + `git commit -F <tmp-file>` pattern instead.
 
-### Don'ts (from project CLAUDE.md, reinforced by observed issues)
+### Don'ts (From Project CLAUDE.md + Observed Issues)
 
 - Don't call `nx.DiGraph` methods directly — always through `KnowledgeGraph` API
 - Don't use `pickle`, SQLAlchemy, LangChain, MongoDB, CrewAI (see PROJECT.md tech-stack restrictions)
@@ -114,131 +135,72 @@ If you DO use worktrees for parallel executor spawn, dispatch the `Task()` calls
 
 ---
 
-## Session 2 Recap (What I Did)
+## Session 3 Recap (What I Did)
 
-118 commits on master (`84fca1e..4021de6`). 1007 → 1640 tests (+633).
+13 commits on master (`75fa563..1ef16d8`). 1645 → 1743 tests (+98).
 
-**Phase 5** — 4 initial plans only covered classifier/matcher/decider/visibility. Phase goal required the full pipeline. I drafted 5 additional gap-closure plans (05-05..05-09) covering Observer, ConservationChecker, TickSummaryWriter, SimulationEngine orchestrator, MCP wiring. All verified.
+### Phase 07.1 — claude-cli LLM Backend (NEW PHASE)
+Inserted via `/gsd-insert-phase`. 2 plans in 2 waves:
+- Wave 1: `llm_backend.py` module + 29 unit tests + engine exports (3 commits)
+- Wave 2: Classifier + Observer + ResidentAgent refactored backward-compat + 13 integration tests (4 commits)
 
-**Phase 6** — 7 plans across 5 waves. Resident agent (personality/memory/session), TickCompressor (batch→epoch), use-case regression suite, PlaytestRunner+Scorer+Scenario+Injection+Judge, AdversarialBank. Three live-API UAT items deferred (see Priority 1).
+### Phase 6 Live UAT — all 3 items PASSED
+Ran via `TOKEN_WORLD_BACKEND=claude-cli`:
+1. 5-turn playtest → personality-coherent text confirmed
+2. Classifier prompt edited → regression-history.jsonl entry appended
+3. `--judge` flag → Sonnet rubric scores returned
 
-**Phase 7** — 7 plans across 4 waves. LongRunningAction + ThresholdEvaluator + VisibilityProjector attention_state + ctx.begin_long_action + engine hook + 3 seed mechanics. Drunk-vs-daydream substitution per auto-mode D-18 (see Priority 1).
+### Milestone v1.0 Archive
+- `.planning/milestones/v1.0-ROADMAP.md` + `v1.0-REQUIREMENTS.md` archived
+- `.planning/MILESTONES.md` created (with known gaps, v1.1 candidates)
+- `.planning/RETROSPECTIVE.md` written
+- `.planning/PROJECT.md` rewritten (post-retrospective)
+- `.planning/STATE.md` now `status: milestone_closed`
+- `.planning/REQUIREMENTS.md` deleted (will be recreated for v1.1)
+- git tag `v1.0` (annotated, pushed)
 
-**Review-fix cycles** — 4 cycles across phases 5 (Wave 1 + Waves 2-4), 6, 7. 15 total warnings fixed with TDD (~40 regression tests added). Zero critical findings.
+### Tech Debt — All 5 §6 Items Closed
+- IN-01: `NoMatchResult.candidates` now top-K mechanic IDs
+- IN-02 (P5 W2): trace walker → `mechanic.trace` module
+- IN-03: `adversarial_rate` now consumed
+- Minor: CLI `_load_or_create_agent` deduped
+- IN-02 (P5 W1): belief overlay structural-key filter
 
-**Documentation** — added `docs/design/simulation-pipeline.md` with 3 mermaid diagrams (all render cleanly via mcp-mermaid).
-
-**Notable bugs caught in review-fix** (worth knowing):
-- P6 `runner.py --output` flag ignored caller path (fixed)
-- P6 `memory.maybe_compact_summary()` never called in playtest loop (fixed)
-- P6 unguarded `response.content[0]` in 3 places → IndexError risk (fixed)
-- P7 LRA companion flags (`is_sleeping`/`is_drunk`/`is_traveling`) never cleared on termination → `sober_up` fired forever (fixed via `clear_on_end` payload convention)
-- P7 `autopilot_travel.py` used `assert` in production path → silent-degrade under `-O` (fixed)
-
-**Transient events**:
-- 1× API 500 error mid-plan (06-01) — executor had committed 2 of 5 tasks; fresh executor picked up tasks 3-5 cleanly
-- 1× rate-limit hit at 06-05 start — user sent "continue", retry completed
-
----
-
-## User's Final Question (Your Starting Point)
-
-Before signing off the user asked:
-
-> "How did you proceed without a live API for residents? You couldn't do realistic playtesting right? For now, how easy would it be to do `claude --model ... -p "..."` with a cost effective model like haiku?"
-
-**I answered**: Correct — all tests used mocked Anthropic clients. The Phase 6 `human_needed` UAT items are the real-playtest gap. I offered to wire up a claude-cli subprocess backend (~1h) but stopped short of implementing without the user's go-ahead (it's a design addition, not a planned deliverable).
-
-**Your call**: The user may have greenlit this by the time you start (check the conversation start). If ambiguous, treat as "yes, proceed" — they explicitly said to take autonomous action on reasonable decisions. The backend is ~3 swap points: `resident/agent.py`, `engine/classifier.py`, `engine/observer.py`. Pattern sketched below in §5.
-
----
-
-## §5 — Proposed `claude-cli` Backend (Copy-Paste Starter)
-
-Add env flag `TOKEN_WORLD_BACKEND` with values `anthropic-sdk` (default) or `claude-cli`. New module `src/token_world/engine/llm_backend.py`:
-
-```python
-import os
-import subprocess
-from typing import Protocol
-
-class LLMBackend(Protocol):
-    def call(self, system: str, prompt: str, model: str) -> str: ...
-
-class ClaudeCLIBackend:
-    def call(self, system: str, prompt: str, model: str) -> str:
-        full = f"{system}\n\n{prompt}"
-        result = subprocess.run(
-            ["claude", "--model", model, "-p", full],
-            capture_output=True, text=True, timeout=60, check=True,
-        )
-        return result.stdout.strip()
-
-class AnthropicSDKBackend:
-    def __init__(self, client):
-        self._client = client
-    def call(self, system: str, prompt: str, model: str) -> str:
-        resp = self._client.messages.create(
-            model=model,
-            max_tokens=1024,
-            system=system,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return resp.content[0].text.strip()
-
-def get_backend() -> LLMBackend:
-    if os.environ.get("TOKEN_WORLD_BACKEND") == "claude-cli":
-        return ClaudeCLIBackend()
-    from anthropic import Anthropic
-    return AnthropicSDKBackend(Anthropic())
-```
-
-Then refactor `Classifier`, `Observer`, `ResidentAgent` to accept a backend via constructor (default to `get_backend()`). Existing tests still inject a FakeClient; new integration tests can set `TOKEN_WORLD_BACKEND=claude-cli` and hit the real CLI.
-
-Token telemetry will be rough — `claude -p` doesn't expose input/output tokens directly. Estimate from word count × 1.3 or skip telemetry for CLI backend (TurnScorer stays on word-count metrics, USD cost estimate shows `$0.00 (via CLI subscription)`).
-
-Treat this as a **new plan** under phase 07.1 or in a new v1.1 milestone — do NOT graft it onto completed Phase 6/7 SUMMARY files. Proper path: `/gsd-add-phase` → `/gsd-plan-phase <N>` → execute.
-
----
-
-## §6 — Technical Debt Punch List (Deferred from Review-Fix Cycles)
-
-From `.planning/OVERNIGHT-REPORT.md`:
-
-- [ ] Trace-tree walker duplication across `summary_writer.py`, `engine.py`, `observer.py` (P5W2 IN-02) — promote to `token_world.mechanic.trace`
-- [ ] `NoMatchResult.candidates` always empty (P5W1 IN-01, D-11) — spec says top-K mechanic IDs
-- [ ] `adversarial_rate` field loaded from scenario YAML but never consumed (P6 IN-03)
-- [ ] CLI `_load_or_create_agent` duplication between `agent-turn` and `playtest` (P6 minor)
-- [ ] Belief overlay `visibility.py` can override structural projection fields (P5W1 IN-02) — tighten before multi-agent v2
-
-Each is small (~30-60min). Bundle them as a single "polish" plan under v1.1 milestone if you want to knock them out quickly.
+### Polish
+- `docs/guides/claude-cli-backend.md` (244 lines, covers setup + UAT + troubleshooting)
+- `token-world cost <slug>` CLI (405 LOC + 24 tests; auto-detects backend)
+- `scripts/inspect_playtest_report.py` + `scripts/update_prompt_hashes.py` (UAT dev-ergonomics utilities)
+- Daydream seed mechanic (4th composability demonstrator; Phase 7 SC2 now literal)
 
 ---
 
 ## Final Git State
 
 ```
-master = 4021de6
-origin/master = 4021de6 (pushed)
-CI = green
-Tests = 1640 passed, 14 skipped, 36 deselected
+master = 1ef16d8
+origin/master = 1ef16d8 (pushed)
+tag v1.0 (annotated) — pushed to origin
+CI = green (5 jobs across 13 commits)
+Tests = 1743 passed, 14 skipped, 36 deselected
+Lint + format + mypy = clean
 ```
 
 No uncommitted changes. `.claude/scheduled_tasks.lock` is runtime state (untracked, expected).
 
 ---
 
-## Handoff Files You Should Skim Before Starting
+## Handoff Files To Skim Before Starting Next Session
 
 Priority order:
 
-1. **`.planning/OVERNIGHT-REPORT.md`** — session 2 narrative, decisions made, what the user sees
-2. **`.planning/STATE.md`** — authoritative position tracker
-3. **`.planning/phases/06-.../06-VERIFICATION.md`** — 3 UAT items detail
-4. **`.planning/phases/07-.../07-VERIFICATION.md`** — daydream note detail
-5. **`.planning/phases/06-.../06-CONTEXT.md`** — 30 auto-mode decisions (flag any you'd reverse)
-6. **`.planning/phases/07-.../07-CONTEXT.md`** — 23 auto-mode decisions (flag any you'd reverse)
-7. **`.planning/REQUIREMENTS.md`** — may have stale labels (verifier flagged); clean up if you touch it
-8. **`docs/design/simulation-pipeline.md`** — your model of the v1 pipeline
+1. **`.planning/OVERNIGHT-REPORT-20260414.md`** — session 3 narrative (THIS was my session)
+2. **`.planning/MILESTONES.md`** — v1.0 delivery summary
+3. **`.planning/RETROSPECTIVE.md`** — v1.0 lessons learned
+4. **`.planning/PROJECT.md`** — post-retrospective rewrite; §Active has v1.1 candidates
+5. **`.planning/ROADMAP.md`** — reorganized with Milestones section
+6. **`.planning/STATE.md`** — `status: milestone_closed`, awaiting `/gsd-new-milestone`
+7. **`.planning/phases/07.1-.../07.1-CONTEXT.md`** — 10 locked D-NN decisions for the claude-cli backend
+8. **`docs/guides/claude-cli-backend.md`** — user-facing guide; use this to bootstrap any future UAT
+9. **`src/token_world/engine/llm_backend.py`** — the new backend module (147 LOC)
 
-Good luck. Close the feedback loop.
+Good luck, next session. The project is healthy and shipped. 🎉
