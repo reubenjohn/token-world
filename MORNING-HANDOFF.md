@@ -90,6 +90,31 @@ as `17 refuse - (0 mut) ...` with no `TICK STATUS MECHANIC MUT OBSERVATION`
 header. One line fix in `src/token_world/inspect/universe.py`'s table
 renderer.
 
+**A7. Dashboard live-refresh resets scroll position inside any scrollable
+region.** Confirmed via interactive Playwright walk-through. Both
+`panels/tick_stream.py:117 outer.clear()` and
+`panels/graph_canvas.py:237 chart_col.clear() + _rebuild_drawer(drawer_col)`
+nuke the entire DOM subtree on every poll cycle (2 s for tick stream, 5 s
+for graph canvas). Side effects: scroll resets to top inside the tick-card
+JSON expansion; scroll resets inside the graph node property drawer; any
+text-selection / focus state is lost. **Right pattern:**
+
+- Detect "is anything actually different?" before clearing. Tick stream
+  already does a coarse `last_ids` check but still rebuilds inside the
+  expansion. Graph canvas doesn't compare at all.
+- For change-only deltas, only mount the new tick cards (newest-first
+  prepend) and re-bind handlers — don't touch existing cards.
+- For the property drawer specifically, NEVER rebuild on poll. The drawer
+  contents are user-state; the user is reading them. They should only
+  change on a node-click event.
+- For the graph canvas Mermaid render, only re-emit `ui.mermaid()` when the
+  graph snapshot's `(node_count, edge_count, max_node_mtime)` changes.
+  Static graphs render once and stay.
+
+This is a correctness bug, not a polish item — it makes the dashboard
+unusable for any reading task longer than 2 seconds. Bump it to the top of
+the dashboard fixes.
+
 ### B. Multi-agent — design question
 
 Current state: single-agent only (D-17 invariant). Willowbrook has Mira.
@@ -158,22 +183,200 @@ User asked for KPIs to track simulation quality. Candidates:
 
 ### E. Architectural depth (bigger v1.2+ items)
 
-**E1. Composite actions / action → chain-of-mechanics.** Today the matcher
-picks one mechanic per classified action. Realistic actions often decompose
-into sequence: "sharpen and examine my knife" or "open the chest and take
-the key". Ideas: let the classifier output a list of sub-actions with
-ordering; or let the decider score the top-K mechanics and run them in
-sequence when their checks agree. Design work needed — surface it as a
-v1.2 decision D-01.
+**E1. Composite actions / one-action → many-mechanics.** *Confirmed by
+user that this is the intended model:* one resident-agent action can fire
+multiple mechanics, and each mechanic's side effects can trigger more
+mechanics within the same tick-agent step, bounded by a max chain depth.
 
-**E2. Mutation chains / propagating side effects.** The `ChainExecutionEngine`
-already supports chains (a mechanic's mutation can trigger another
-mechanic's `watches()`), but the dashboard flattens them. First action
-item: make the dashboard show the chain tree (see A5). Second: audit where
-mechanics declare `watches()` beyond `VerbMatcher` — `environmental_reaction`
-watches `PropertyChangeMatcher(temperature)`; `position_sync` watches
-`EdgeMatcher(located_in)`. Only a few. More seeded chains would make
-emergence richer.
+State of the implementation:
+
+- ✅ **Side-effect chains exist.** `ChainExecutionEngine` already cascades —
+  when M1's mutations match another mechanic's `watches()` (e.g.
+  `PropertyChangeMatcher(temperature)`, `EdgeMatcher(located_in)`), that
+  mechanic fires too. Bounded by `engine.max_chain_depth=10` from
+  `universe.yaml`. Recursion is also DAG-checked via the `seen` set in
+  `mechanic.engine._evaluate_chain` to prevent infinite loops.
+- ❌ **Multiple PRIMARY mechanics per action does NOT exist.** Today's
+  flow: classifier → ONE classified action → `DeterministicMatcher.match()`
+  picks ONE winning mechanic by score → that one mechanic runs (then its
+  cascades). For "I open the chest and take the key" → two real intents,
+  the pipeline collapses to one verb (whichever wins the classifier's
+  pick) and the second never fires.
+
+Design choices for closing the gap (v1.2 D-01):
+
+1. **Classifier emits an `actions: [...]` list.** Backward-compatible:
+   single-action wraps as a 1-element list. Engine iterates each, matching
+   and applying in order. Each sub-action carries its own verb / target /
+   indirect_object / params.
+2. **Matcher returns top-K mechanics whose check passes.** Score still
+   orders, but instead of picking 1 winner, the decider runs the top-K
+   sequentially (with K bounded). Riskier — `check()` may pass for
+   accidentally-overlapping mechanics that weren't meant to fire together.
+3. **New `ActionDecomposer` stage** between classifier and matcher. Its
+   job: take "I open the chest and take the key" and split into
+   `[(open, chest), (take, key)]`. Costs an extra LLM call per multi-verb
+   action but keeps the matcher contract clean.
+
+Recommended: option 1 (classifier emits list). Lowest blast radius — the
+classifier already understands sequential English ("and", "then"); no new
+component; the matcher and chain engine are unchanged. Bumps
+`SCHEMA_VERSION` on the classifier output. Subagent prompts for mechanic
+authoring should also be updated to expect to be invoked once per
+sub-action when a yield happens within a multi-action tick.
+
+**E2. Mutation chains / propagating side effects — visibility.** The
+chain mechanism (above) is built; what's missing is **observability**.
+Today the dashboard flattens the chain. Action items:
+
+- Render the `ExecutionTrace` tree in the tick-card expansion (A5):
+  `force_lock(check_pass) → mutates(old_chest.locked=False) → triggered
+  unlock_chest(check_pass) → mutates(...) → ...`. Include the
+  `truncated`/`max_depth_reached` flags as warnings when chains hit the
+  cap.
+- Audit which mechanics declare `watches()` beyond `VerbMatcher` —
+  `environmental_reaction` watches `PropertyChangeMatcher(temperature)`,
+  `position_sync` watches `EdgeMatcher(located_in)`. Only a few. More
+  seeded chains would make emergence richer (e.g. a watcher that fires
+  when any agent's `mood` changes, or when a `contains` edge appears).
+
+**E5. Energy-economy coherence in Willowbrook authored mechanics.** User
+asked for an audit of how the autonomously-authored mechanics handle
+`mira.energy`. Findings (read directly from
+`~/.local/share/token_world/universes/willowbrook/mechanics/`):
+
+| Mechanic | Reads `energy`? | Writes `energy`? | Δ | Direction | Clamp | Read-before-write | Default-on-missing |
+|---|:-:|:-:|---|---|---|:-:|---|
+| `force` | yes (used as skill proxy) | yes | −0.03 | spend | `[0,1]` via `_clamp` | yes | **no — skips entirely** |
+| `sharpen` | no (only writes) | yes | −0.05 | spend | `[0,1]` | yes | **no — skips** |
+| `pet` | no | yes | +0.02 | recover | `[0,1]` | yes | **yes — seeds 0.02** |
+| `hum` | no | yes | +0.02 | recover | `[0,1]` | yes | **yes — seeds 0.02** |
+| `walk`, `draw`, `plant`, `drop`, `water`, `lift`, `examine` | no | no | — | — | — | — | — |
+
+**(1) Scale consistency:** ✅ All values float in `[0,1]`; clamps are
+identical (`_clamp(value, 0.0, 1.0)`). No floor/ceiling violations
+possible. Step sizes (0.02 / 0.03 / 0.05) are coherent and small enough
+that the gauge changes meaningfully but not jarringly across a session.
+
+**(2) Independent or copied?** Mostly independent, with one likely copy.
+Each subagent invented its own constant name:
+- `force.py`: `_ENERGY_COST: float = 0.03`
+- `sharpen.py`: `_ENERGY_DECREMENT: float = 0.05`
+- `pet.py`: `_ENERGY_INCREMENT: float = 0.02`
+- `hum.py`: `_ENERGY_INCREMENT: float = 0.02` ← same name AND value as
+  `pet.py`. `hum.py` was authored AFTER `pet.py` per the universe git log
+  → likely the subagent copied the pet pattern. Otherwise the four
+  mechanics arrived at the gauge convention independently — which is
+  remarkable but also a smell: there's no shared convention to hold the
+  line as the corpus grows.
+
+**(3) Floor/ceiling violations:** ✅ None. Every mutation passes through
+`_clamp(value, 0.0, 1.0)`. Energy cannot escape `[0, 1]`.
+
+**(4) Reads current value before writing?** ✅ All four read first, only
+emit a mutation if the clamped result is different from the current value.
+This avoids spurious mutations and matches the "read-modify-write" pattern
+the seeds taught.
+
+**Coherence issues / missing guard rails:**
+
+- **No shared constant or shared module.** Each `_ENERGY_*` lives in its
+  own file. Tweaking the economy (e.g. "make all costs 1.5×") requires
+  editing N files. Recommend a universe-local
+  `<universe>/mechanics/_economy.py` (already follows the `_helpers.py`
+  underscore-skip convention) defining `ENERGY_COST_LIGHT = 0.02`,
+  `ENERGY_COST_HEAVY = 0.05`, etc. Existing mechanics get migrated in a
+  separate authoring pass.
+- **Inconsistent naming.** COST / INCREMENT / DECREMENT all describe the
+  same concept. Standardize on `ENERGY_COST_*` (positive deltas =
+  spending) or `ENERGY_DELTA_*` (signed).
+- **`pet` and `hum` seed `energy=Δ` on a missing property.** If a non-agent
+  entity ever ended up as an actor (e.g. via mechanic chain), `pet`/`hum`
+  would conjure an `energy` gauge on it. Should be gated on
+  `actor_props.get("type") == "agent"`.
+- **No mechanic uses low energy as a precondition.** `force` uses energy
+  to compute success *probability*, but a totally exhausted Mira
+  (`energy=0`) can still attempt to force a lock. Decision: should low
+  energy gate certain actions (e.g. force, sharpen) rather than just
+  reduce success rate? Surface for v1.2.
+- **6 of 11 mechanics don't touch energy at all** (`walk`, `draw`, `plant`,
+  `drop`, `water`, `lift`, `examine`). Most of these are physical
+  exertions and probably should have a small cost. Indicates the subagents
+  weren't told "every primary action costs energy" — only included a cost
+  when the prompt explicitly asked. If we want a coherent economy, the
+  yield-handler subagent prompt
+  (`.planning/agent-prompts/yield-handler.md`) should mention "consider an
+  appropriate energy cost".
+- **Force's "energy-as-skill" model is one-off.** Only `force` uses
+  energy as a probability scaler. If "energy gates skill" is a desired
+  recurring pattern, formalize as a helper in `_economy.py` so future
+  mechanics can opt in without re-deriving the formula.
+
+**Risk:** As emergent mechanics arrive, every new author will reinvent the
+gauge. Today's coherence (everyone happens to land in `[0,1]`) is luck
+plus the seed mechanics' cited example. Promote `_economy.py` before the
+corpus diverges.
+
+**E6. Tick 33–35 ordering anomaly — REAL ENGINE BUG.** User flagged.
+Investigation finding: tick ordering is *reliable*, but there is a real
+engine-level bug in how primary-mechanic check failures are recorded.
+
+Sequence (verified via `token-world tick willowbrook 33/34/35`):
+
+| Tick | UTC | Action verb | Decision | Mutations | Observation |
+|---|---|---|---|---|---|
+| 33 | 10:00:18 | `lift` | **YIELDED** to operator (no `lift` mechanic existed yet) | — | — |
+| 34 | 10:05:14 | `lift` (re-run after operator authored `lift.py`) | **status:EXECUTED, refused:false, matched=lift** | **0** | "The chest remains as it was — squat, iron-bound, and locked tight." |
+| 35 | 10:05:20 | `force` | EXECUTED, mechanic=force | 3 (chest.locked True→False, mira.last_forced, mira.energy 0.75→0.72) | (success narrative) |
+
+**Tick ordering:** ticks 34 and 35 differ by 6 seconds, not the same as
+user remembered. So no race / flush ordering issue — ticks 33→34→35 are
+chronologically and causally correct.
+
+**Mechanic logic:** `lift.py:176-180` correctly checks
+`target_props.get("locked") is True` and returns
+`ctx.refuse("mechanic_check_failed", {"reason": "target is locked"})` —
+which yields a `CheckResult(passed=False)`. This is the right behaviour.
+`lift` did NOT silently succeed — it correctly produced zero mutations
+and an honest observation that the chest stayed shut.
+
+**Engine bug:** `engine.py::_handle_execute` does NOT branch on
+`primary_trace.root.check_result.passed`. After the primary mechanic's
+check fails, the code path continues normally to the observer + writes
+the tick summary with `refused: false` and `matched_mechanic_id: "lift"`.
+There's no `if not primary_trace.root.check_result.passed: convert to
+RefuseDecision` branch — only `conservation_violation` and `engine_error`
+trigger the refuse path inside `_handle_execute`. So a primary-check
+failure is recorded as "executed with no mutations," which is a lie.
+
+This is the same root cause as user's earlier intuition about tick 35
+("the observation said locked"). Tick 34's observation was correct given
+graph state ("the chest remains locked"); the *tick summary record* is
+what's wrong (says EXECUTED when functionally REFUSED).
+
+**Fix:** in `engine.py::_handle_execute`, after `primary_trace = chain_engine.execute(...)`,
+check `primary_trace.root.check_result.passed`. If `False`, write a
+`RefuseDecision(reason_code="mechanic_check_failed", details={"reason": ...,
+"mechanic_id": decision.mechanic_id})` instead of continuing to passive
+sweep + observer-as-execute. The observer can still synthesize a refusal
+observation, but the tick summary records the truth: refused, not
+executed.
+
+This is a small, contained engine fix. Affects:
+- `src/token_world/engine/engine.py::_handle_execute` — add the branch
+- `src/token_world/playtest/scorer.py` — score should not double-count
+  refused mechanics as "no mutations + low groundedness"; this is now an
+  honest refuse
+- Existing tests that depend on a mechanic with failing check returning
+  `kind="ok"` will need updating
+- Several recently-authored Willowbrook ticks (e.g. 22 `sharpen` against
+  the chest, 38 `examine` of the well from inside cottage) likely have
+  the same false-EXECUTED record. Optional: re-run those tick summaries
+  with a corrected engine to clean the historical record.
+
+This bug + the observation-grounding question (E4) both point to the
+same systemic issue: the engine treats "check failed at execution time"
+as a soft no-op rather than a hard refusal. Surface as v1.2 D-03.
 
 **E3. `locked` / `blocked` / `inventory_full` should be emergent, not
 engine-coded.** User called this out as a smell — any engine logic that
@@ -300,21 +503,145 @@ mental scan:
 
 ### J. Prioritised v1.2 backlog
 
-Ranked for one-session execution (pick top N):
+Ranked for one-session execution (pick top N). **A7 leapfrogs to top —
+the scroll-reset bug makes the dashboard unusable for any reading task
+longer than 2 seconds.**
 
-1. **A6 inspect headers** — 5 min, trivial polish.
-2. **A1 + A2 tick-expansion full text + structured sections** — 45 min, shippable.
-3. **A3 + A4 graph canvas bracket fix + located_in edges** — 30 min.
-4. **F row 1 — `token-world yield` CLI + dashboard "Active Yield" panel** — 45 min.
-5. **C Mira-character-break mitigation (prompt tighten OR auto-halt)** — 30 min.
-6. **I deferred-items sweep + v1.2 REQUIREMENTS assembly** — 45 min.
-7. **G tooling-surfaces.md doc + CLAUDE.md pointer** — 20 min.
-8. **B multi-agent dashboard scaffold (selector + per-tick badge)** — 90 min.
-9. **D KPIs panel (quality subpackage + CLI + dashboard)** — 2 h.
-10. **E4 observation-drift debug (tick 35)** — 30–60 min depending on root cause.
-11. **E3 locked/blocked/inventory_full audit** — 30 min discovery, then variable.
-12. **H Willowbrook refinement + extract emergent-as-seed** — 1 h.
-13. **E1 + E2 composite actions + mutation-chain visibility** — serious design work; v1.2 decision D-01/D-02 required; parked until reviewed.
+1. **E6 engine: convert primary check-fail into RefuseDecision** — 30 min
+   + tests. Fixes tick-summary lying about EXECUTED ticks that actually
+   refused at check time. Foundational; downstream KPIs and scorer all
+   depend on truthful tick records.
+2. **A7 dashboard scroll-preservation on poll** — 60 min. Stop blowing
+   away DOM in tick stream + graph canvas. Drawer never rebuilds on poll.
+3. **A6 inspect headers** — 5 min, trivial polish.
+4. **A1 + A2 tick-expansion full text + structured sections** — 45 min.
+4. **A3 + A4 graph canvas bracket fix + located_in pseudo-edges** — 30 min.
+5. **F row 1 — `token-world yield` CLI + dashboard "Active Yield" panel** — 45 min.
+6. **C Mira-character-break mitigation (prompt tighten OR auto-halt)** — 30 min.
+7. **E5 `_economy.py` extraction in Willowbrook + migration of force/sharpen/pet/hum** — 30 min.
+8. **K1 + K2 process artefacts: write `docs/quality/dashboard-qa-checklist.md` + `docs/quality/sim-quality-rubric.md`** — 30 min.
+9. **I deferred-items sweep + v1.2 REQUIREMENTS assembly** — 45 min.
+10. **G tooling-surfaces.md doc + CLAUDE.md pointer** — 20 min.
+11. **B multi-agent dashboard scaffold (selector + per-tick badge)** — 90 min.
+12. **D KPIs panel (quality subpackage + CLI + dashboard)** — 2 h.
+13. **E4 observation-drift debug (tick 35)** — 30–60 min depending on root cause.
+14. **E3 locked/blocked/inventory_full audit** — 30 min discovery, then variable.
+15. **H Willowbrook refinement + extract emergent-as-seed** — 1 h.
+16. **E1 composite actions (D-01 design first, then implementation)** — design 1 h, implementation 3-4 h. Architectural; do not rush.
+17. **E2 mutation-chain visibility in dashboard (depends on A5)** — 1 h.
+
+---
+
+## K. Process Gaps — Why I Missed These Bugs Myself (and Tools To Add)
+
+Honest reflection. User flagged six issues during the demo that I should
+have caught before claiming the dashboard was "shipped." For each I owe
+the next session both the *why* and the *fix*.
+
+| Bug | Why I missed it | Tool / instruction to add |
+|---|---|---|
+| **A7 scroll-reset on poll** | I treated `playwright_take_screenshot` as the entire validation step. Never scrolled inside any panel, never waited through a refresh cycle. Code review of `outer.clear()` on every `ui.timer` tick would have flagged "this kills scroll" — but I didn't read the panel code with a "live UI hostility" lens. | **K1.** Write `docs/quality/dashboard-qa-checklist.md` — required for every dashboard PR: scroll inside each scrollable region, wait through 2 refresh cycles, click each interactive element, resize viewport, assert against a design-intent rubric. Convert the checklist to a Playwright test file (`tests/test_dashboard/test_qa_interactive.py`) that fails CI when poll-rebuild kills focus or scroll. |
+| **A1/A2 tick truncation in expansion** | Builder-mode reading. Screenshot literally showed `"…Th…"` and I parsed it as "the label is rendered, fine." Never asked "would a user expect the full thing here?" | **K1** covers it. Plus add to checklist: "compare what the user expects against what the panel shows; do they match?" |
+| **A3 `mira &[agent&]` escape bug** | Saw it, classified as cosmetic, moved on. | **K2** rubric — define what counts as "rendering correctness." Includes: no entity-escape leakage in any user-facing label. |
+| **A4 missing `located_in` edge in graph** | I had no rubric for "what semantic edges should an observer expect?" Read the graph by what's *drawn*, not what's *missing*. | **K2** — list expected semantic surfaces per panel. Graph canvas: every property whose value is a known node id should render as an edge (or be explicitly excluded). |
+| **A6 inspect lacks headers** | Used CLI as an oracle, not a UX surface. Never read its output as a fresh user. | **K1** also covers CLI: include "run each command, read its output as someone seeing it for the first time" in the QA pass. |
+| **E4 tick-35 unlocked-but-locked** | Focused on yield-rate / mechanic-count, not narrative-graph consistency. | **K2** sim-quality rubric: per-tick check "does the observation contradict the projected_state?" If yes, score it as a grounding violation. The current `playtest.scorer.groundedness` partially does this; need to extend + surface as a CI-level check on every overnight run. |
+| **C Mira character-break** | Noticed it, mentioned in report, framed as "natural wind-down" instead of "quality bug." | **K2** rubric again: meta-narration markers ("framework", "yield", "system", "mechanic", "operator", "scenario") in agent action_text are red-flags. Track per-run; alarm at threshold. |
+
+### K1. `docs/quality/dashboard-qa-checklist.md` — to-write
+
+Required passes before claiming a dashboard panel "shipped":
+
+1. **Initial render** — page loads at intended viewport (1280, 1440), no
+   layout breakage.
+2. **Scroll preservation** — scroll to mid-position inside each
+   scrollable region, wait 3 × poll interval, scroll position must not
+   change.
+3. **Focus / selection preservation** — click into a text input, wait 3 ×
+   poll interval, focus must persist; same for text selection in any
+   read-only region.
+4. **Interactive elements** — every button, expansion arrow, dropdown,
+   click-target gets clicked at least once. Capture screenshot in each
+   triggered state.
+5. **Drawer / modal state** — open the property drawer, wait 3 × poll
+   interval, drawer must stay open with same content.
+6. **Polling no-op** — instrument `_rebuild` to log when it actually
+   changes the DOM. During a 30s idle window with no new ticks, log line
+   count must be 0.
+7. **Empty / missing universe** — point dashboard at non-existent slug,
+   page must render a friendly error rather than a stack trace.
+8. **Rendering correctness** — labels must not contain entity-escape
+   leakage (`&lt;`, `&#91;`); colors map to the documented `classDef`;
+   graph contains every semantic edge implied by node properties (e.g.
+   any property whose value is a known node id).
+9. **Run as automated test.** The above is encoded as
+   `tests/test_dashboard/test_qa_interactive.py`. It runs Playwright
+   against a fixture universe + a synthetic poll cycle, asserts each
+   item.
+
+### K2. `docs/quality/sim-quality-rubric.md` — to-write
+
+A formal "is the simulation healthy?" definition. Every overnight run
+ends with `token-world quality <slug>` printing the rubric scorecard.
+CI gates a release on the scorecard staying above thresholds.
+
+Dimensions:
+
+- **Groundedness** — observation must not contradict projected_state.
+  Source: Phase 6 scorer + per-tick observer cross-check.
+- **Character stability** — agent action_text must not contain
+  meta-narration markers (configurable list). Score = 1 − fraction of
+  recent turns containing markers.
+- **Action coherence** — longest streak without a refuse; mean refuse
+  rate per 10-tick window.
+- **Vocabulary growth** — novel verbs / 10 ticks (not too low, not too
+  high — both are bad).
+- **Conservation** — count of conservation-violation rollbacks; should
+  trend to zero.
+- **Graph fan-out** — average edges/node over time; richer worlds
+  trend up.
+
+CI gate: a run is "healthy" if all dimensions stay in green ranges for
+the last 50 ticks. Otherwise the morning report flags the run as
+degraded with the failing dimension named.
+
+### K3. Playwright tool routine (instruction artefact)
+
+The Playwright MCP routine I used (`navigate → screenshot → close`) is
+insufficient. Standard routine going forward:
+
+```
+navigate(url)
+resize(1280, 800) AND resize(1920, 1080)  # responsiveness
+for each scrollable region:
+    scroll(region, 50%)
+    wait(2 × poll_interval)
+    assert(scroll position unchanged)
+for each interactive element:
+    click()
+    wait_for(visible_change)
+    screenshot(state_name)
+take_screenshot(fullPage=true)  # final overall
+close()
+```
+
+Document this in `docs/quality/playwright-routine.md` and reference from
+the K1 checklist.
+
+### K4. End-of-build cooldown — "user pass"
+
+After completing a build (especially UI work), explicitly switch from
+**builder mode** to **user mode** for a 5-minute pass. Sit with the
+output, click around, look for surprise. The discipline: assume nothing,
+question every truncation / shorthand / clipped label as "would a real
+person expect this?"
+
+This is hard to enforce as a tool, but writing the K1/K2 checklists puts
+the pattern in our muscle memory. Future overnight orchestrators should
+spawn a dedicated "QA subagent" that runs the K1 + K2 routines after
+each build subagent reports done.
+
+---
 
 ---
 
