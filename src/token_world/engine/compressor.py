@@ -88,6 +88,28 @@ def _sort_key_batch(p: Path) -> int:
     return _numeric_id_from_stem(r"batch_(\d+)", p.stem) or 0
 
 
+def _first_actor_or_unknown(tick_files: list[Path]) -> str:
+    """Return ``classified_action.actor`` from the earliest readable tick file.
+
+    Falls back to ``"unknown"`` when no tick file exposes an actor (file
+    unreadable, malformed JSON, missing classified_action, or actor field
+    absent). Files are read in the same order callers pass them — the
+    compressor passes them sorted by tick id, so the result is the
+    chronologically-first actor of the batch (P6 known gap closure).
+    """
+    for tf in tick_files:
+        try:
+            raw = json.loads(tf.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        classified = raw.get("classified_action")
+        if isinstance(classified, dict):
+            actor = classified.get("actor")
+            if isinstance(actor, str) and actor:
+                return actor
+    return "unknown"
+
+
 def _sort_key_epoch(p: Path) -> int:
     """Numeric sort key for epoch_<N>.json files."""
     return _numeric_id_from_stem(r"epoch_(\d+)", p.stem) or 0
@@ -233,7 +255,7 @@ class TickCompressor:
             key_events=parsed.get("key_events", []),
             mechanic_ids_used=parsed.get("mechanic_ids_used", []),
             total_mutations=int(parsed.get("total_mutations", 0)),
-            agent_id="unknown",
+            agent_id=_first_actor_or_unknown(tick_files),
             haiku_prompt_hash=_BATCH_PROMPT_HASH,
         )
 

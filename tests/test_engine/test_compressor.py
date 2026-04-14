@@ -484,3 +484,91 @@ def test_haiku_prompt_hash_is_sha256_of_template(tmp_path: Path):
 
     expected_hash = hashlib.sha256(TickCompressor._BATCH_PROMPT_TEMPLATE.encode()).hexdigest()
     assert stored_hash == expected_hash
+
+
+def _write_tick_files_with_actors(tick_dir: Path, actors: list[str | None]) -> None:
+    """Write tick files where the i-th file's classified_action.actor = actors[i].
+
+    ``None`` produces a tick whose ``classified_action`` itself is None
+    (matching the original ``_write_tick_files`` shape).
+    """
+    tick_dir.mkdir(parents=True, exist_ok=True)
+    for i, actor in enumerate(actors):
+        classified: dict[str, str] | None = (
+            {"verb": "do", "actor": actor} if actor is not None else None
+        )
+        data = {
+            "schema_version": 1,
+            "tick_id": str(i + 1),
+            "timestamp_iso": "2026-01-01T00:00:00Z",
+            "action_text": f"action {i}",
+            "classified_action": classified,
+            "matched_mechanic_id": None,
+            "yielded": False,
+            "refused": False,
+            "refusal_reason": None,
+            "mutations": {"count": 0, "list": []},
+            "observation_text": None,
+            "duration_ms": 100,
+            "llm_tokens_by_stage": {},
+            "llm_cost_usd_by_stage": {},
+        }
+        (tick_dir / f"tick_{i + 1}.json").write_text(json.dumps(data), encoding="utf-8")
+
+
+def test_batch_summary_agent_id_extracted_from_first_tick(tmp_path: Path):
+    """Closes the v1.0 P6 known-gap: BatchSummary.agent_id was hardcoded "unknown".
+
+    With classified_action.actor populated on tick files, the compressor
+    should extract it instead of stubbing.
+    """
+    from token_world.engine.compressor import TickCompressor
+    from token_world.engine.models import BatchSummary
+
+    tick_dir = tmp_path / "tick_summaries" / "ticks"
+    actors = ["alice"] * 100
+    _write_tick_files_with_actors(tick_dir, actors)
+
+    compressor = TickCompressor(batch_size=100, epoch_size=100)
+    compressor.maybe_compress(tmp_path, _make_mock_haiku_batch())
+
+    batch = BatchSummary.model_validate_json(
+        (tmp_path / "tick_summaries" / "batch_0.json").read_text()
+    )
+    assert batch.agent_id == "alice"
+
+
+def test_batch_summary_agent_id_falls_back_to_unknown_when_actor_missing(tmp_path: Path):
+    """Empty / missing classified_action falls back to "unknown" (back-compat)."""
+    from token_world.engine.compressor import TickCompressor
+    from token_world.engine.models import BatchSummary
+
+    tick_dir = tmp_path / "tick_summaries" / "ticks"
+    _write_tick_files(tick_dir, 100)  # classified_action=None for all
+
+    compressor = TickCompressor(batch_size=100, epoch_size=100)
+    compressor.maybe_compress(tmp_path, _make_mock_haiku_batch())
+
+    batch = BatchSummary.model_validate_json(
+        (tmp_path / "tick_summaries" / "batch_0.json").read_text()
+    )
+    assert batch.agent_id == "unknown"
+
+
+def test_batch_summary_agent_id_uses_first_tick_with_actor(tmp_path: Path):
+    """When the first N ticks have no actor, falls through to the first that does."""
+    from token_world.engine.compressor import TickCompressor
+    from token_world.engine.models import BatchSummary
+
+    tick_dir = tmp_path / "tick_summaries" / "ticks"
+    # 5 ticks with no actor, then 95 with "bob" — bob should win.
+    actors: list[str | None] = [None] * 5 + ["bob"] * 95
+    _write_tick_files_with_actors(tick_dir, actors)
+
+    compressor = TickCompressor(batch_size=100, epoch_size=100)
+    compressor.maybe_compress(tmp_path, _make_mock_haiku_batch())
+
+    batch = BatchSummary.model_validate_json(
+        (tmp_path / "tick_summaries" / "batch_0.json").read_text()
+    )
+    assert batch.agent_id == "bob"
