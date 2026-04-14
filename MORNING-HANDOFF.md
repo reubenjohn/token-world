@@ -33,7 +33,16 @@ uv run token-world dashboard willowbrook --port 8080 # scroll inside any panel, 
 uv run token-world yield willowbrook --pending       # new CLI
 ```
 
-**Remaining for next session (REQ-V12-*)**: B multi-agent dashboard scaffold, D quality KPIs panel, E3 locked/blocked/inventory_full audit, H Willowbrook refinement + seed extraction, E1 composite actions (architectural). Minor follow-ups: doubled "You try, but" in refuse observation; `.stop` warning in run_unattended startup.
+**Next action: `/gsd-plan-phase 13`** — v1.2 is formally open. v1.1 closed + archived in `.planning/milestones/v1.1-*.md`. v1.2 roadmap has 7 phases (13–19) covering all 21 active REQ-V12-* items. v2.0 far-fetched stub in `.planning/backlog/v2.0-REQUIREMENTS.md`.
+
+**v1.2 phases at a glance** (see `.planning/ROADMAP.md`):
+- **Phase 13** — Quality KPIs substrate (QUALITY-02)
+- **Phase 14** — Engine polish + seed corpus hygiene (ENGINE-05, SEEDS-01, TOOLING-02)
+- **Phase 15** — Multi-agent dashboard scaffold (DASHBOARD-05)
+- **Phase 16** — Composite actions (ENGINE-04, architectural)
+- **Phase 17** — Operator & dev ergonomics (CLI-03/04, DASHBOARD-07/08/09, EMERGE-01/02, OPS-01)
+- **Phase 18** — Graph conventions + engine audit + chain seed corpus (ENGINE-03, GRAPH-01–04, DASHBOARD-06)
+- **Phase 19** — Historical tick-summary migration (OPS-02, optional)
 
 ---
 
