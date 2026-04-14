@@ -29,6 +29,7 @@ Threats / design constraints addressed here:
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -105,7 +106,7 @@ class OperatorHarness:
         self,
         universe: Path,
         *,
-        model: str = "opus",
+        model: str = os.environ.get("OPERATOR_MODEL", "opus"),
         max_turns: int = 20,
         max_budget_usd: float = 5.0,
     ) -> None:
@@ -126,7 +127,9 @@ class OperatorHarness:
         """
         mcp_servers = load_universe_mcp_config(self.universe)
         mcp_servers["validation"] = build_validation_server(self.universe)
-        agent_def = build_mechanic_author_agent(universe=self.universe, yield_signal=signal)
+        agent_def = build_mechanic_author_agent(
+            universe=self.universe, yield_signal=signal, model=self.model
+        )
         return ClaudeAgentOptions(
             system_prompt=self._outer_system_prompt(signal),
             model=self.model,

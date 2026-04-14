@@ -17,6 +17,7 @@ Design (RESEARCH §Pattern 3):
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from claude_agent_sdk import AgentDefinition
@@ -103,7 +104,12 @@ def mechanic_author_prompt(*, universe: Path, yield_json: str) -> str:
     return _MECHANIC_AUTHOR_PROMPT.format(universe=universe, yield_json=yield_json)
 
 
-def build_mechanic_author_agent(*, universe: Path, yield_signal: YieldSignal) -> AgentDefinition:
+def build_mechanic_author_agent(
+    *,
+    universe: Path,
+    yield_signal: YieldSignal,
+    model: str = os.environ.get("OPERATOR_MODEL", "opus"),
+) -> AgentDefinition:
     """Build the mechanic-author :class:`AgentDefinition` (D-17).
 
     - ``model="opus"`` per D-02.
@@ -139,5 +145,5 @@ def build_mechanic_author_agent(*, universe: Path, yield_signal: YieldSignal) ->
             "mcp__validation__validate_mechanic",
             "mcp__token-world__list_mechanics",
         ],
-        model="opus",
+        model=model,
     )
