@@ -72,6 +72,11 @@ def create_app(slug: str, *, dark: bool = True) -> Any:
 
             mount_active_yield_banner(universe_dir, ui.column().classes("w-full"))
 
+            # --- Quality scorecard strip (above stats) --------------------------------
+            from token_world.dashboard.panels.quality import mount_quality_panel
+
+            mount_quality_panel(universe_dir, slug)
+
             # --- Header strip -------------------------------------------------
             from token_world.dashboard.panels.stats import mount_stats_strip
 
