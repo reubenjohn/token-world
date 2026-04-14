@@ -1757,6 +1757,48 @@ def stats_universe(slug: str, since: int | None, stream: bool, interval: float, 
         click.echo("\nStopped.", err=True)
 
 
+@cli.command("quality")
+@click.argument("slug")
+@click.option(
+    "--last",
+    "last_n",
+    type=int,
+    default=50,
+    show_default=True,
+    help="Score the last N ticks (default 50, per rubric spec).",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["table", "json"]),
+    default="table",
+    show_default=True,
+    help="Output format.",
+)
+def quality(slug: str, last_n: int, fmt: str) -> None:
+    """Print a simulation quality scorecard across all 8 rubric dimensions.
+
+    Reads tick_summaries/ and universe.db. No LLM calls. Thresholds from
+    docs/quality/sim-quality-rubric.md. Exit 0 always (gate via
+    scripts/check_quality_thresholds.py).
+    """
+    from token_world.quality import score
+    from token_world.quality.report import render_json, render_table
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(slug)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    report = score(universe_dir, slug=slug, last=last_n)
+    if fmt == "json":
+        click.echo(render_json(report), nl=False)
+    else:
+        click.echo(render_table(report), nl=False)
+
+
 @cli.command("agents")
 @click.argument("slug")
 @click.option(

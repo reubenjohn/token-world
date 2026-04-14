@@ -136,6 +136,7 @@ Run quick test after every change. Run full suite before commits.
 | `token-world trace <slug> <node_id> <property> [--hops N] [--format table\|json]` | Causal-chain walker: walk `graph_events` backward, enrich each hop with surrounding tick context |
 | `token-world mechanics <slug> [--author seed\|operator] [--format table\|json]` | Registry browser with call counts + last-invoked tick |
 | `token-world stats <slug> [--since N] [--stream] [--format table\|json]` | Aggregate metrics: throughput, yield rate, novel-mechanic rate, conservation violations, cost (composes with `cost`) |
+| `token-world quality <slug> [--last N] [--format table\|json]` | Print 8-dimension quality scorecard from rubric; gate via scripts/check_quality_thresholds.py |
 | `token-world watch <slug> [--interval S]` | Live tail of new tick summaries, one line per tick (Ctrl-C to exit) |
 | `token-world agents <slug> [--id X] [--format table\|json]` | Inspect agent-typed nodes: personality, persona, memory, active LRA, attention state |
 | `token-world diff <slug> <tick_a> <tick_b> [--format table\|json]` | Graph changes between two ticks: nodes/edges added or removed + property old -> new |
