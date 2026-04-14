@@ -38,6 +38,17 @@ _TEMPLATES: dict[str, str] = {
 
 _FALLBACK_TEMPLATE = "You try, but the attempt fails — {reason_code}."
 
+_WRAPPER_PREFIX = "You try, but "
+
+
+def _strip_wrapper(s: str) -> str:
+    """Strip repeated 'You try, but ' prefix from a reason string."""
+    while s.startswith(_WRAPPER_PREFIX):
+        s = s[len(_WRAPPER_PREFIX) :]
+    # Strip leading period/space left from prior formatting
+    s = s.lstrip(". ")
+    return s
+
 
 class RefusalTemplate:
     """Narrative rendering for refusal reasons (D-13)."""
@@ -64,4 +75,6 @@ class RefusalTemplate:
 
         format_map = _SafeDict(details)
         format_map.setdefault("reason_code", reason_code)
+        if "reason" in format_map:
+            format_map["reason"] = _strip_wrapper(format_map["reason"])
         return template.format_map(format_map)
