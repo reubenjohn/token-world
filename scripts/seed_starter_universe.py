@@ -64,10 +64,12 @@ MIRA = PersonalityBundle(
 
 
 # Minimal seed for Willowbrook — just enough that Mira can observe her
-# surroundings and move around. Everything else (watering, sharpening, petting,
-# planting, peering, forcing locks, drawing water) must be authored by the
-# operator the first time Mira tries it, which is exactly the emergence we
-# want.
+# surroundings and move around. The 5 new framework-level seed mechanics
+# (examine, pet, sharpen, hum, drop) are also included so common verbs resolve
+# immediately on the first tick without requiring an operator yield.
+# Everything else (watering, planting, peering, forcing locks, drawing water)
+# must be authored by the operator the first time Mira tries it, which is
+# exactly the emergence we want.
 _KEEP_MECHANICS = frozenset(
     {
         "look.py",
@@ -79,6 +81,12 @@ _KEEP_MECHANICS = frozenset(
         "pickup.py",
         "environmental_reaction.py",
         "_helpers.py",  # shared helpers used by the above
+        # New framework-level seed mechanics (REQ-V12-SEEDS-01)
+        "examine.py",
+        "pet.py",
+        "sharpen.py",
+        "hum.py",
+        "drop.py",
     }
 )
 

@@ -87,16 +87,20 @@ def test_voluntary_flag_sets_class_attr(tmp_data_dir: Path, monkeypatch) -> None
 
 
 def test_scaffolded_module_passes_validation(tmp_data_dir: Path, monkeypatch) -> None:
-    """A freshly scaffolded skeleton must pass the full validation pipeline."""
+    """A freshly scaffolded skeleton must pass the full validation pipeline.
+
+    Uses ``--id toss`` (not a seed name) so it doesn't collide with the
+    drop.py seed mechanic that ships with every scaffolded universe.
+    """
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_data_dir.parent.parent))
     slug, universe_dir = _create_universe(tmp_data_dir)
 
     runner = CliRunner()
-    scaffold_result = runner.invoke(cli, ["scaffold-mechanic", slug, "--id", "drop"])
+    scaffold_result = runner.invoke(cli, ["scaffold-mechanic", slug, "--id", "toss"])
     assert scaffold_result.exit_code == 0, scaffold_result.output
 
     # Now validate via the CLI. Skeleton uses only allowed imports and defines
     # all required attributes + methods, so D-14 gate should pass.
-    validate_result = runner.invoke(cli, ["validate-mechanic", slug, "drop"])
+    validate_result = runner.invoke(cli, ["validate-mechanic", slug, "toss"])
     assert validate_result.exit_code == 0, validate_result.output
     assert "PASS" in validate_result.output
