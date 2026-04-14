@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Emergence Tooling
 status: in_progress
-stopped_at: v1.1 kicked off — Tracks A/C in flight via direct work; Track B queued for GSD phase
-last_updated: "2026-04-15T06:00:00.000Z"
-last_activity: 2026-04-15 -- session 4 overnight — warm-up + Track A + Track C running; Track B dashboard queued
+stopped_at: Session 4 close — substrate live, dashboard live, 11 mechanics emerged in Willowbrook overnight run
+last_updated: "2026-04-15T10:10:00.000Z"
+last_activity: 2026-04-15 -- session 4 overnight: 11 mechanics authored autonomously in Willowbrook (examine, pet, sharpen, walk, draw, plant, force, drop, water, hum, lift)
 progress:
-  total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 5
+  completed_phases: 4
+  total_plans: 8
+  completed_plans: 8
+  percent: 80
 ---
 
 # Project State
@@ -31,17 +31,26 @@ Tests: 1743 passing as of v1.0 close; session 4 still pushing commits
 
 Progress: [░░░░░░░░░░] 0% — phases in flight not yet verified
 
-## Session 4 Work-In-Flight (direct, pre-GSD)
+## Session 4 Closeout (Hybrid Mode, Option `c`)
 
-The following shipped during session 4 *before* v1.1 milestone scaffolding was created — water under the bridge per user option (c):
+All four tracks shipped:
 
-- **Track A: Operator CLI Surface** — spawned as direct subagent; building `token-world inspect/tick/trace/stats/mechanics/watch` subcommands
-- **Warm-up: Backlog + Automation** — spawned as direct subagent; closing Phase 04.1 SC-2, adding traceability check scripts, refreshing research docs, adding automation artefacts (`scripts/commit.sh`, `scripts/run_uat.py`, `scripts/phase_show.py`, `scripts/ci_status.py`)
-- **Track C (partial): emergence substrate** — `ExternalOperator` file-based protocol shipped in `8f1f18e`; seed starter universe + unattended run driver shipped in `0a95763`
+- **Track A — Operator CLI Surface (8 commands, 98 tests)** ✅
+- **Track B — NiceGUI Dashboard (4 panels + polish, 26 tests)** ✅
+- **Track C — Emergence substrate + 11 mechanics from overnight run** ✅
+- **Track D — Warm-up backlog + automation** ✅
 
-Remaining work (under GSD going forward):
-- **Phase 08 (Track B): NiceGUI Dashboard** — read-only observer, 4 panels (tick stream, graph canvas, stats strip, causal chain)
-- **Overnight emergence experiment** — run-orchestration + 200-tick Willowbrook unattended run — kept as direct experiment, not a GSD phase (it's a run, not shippable code)
+Plus engine bug fixes that unblocked emergence:
+- Classifier permissive-verb prompt (commits `3ffb9f5`, `f84c9b2`)
+- Markdown-fence stripper for claude-cli backend (`3ffb9f5`)
+- mypy override for transitive nicegui (`131b787`)
+- v1.1 milestone retro-scaffolding (`a9c2e39`, `6cc2fe9`)
+
+**Pending for next session (Phase 12 + remaining):**
+- REQ-EMERGE-05 mechanic overlap detector
+- REQ-EMERGE-07 operator-log enrichment with subagent reasoning
+- Multi-agent rotation (precursor to v2 MULTI-01) — re-scope decision
+- `commit.sh` paths-arg + non-LRA-seed VerbMatcher backfill (anti-patterns 5/6)
 
 ## Accumulated Context
 
@@ -61,8 +70,8 @@ None new; session 4 subagents are working through the warm-up list.
 
 ## Session Continuity
 
-Last session: 2026-04-15 session 4 (in progress)
-Stopped at: orchestration layer + dashboard still pending
-Resume file: MORNING-HANDOFF.md + `.planning/OVERNIGHT-REPORT-20260415.md` (to be written at session close)
+Last session: 2026-04-15 session 4 (closed)
+Stopped at: 11 mechanics emerged in Willowbrook overnight run; dashboard demoable; report written
+Resume file: MORNING-HANDOFF.md + `.planning/OVERNIGHT-REPORT-20260415.md`
 
-**Next action:** `/gsd-plan-phase 08` for the dashboard; continue Track C orchestration.
+**Next action:** Demo the dashboard (`uv run token-world dashboard willowbrook`), review the 11 authored mechanics, decide on Phase 12 (mechanic overlap detector, operator-log enrichment) or v1.2 multi-agent re-scope.

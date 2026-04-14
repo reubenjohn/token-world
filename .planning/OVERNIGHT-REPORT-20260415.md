@@ -1,9 +1,12 @@
 # Overnight Report — Session 4 (2026-04-15)
 
-**Master at session close:** (TBD at write-out)
+**Master at session close:** `ceea3a7` (will refresh to actual HEAD before close)
 **Milestone:** v1.1 Emergence Tooling — kicked off
-**Session length:** ~6 h autonomous (user asleep)
+**Session length:** ~5 h autonomous (user asleep from ~01:50)
 **Mode:** Hybrid (direct for Tracks A/C warm-up; GSD-scaffolded for Track B + v1.1)
+**Total commits since v1.0:** 42 (`v1.0..ceea3a7`)
+**Files changed:** 94, +12,401 / −377
+**Tests:** 1885 passing (up from 1743 at v1.0 close, **+142**), 14 skipped
 
 ---
 
@@ -77,16 +80,30 @@ Shipped in commits `41e8f30..0781543`:
 
 ## Emergence Data (Willowbrook Overnight Run)
 
-*(The numbers below reflect what shipped at write-out; update just before
-handoff to user.)*
-
 - **Universe slug:** `willowbrook`
 - **Setting:** cottage + garden, 11 seeded nodes (hearth, old_chest, well, garden_bed, whetstone, tabby_cat, cottage_door, 2 rooms, Mira, pocket_knife)
 - **Resident agent:** Mira (curious apprentice, hand-crafted personality)
 - **Seed mechanics:** 9 (look, observation, movement, passage_move, position_sync, speak, pickup, environmental_reaction, _helpers)
-- **Round 1 run:** 100-tick cap; halted at tick 53 via kill switch (classifier too strict on novel verbs — prompted the v2 strengthen)
-- **Round 2 run:** 80-tick cap (started 02:39)
-- **Operator-authored mechanics:** (TBD — examine, pet, sharpen from R1; R2 additions pending)
+- **Round 1 run:** 100-tick cap; halted at tick 53 via kill switch (classifier too strict on novel verbs — prompted the v2 strengthen). 3 mechanics authored (examine, pet, sharpen).
+- **Round 2 run:** 80-tick cap; halted intentionally at tick 52 once agent-decide turns started repeating refused-narration patterns. 8 new mechanics authored.
+- **Total operator-authored mechanics:** **11** (3 R1 carry-over + 8 R2 fresh)
+
+### Final stats (`token-world stats willowbrook`)
+
+| Metric | Value |
+|---|---|
+| Ticks | 52 |
+| Wall duration | 1641.0 s (27 min 21 s) |
+| Throughput | 1.86 ticks/min |
+| Executed / Yielded / Refused | 32 / 8 / 12 |
+| Yield rate | 15.4 % |
+| Refuse rate | 23.1 % |
+| Distinct mechanics used | 11 |
+| Novel mechanic intros | 11 |
+| Novel intros / 10 ticks | 2.12 |
+| Conservation violations | 0 |
+| Total LLM cost | $0.1066 (engine via claude-cli + small Anthropic-SDK fallback) |
+| Operator-authoring cost | $0 marginal (subagents via Claude Code subscription) |
 
 ### Authored mechanics (in universe git log)
 
@@ -232,11 +249,12 @@ CLAUDE.md Script Catalog updated with all of the above.
 
 ## What's Live on Master at Write-out
 
-- **Tests:** 1876 passing (up from 1743 at v1.0 close, net +133)
-- **LOC delta:** TBD (quick `git diff --shortstat v1.0..HEAD` at close)
-- **CI:** green (5 jobs)
-- **Master HEAD:** TBD at close — push final morning update
+- **Tests:** 1885 passing (up from 1743 at v1.0 close — net **+142**), 14 skipped
+- **LOC delta:** +12,401 / −377 across 94 files
+- **CI:** green (Tests + Deploy Docs + pages-build-deployment, all green on `8a09f14` and after)
+- **Master HEAD:** `ceea3a7` (will refresh with morning final commit)
 - **Open PR:** none (direct pushes to master per project pattern)
+- **42 commits since v1.0 tag**
 
 ---
 
@@ -258,6 +276,10 @@ Recommended priorities for morning kickoff:
    - Hosted dashboard (v1.2 candidate)
 
 5. **Anti-pattern 5 cleanup:** adjust `scripts/commit.sh` to accept explicit paths instead of `git add -A`. Prevents cross-agent sweeping.
+
+6. **Bug-3 follow-up:** add `VerbMatcher` declarations to non-LRA seed mechanics (look, speak, pickup, give, etc.) so the engine has a richer vocabulary out of the box. The permissive-classifier patch is a workaround that breeds noisy refusals on introspective narration.
+
+7. **Run-2 termination heuristic:** Mira's agent-decide turns degenerated into meta-narration after the scripted scenario exhausted at tick 20. Agent SDK system-prompt tightening could keep her in-character; or the runner could detect "N consecutive refuses" as a halt signal automatically.
 
 ---
 
