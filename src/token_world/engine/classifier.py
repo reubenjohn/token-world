@@ -44,13 +44,19 @@ _SYSTEM_PROMPT = (
     '{"kind":"no_such_target","target_text":"<text for which the graph has no node>"}\n'  # noqa: E501
     '{"kind":"low_confidence","reason":"<why>","best_guess":{...classified...},"confidence":0.0-1.0}\n'  # noqa: E501
     "\n"
-    "Prefer verbs from the provided list when one naturally describes the action.\n"
-    "If no listed verb fits (the list may be empty, short, or simply miss the right\n"
-    "one), propose the most natural single verb for the action — the engine's\n"
-    "matcher will then either find a mechanic that handles it or yield to the\n"
-    "operator to author one. Use ONLY actor/target node IDs from the provided list.\n"
-    "If the input is genuinely gibberish or otherwise unprocessable, emit\n"
-    '"no_viable_action" (an empty verb list is NOT sufficient reason on its own).\n'
+    "The provided `Available verbs` list is a hint, NOT a constraint. Always\n"
+    "classify the action with its most natural single verb. If that verb happens\n"
+    "to be in the list, great — the engine will match an existing mechanic. If\n"
+    "it is not in the list, classify it anyway; the engine will yield to the\n"
+    "operator to author a new mechanic. Either way, emit `kind:ok` with the\n"
+    "natural verb. Examples:\n"
+    "  action 'I water the garden' → ok, verb='water' (even if not listed)\n"
+    "  action 'I draw water from the well' → ok, verb='draw'\n"
+    "  action 'I hum to the fire' → ok, verb='hum'\n"
+    "Use ONLY actor/target node IDs from the provided list for target/actor fields.\n"
+    'ONLY emit "no_viable_action" when the input is genuine gibberish (e.g.\n'
+    "'asdfqwerty') or has no coherent intent. An action with a clear verb that\n"
+    "happens not to be in the list is NOT grounds for no_viable_action.\n"
     "If you can identify a target TEXT but it maps to no known node ID, emit\n"
     '"no_such_target". Emit ONLY the JSON object -- no prose.\n'
 )
