@@ -13,6 +13,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from token_world.engine.llm_backend import (
+    AnthropicSDKBackend,
+    LLMBackend,
+    get_backend,
+)
 from token_world.resident.memory import AgentMemory
 from token_world.resident.personality import PersonalityBundle
 
@@ -65,10 +70,11 @@ class ResidentAgent:
         session_id: str,
         personality: PersonalityBundle,
         memory: AgentMemory,
-        client: Any,
+        client: Any = None,
         *,
         model: str = "claude-haiku-4-5",
         world_rules: str = "",
+        backend: LLMBackend | None = None,
     ) -> None:
         self._agent_id = agent_id
         self._session_id = session_id
@@ -78,6 +84,13 @@ class ResidentAgent:
         self._model = model
         self._world_rules = world_rules
         self._system_prompt = self._build_system_prompt()
+        # Backend wrap-or-default (D-02, D-10): backend > SDK-wrap(client) > get_backend()
+        if backend is not None:
+            self._backend: LLMBackend = backend
+        elif client is not None:
+            self._backend = AnthropicSDKBackend(client)
+        else:
+            self._backend = get_backend()
 
     # ------------------------------------------------------------------
     # Public API
@@ -90,20 +103,37 @@ class ResidentAgent:
     def run_turn(self) -> str:
         """Generate the agent's next action via an LLM call.
 
-        Builds context from rolling memory window, calls the configured model,
-        returns the stripped action text. Does NOT call SimulationEngine (D-21).
+        Builds context from rolling memory window, calls the configured model
+        through the :class:`LLMBackend` abstraction, returns the stripped action
+        text. Does NOT call SimulationEngine (D-21).
+
+        The multi-turn conversation history produced by :meth:`_build_messages`
+        is flattened into a single prompt string (role-prefixed blocks joined
+        by ``\\n\\n``) because ``LLMBackend.call`` takes a single prompt per
+        Phase 07.1 D-01. For the SDK auto-wrap path this is a semantic change
+        from the prior direct ``messages.create(messages=[...])`` call — the
+        backend still issues a real SDK call, but the messages array now
+        contains a single user-role message with the flattened history as
+        content.
         """
         messages = self._build_messages()
-        response = self._client.messages.create(
+        prompt = self._flatten_messages_to_prompt(messages)
+        text = self._backend.call(
             model=self._model,
             system=self._system_prompt,
-            messages=messages,
+            prompt=prompt,
             max_tokens=256,
         )
-        content = response.content
-        if not content:
+        if not text or not text.strip():
             raise ValueError("LLM returned empty response in run_turn()")
-        return str(content[0].text).strip()
+        return text.strip()
+
+    @staticmethod
+    def _flatten_messages_to_prompt(messages: list[dict[str, str]]) -> str:
+        """Render a ``[{role, content}, ...]`` list as a ``\\n\\n``-joined prompt string."""
+        if not messages:
+            return ""
+        return "\n\n".join(f"{m['role']}: {m['content']}" for m in messages)
 
     # ------------------------------------------------------------------
     # Private helpers

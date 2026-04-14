@@ -120,15 +120,15 @@ def test_run_turn_uses_rolling_context_from_memory(db_path: Path) -> None:
 
     call = client.messages.calls[0]
     messages = call["messages"]
-    # Should have alternating user/assistant pairs + final user prompt
-    assert len(messages) >= 3  # at least 1 pair + final user turn
-    # First pair: user=action, assistant=observation
+    # Phase 07.1: messages flattened into single user prompt per LLMBackend.call()
+    assert len(messages) == 1
     assert messages[0]["role"] == "user"
-    assert "a1" in messages[0]["content"]
-    assert messages[1]["role"] == "assistant"
-    assert "o1" in messages[1]["content"]
-    # Last message is user asking for next action
-    assert messages[-1]["role"] == "user"
+    prompt_text = messages[0]["content"]
+    # Alternating user/assistant turns and final next-action prompt all appear
+    # inside the flattened role-prefixed prompt block.
+    assert "user: a1" in prompt_text
+    assert "assistant: o1" in prompt_text
+    assert "user: What do you do next?" in prompt_text
 
 
 def test_run_turn_includes_memory_summary_when_present(db_path: Path) -> None:
