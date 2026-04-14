@@ -83,7 +83,7 @@ Success criteria:
 3. SC-3: Dashboard is usable >2 s without scroll dying (Playwright-verified: tick stream 400→400 over 5 s / 2+ poll cycles; drawer 100→100 over 7 s / 3+ cycles) — `d31090d` + `6101da0`.
 4. SC-4: Every §J-table delivered item has a commit row in REQUIREMENTS.md Traceability with its SHA and shipped status.
 
-### Phase 13 — Quality KPIs substrate (estimate: 2 plans)
+### Phase 13: Quality KPIs substrate (estimate: 2 plans)
 
 **Goal:** Every overnight run ends with an automatable, mechanically-scored quality report consumed by both CLI users and the dashboard — with CI able to gate a release on thresholds from the sim-quality rubric (docs already shipped in Phase 12.5).
 **Depends on:** Phase 12.5 (warm-up; ENGINE-01 + ENGINE-02 make the data honest enough to score)
@@ -96,7 +96,7 @@ Success criteria:
 3. SC-3: A post-run CI hook fails with a named-dimension error message when any dimension drops below its documented threshold for the last 50 ticks of a run.
 4. SC-4: Operator re-runs `token-world quality <slug>` on the current willowbrook dataset and gets an interpretable score (proves the sub-package + rubric work on real data, not just fixture tests).
 
-### Phase 14 — Engine polish + seed corpus hygiene (estimate: 3 plans)
+### Phase 14: Engine polish + seed corpus hygiene (estimate: 3 plans)
 
 **Goal:** Close the last small engine-truthfulness follow-ups, promote the five universe-agnostic mechanics the overnight run authored, and stop the seed script from silently deleting them on re-seed.
 **Depends on:** Phase 12.5 (ENGINE-01 shipped; refuse-observation path now exercised in production, surfacing the doubled-wrapper bug)
@@ -109,7 +109,7 @@ Success criteria:
 3. SC-3: A new universe spawned from the seed script includes a `bench (weathered=True)`, a chicken coop, and a broken gate — each with hook properties that mechanics can observe on authoring.
 4. SC-4: Running `seed_starter_universe.py --preserve-mechanics` against an existing universe with authored mechanics leaves every `<universe>/mechanics/*.py` file untouched; running without the flag prints a loud stderr warning naming every mechanic that would be overwritten.
 
-### Phase 15 — Multi-agent dashboard scaffold (estimate: 1 plan)
+### Phase 15: Multi-agent dashboard scaffold (estimate: 1 plan)
 
 **Goal:** The dashboard is ready for a second agent the moment one exists in the engine (v2), without a re-architecture of the panels. Single-agent remains the engine baseline per D-17.
 **Depends on:** Phase 12.5 (DASHBOARD-01..04 shipped; scroll / pseudo-edges in place)
@@ -122,7 +122,7 @@ Success criteria:
 3. SC-2: Graph canvas visually outlines the currently-selected agent node and highlights its `located_in` pseudo-edge (reuses the DASHBOARD-04 pseudo-edge machinery).
 4. SC-3: Stats strip surfaces a per-agent yield-rate rollup when >1 agent exists; hides the rollup in the single-agent default case.
 
-### Phase 16 — Composite actions (estimate: 2 plans — design + implementation)
+### Phase 16: Composite actions (estimate: 2 plans — design + implementation)
 
 **Goal:** One agent action can fire multiple primary mechanics within a tick, unblocking richer narrative ("I open the chest and take the key") without changing the mechanic protocol. Architectural; the design wave must land and close the design gate before implementation starts.
 **Depends on:** Phase 12.5 (ENGINE-01 honest refusal path; a composite tick's sub-actions can now refuse honestly instead of silently)
@@ -135,7 +135,7 @@ Success criteria:
 3. SC-3: A multi-verb fixture input (`"open the chest and take the key"`) produces a multi-mechanic `ExecutionTrace` with one entry per sub-action, each independently refusable.
 4. SC-4: Classifier `SCHEMA_VERSION` bumped and prompt-hash registry records the bump; yield-handler subagent prompt notes the per-sub-action invocation contract.
 
-### Phase 17 — Operator & dev ergonomics (estimate: 4 plans)
+### Phase 17: Operator & dev ergonomics (estimate: 4 plans)
 
 **Goal:** Every operator investigation the author reached for during sessions 4–6 (raw classifier response, mechanic lifecycle, run-alive?, agent internals, yield decision rationale, stale `.stop` kill-switch) becomes a one-liner on the CLI or a sticky surface on the dashboard — per §G allocation rules (CLI canonical producer; dashboard consumes JSON).
 **Depends on:** Phase 12.5 (CLI-01/CLI-02 shipped; the ergonomics this phase extends)
@@ -149,7 +149,7 @@ Success criteria:
 4. SC-4: Clicking an agent node in the dashboard graph opens an inspector drawer with labelled sections (Identity, Location, Memory, Active LRA, Attention state, Recent actions) — reuses the DASHBOARD-01 non-rebuild scroll guarantee; drawer scroll survives poll cycles.
 5. SC-5: Every yield-resolution event in `<universe>/operator-log.jsonl` carries the authoring subagent's final JSON (reasoning + overlap score + test-pass/fail history + cost); overlap score was computed against the existing registry before authoring started, and the subagent's system prompt includes the overlap report with a "prefer edit-existing above threshold" instruction.
 
-### Phase 18 — Graph conventions + engine audit + chain seed corpus (estimate: 3 plans)
+### Phase 18: Graph conventions + engine audit + chain seed corpus (estimate: 3 plans)
 
 **Goal:** Codify the four graph-shape conventions the overnight run surfaced, sweep the engine for the hardcoded property-name smell that necessitates them, and seed enough chain-producing mechanics that the side-effect tree (DASHBOARD-03, shipped) is interesting on real runs.
 **Depends on:** Phase 12.5 (DASHBOARD-03 side-effect tree shipped — this phase makes it information-dense)
@@ -162,7 +162,7 @@ Success criteria:
 3. SC-3: A regression test uses an arbitrary property name (e.g. `warded`, `trapped`) in a synthetic mechanic and receives identical engine treatment to `locked` — proving the engine no longer privileges specific strings.
 4. SC-4: Registry audit report lists every seed mechanic's `watches()` spec; at least 3 new `PropertyChangeMatcher` / `EdgeMatcher` seed mechanics land (mood-change, contains-edge, temperature watcher) — a fresh willowbrook run shows non-trivial chain depth in the dashboard side-effect tree.
 
-### Phase 19 — Historical tick-summary migration (estimate: 1 plan, optional)
+### Phase 19: Historical tick-summary migration (estimate: 1 plan, optional)
 
 **Goal:** Backfill truthfulness into the willowbrook run artefacts that pre-date REQ-V12-ENGINE-01 (ticks 22, 34, 38) so downstream KPIs and the playtest scorer stop double-counting false-EXECUTED records forever.
 **Depends on:** Phase 13 (KPI scorer exists so the migrated data has a consumer)
