@@ -1670,3 +1670,88 @@ def watch_universe(slug: str, interval: float) -> None:
         watch_loop(universe_dir, out=sys.stdout, poll_interval=interval)
     except KeyboardInterrupt:
         click.echo("\nStopped.", err=True)
+
+
+@cli.command("stats")
+@click.argument("slug")
+@click.option(
+    "--since",
+    type=int,
+    default=None,
+    help="Only aggregate the last N ticks (default: all ticks).",
+)
+@click.option(
+    "--stream",
+    is_flag=True,
+    default=False,
+    help="Live-tail mode: poll tick_summaries dir at --interval and re-emit on change.",
+)
+@click.option(
+    "--interval",
+    type=float,
+    default=2.0,
+    show_default=True,
+    help="Polling interval (seconds) for --stream mode.",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["table", "json"]),
+    default="table",
+    show_default=True,
+    help="Output format.",
+)
+def stats_universe(slug: str, since: int | None, stream: bool, interval: float, fmt: str) -> None:
+    """Aggregate metrics: throughput, yield rate, novel-mechanic rate, cost.
+
+    Composes with `token-world cost` for the cost block. `--since N`
+    restricts every metric to the last N ticks. `--stream` re-renders the
+    full stats block whenever a new tick file appears (poll-based, no
+    fsnotify).
+    """
+    from token_world.inspect.stats import (
+        aggregate as aggregate_stats,
+    )
+    from token_world.inspect.stats import (
+        render_json as render_stats_json,
+    )
+    from token_world.inspect.stats import (
+        render_table as render_stats_table,
+    )
+
+    manager = UniverseManager()
+    try:
+        universe_dir = manager.load(slug)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1) from e
+
+    def _emit_once() -> None:
+        report = aggregate_stats(universe_dir, slug=slug, since=since)
+        if fmt == "json":
+            click.echo(render_stats_json(report), nl=False)
+        else:
+            click.echo(render_stats_table(report), nl=False)
+
+    if not stream:
+        _emit_once()
+        return
+
+    # --stream loop: re-emit when the tick directory mtime advances.
+    import time
+
+    ticks_dir = universe_dir / "tick_summaries" / "ticks"
+    last_mtime: float = -1.0
+    click.echo(f"Streaming stats for {slug} (Ctrl-C to exit)", err=True)
+    try:
+        while True:
+            try:
+                mtime = ticks_dir.stat().st_mtime if ticks_dir.is_dir() else -1.0
+            except OSError:
+                mtime = -1.0
+            if mtime != last_mtime:
+                last_mtime = mtime
+                _emit_once()
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        click.echo("\nStopped.", err=True)
