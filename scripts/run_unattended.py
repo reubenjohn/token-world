@@ -15,6 +15,9 @@ Safety rails (all optional, all off unless flagged):
   cost × remaining ticks would exceed the ceiling.
 - ``--timeout-per-yield S`` — per-yield resolution wait (forwarded to
   ``TOKEN_WORLD_OPERATOR_TIMEOUT_S``).
+- ``--refuse-halt-threshold K`` — halt after K consecutive refused ticks
+  (default 6). Catches character-break / classifier-failure decompensation
+  early so overnight runs don't burn a budget on a stuck agent.
 - ``<universe>/.stop`` — kill switch file; any contents halt at next
   yield boundary.
 
@@ -27,6 +30,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import sys
@@ -85,6 +89,54 @@ def _check_cost_ceiling(universe_dir: Path, ticks: int, ceiling: float) -> None:
         logger.info("Cost estimate: ~${:.4f}/tick × {} ticks = ~${:.2f}", avg, ticks, projected)
 
 
+def wrap_run_tick_with_refuse_halt(
+    original_run_tick,
+    state: dict,
+    refuse_threshold: int,
+):
+    """Return a wrapper around ``engine.run_tick`` that halts on K consecutive refuses.
+
+    The wrapper is transparent for ``kind="ok"`` and ``kind="yielded"``
+    results — it resets the consecutive-refuse counter to zero and passes
+    the result through. On ``kind="refused"`` it increments the counter and
+    raises :class:`SystemExit` once the counter reaches ``refuse_threshold``
+    (which acts as the halt signal for the runner loop).
+
+    This catches the character-break / classifier-failure decompensation
+    pattern documented in MORNING-HANDOFF.md §C (session 4 round 2, Mira
+    narrating the simulation framework itself after several refuses piled
+    up). Setting ``refuse_threshold=0`` disables the guard.
+
+    Args:
+        original_run_tick: Bound method ``engine.run_tick`` to wrap.
+        state: Shared mutable dict with ``consecutive_refuses`` (int) and
+            ``halt_reason`` (str | None) keys. Mutated in place.
+        refuse_threshold: Number of consecutive refuses that triggers the
+            halt. ``0`` disables the guard.
+
+    Returns:
+        A callable with the same signature as ``engine.run_tick``.
+    """
+
+    def _wrapped(*args, **kwargs):  # type: ignore[no-untyped-def]
+        result = original_run_tick(*args, **kwargs)
+        kind = getattr(result, "kind", None)
+        if kind == "refused":
+            state["consecutive_refuses"] = int(state.get("consecutive_refuses", 0)) + 1
+            if refuse_threshold and int(state["consecutive_refuses"]) >= refuse_threshold:
+                reason = (
+                    f"halt: {refuse_threshold} consecutive refuses — "
+                    "probable character-break or classifier failure"
+                )
+                state["halt_reason"] = reason
+                raise SystemExit(reason)
+        else:
+            state["consecutive_refuses"] = 0
+        return result
+
+    return _wrapped
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--slug", required=True)
@@ -112,6 +164,15 @@ def main() -> int:
         type=float,
         default=1800.0,
         help="Max wait (s) for external resolution per yield. Default 30min.",
+    )
+    parser.add_argument(
+        "--refuse-halt-threshold",
+        type=int,
+        default=6,
+        help=(
+            "Halt cleanly after K consecutive refused ticks (probable "
+            "character-break or classifier failure). Default 6; 0 disables."
+        ),
     )
     parser.add_argument("--poll-s", type=float, default=2.0)
     parser.add_argument("--output", type=Path, default=None)
@@ -167,7 +228,12 @@ def main() -> int:
     # Monkey-patch runner.run to inject yield-budget tracking. Wrap progress_fn
     # so every printed turn also checks the kill switch and yield count.
     stop_path = universe_dir / ".stop"
-    state = {"yields": 0, "halt_reason": None}
+    state: dict = {
+        "yields": 0,
+        "halt_reason": None,
+        "consecutive_refuses": 0,
+        "refuse_threshold": args.refuse_halt_threshold,
+    }
 
     original_progress = runner.progress_fn
 
@@ -181,8 +247,8 @@ def main() -> int:
 
     # Install a counter in the harness_factory so we can cap yields.
     def _counting_factory(universe_path: Path):
-        state["yields"] += 1
-        if args.yield_budget and state["yields"] > args.yield_budget:
+        state["yields"] = int(state["yields"]) + 1
+        if args.yield_budget and int(state["yields"]) > args.yield_budget:
             state["halt_reason"] = "yield_budget"
             raise SystemExit(
                 f"halted: yield_budget {args.yield_budget} exceeded "
@@ -192,11 +258,22 @@ def main() -> int:
 
     runner.harness_factory = _counting_factory
 
+    # Wrap engine.run_tick so we can detect consecutive refuses and halt
+    # cleanly before the resident agent decompensates out of character under
+    # piled-up rejection (character-break / classifier-failure guard).
+    engine.run_tick = wrap_run_tick_with_refuse_halt(  # type: ignore[method-assign]
+        engine.run_tick,
+        state,
+        args.refuse_halt_threshold,
+    )
+
     logger.info(
-        "Starting unattended run: slug={} ticks={} yield_budget={} timeout={}s",
+        "Starting unattended run: slug={} ticks={} yield_budget={} "
+        "refuse_halt_threshold={} timeout={}s",
         args.slug,
         ticks,
         args.yield_budget,
+        args.refuse_halt_threshold,
         args.timeout_per_yield,
     )
 
@@ -223,7 +300,27 @@ def main() -> int:
     except SystemExit as e:
         logger.warning("Run halted: {}", e)
         elapsed = time.monotonic() - start
-        print(f"halted after {elapsed:.1f}s  reason={state['halt_reason'] or e}")
+        reason = state["halt_reason"] or str(e)
+        # First line: big, prominent, so morning-operator sees it at top of log.
+        print(f"STATUS: HALTED — {reason}")
+        print(f"halted after {elapsed:.1f}s  reason={reason}")
+        print(f"yields: {state['yields']}")
+        print(f"consecutive_refuses_at_halt: {state['consecutive_refuses']}")
+        # Persist halt metadata alongside universe dir so operators can grep it.
+        halt_log = universe_dir / "unattended_halt.json"
+        with contextlib.suppress(OSError):
+            halt_log.write_text(
+                json.dumps(
+                    {
+                        "reason": reason,
+                        "elapsed_s": elapsed,
+                        "yields": state["yields"],
+                        "consecutive_refuses_at_halt": state["consecutive_refuses"],
+                        "refuse_halt_threshold": args.refuse_halt_threshold,
+                    },
+                    indent=2,
+                )
+            )
         return 3
 
     elapsed = time.monotonic() - start

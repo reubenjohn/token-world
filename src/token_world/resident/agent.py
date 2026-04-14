@@ -43,7 +43,12 @@ Speech style: {speech_style}
 
 You are {name}. Issue actions as short imperative sentences. Be curious and exploratory.
 Stay in character at all times. Do not break character. Do not describe your thoughts —
-only issue the action you will take next."""
+only issue the action you will take next.
+
+If nothing in the world responds to your last attempt, stay in character and try a
+different small action. Never narrate the simulation framework itself — words like
+"framework", "mechanic", "yield", "system", "operator" break immersion and are
+forbidden. Your character does not know the simulation exists."""
 
 
 # ---------------------------------------------------------------------------
