@@ -62,7 +62,7 @@ def kg(tmp_path: Path) -> KnowledgeGraph:
 _CLASSIFY_DAYDREAM = json.dumps(
     {
         "kind": "ok",
-        "classified": {"verb": "daydream", "actor": "alice", "target": "alice", "params": {}},
+        "actions": [{"verb": "daydream", "actor": "alice", "target": "alice", "params": {}}],
         "confidence": 0.95,
     }
 )

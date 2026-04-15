@@ -33,26 +33,29 @@ from token_world.engine.models import (
 logger = logging.getLogger(__name__)
 
 _MODEL = "claude-haiku-4-5-20251001"
+SCHEMA_VERSION = "2.0"
 
 _SYSTEM_PROMPT = (
     "You are the action classifier for a text-based simulation. Given a resident\n"
     "agent's natural-language action, output a JSON object with one of four shapes:\n"
     "\n"
-    '{"kind":"ok","classified":{"verb":"<verb>","actor":"<actor id>","target":"<target id|null>",'  # noqa: E501
-    '"indirect_object":"<recipient id|null>","params":{}},"confidence":0.0-1.0}\n'
+    '{"kind":"ok","actions":[{"verb":"<verb>","actor":"<actor id>","target":"<target id|null>",'  # noqa: E501
+    '"indirect_object":"<recipient id|null>","params":{}}],"confidence":0.0-1.0}\n'
     '{"kind":"no_viable_action","reason":"<why the input is unprocessable>"}\n'
     '{"kind":"no_such_target","target_text":"<text for which the graph has no node>"}\n'  # noqa: E501
     '{"kind":"low_confidence","reason":"<why>","best_guess":{...classified...},"confidence":0.0-1.0}\n'  # noqa: E501
     "\n"
-    "The provided `Available verbs` list is a hint, NOT a constraint. Always\n"
-    "classify the action with its most natural single verb. If that verb happens\n"
+    "The provided `Available verbs` list is a hint, NOT a constraint. Classify\n"
+    "the action with its most natural verb(s). For multi-verb actions (joined by\n"
+    "'and', 'then', etc.), emit one entry per sub-action in the `actions` array.\n"
+    "Single-verb actions emit a one-element `actions` array. If a verb happens\n"
     "to be in the list, great — the engine will match an existing mechanic. If\n"
     "it is not in the list, classify it anyway; the engine will yield to the\n"
-    "operator to author a new mechanic. Either way, emit `kind:ok` with the\n"
-    "natural verb. Examples:\n"
-    "  action 'I water the garden' → ok, verb='water' (even if not listed)\n"
-    "  action 'I draw water from the well' → ok, verb='draw'\n"
-    "  action 'I hum to the fire' → ok, verb='hum'\n"
+    "operator to author a new mechanic. Either way, emit `kind:ok`. Examples:\n"
+    "  action 'I water the garden' → ok, actions=[{verb='water'}] (even if not listed)\n"
+    "  action 'I draw water from the well' → ok, actions=[{verb='draw'}]\n"
+    "  action 'I hum to the fire' → ok, actions=[{verb='hum'}]\n"
+    "  action 'I open the chest and take the key' → ok, actions=[{verb='open',target='chest'},{verb='take',target='key'}]\n"  # noqa: E501
     "Use ONLY actor/target node IDs from the provided list for target/actor fields.\n"
     'ONLY emit "no_viable_action" when the input is genuine gibberish (e.g.\n'
     "'asdfqwerty') or has no coherent intent. An action with a clear verb that\n"
@@ -219,14 +222,15 @@ class Classifier:
     ) -> ClassifierVerdict:
         if not isinstance(verdict, VerdictOk):
             return verdict
-        classified = verdict.classified
-        # Check target (direct object)
-        if classified.target is not None and classified.target not in known_node_ids:
-            return VerdictNoSuchTarget(target_text=classified.target)
-        # Check indirect_object (GAP-ENG02 — ditransitive verbs like give/teach)
-        if (
-            classified.indirect_object is not None
-            and classified.indirect_object not in known_node_ids
-        ):
-            return VerdictNoSuchTarget(target_text=classified.indirect_object)
+        # Check each sub-action for unknown targets
+        for classified in verdict.actions:
+            # Check target (direct object)
+            if classified.target is not None and classified.target not in known_node_ids:
+                return VerdictNoSuchTarget(target_text=classified.target)
+            # Check indirect_object (GAP-ENG02 — ditransitive verbs like give/teach)
+            if (
+                classified.indirect_object is not None
+                and classified.indirect_object not in known_node_ids
+            ):
+                return VerdictNoSuchTarget(target_text=classified.indirect_object)
         return verdict

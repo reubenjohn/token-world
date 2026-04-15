@@ -91,7 +91,7 @@ class FakeClassifier:
         # actor is always injected; classified_dict may already have it
         merged = {"actor": actor, **self._classified_dict}
         return VerdictOk(
-            classified=ClassifiedAction(**merged),
+            actions=[ClassifiedAction(**merged)],
             confidence=0.99,
         )
 

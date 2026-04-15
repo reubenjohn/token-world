@@ -87,12 +87,14 @@ def kg(tmp_path: Path) -> KnowledgeGraph:
 _CLASSIFY_TRAVEL = json.dumps(
     {
         "kind": "ok",
-        "classified": {
-            "verb": "travel",
-            "actor": "alice",
-            "target": "room_d",
-            "params": {},
-        },
+        "actions": [
+            {
+                "verb": "travel",
+                "actor": "alice",
+                "target": "room_d",
+                "params": {},
+            }
+        ],
         "confidence": 0.92,
     }
 )
@@ -101,12 +103,14 @@ _CLASSIFY_TRAVEL = json.dumps(
 _CLASSIFY_LOOK = json.dumps(
     {
         "kind": "ok",
-        "classified": {
-            "verb": "look",
-            "actor": "alice",
-            "target": "alice",
-            "params": {},
-        },
+        "actions": [
+            {
+                "verb": "look",
+                "actor": "alice",
+                "target": "alice",
+                "params": {},
+            }
+        ],
         "confidence": 0.90,
     }
 )

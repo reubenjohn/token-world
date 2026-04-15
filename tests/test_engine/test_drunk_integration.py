@@ -84,7 +84,7 @@ def kg(tmp_path: Path) -> KnowledgeGraph:
 _CLASSIFY_DRINK_ALE = json.dumps(
     {
         "kind": "ok",
-        "classified": {"verb": "drink", "actor": "alice", "target": "ale", "params": {}},
+        "actions": [{"verb": "drink", "actor": "alice", "target": "ale", "params": {}}],
         "confidence": 0.95,
     }
 )
@@ -93,12 +93,14 @@ _CLASSIFY_DRINK_ALE = json.dumps(
 _CLASSIFY_SHOUT = json.dumps(
     {
         "kind": "ok",
-        "classified": {
-            "verb": "shout",
-            "actor": "alice",
-            "target": "bartender",
-            "params": {},
-        },
+        "actions": [
+            {
+                "verb": "shout",
+                "actor": "alice",
+                "target": "bartender",
+                "params": {},
+            }
+        ],
         "confidence": 0.88,
     }
 )

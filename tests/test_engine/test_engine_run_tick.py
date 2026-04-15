@@ -95,7 +95,7 @@ class Exploder(Mechanic):
 _OK_PICKUP = json.dumps(
     {
         "kind": "ok",
-        "classified": {"verb": "pickup", "actor": "alice", "target": "rock_1", "params": {}},
+        "actions": [{"verb": "pickup", "actor": "alice", "target": "rock_1", "params": {}}],
         "confidence": 0.95,
     }
 )
@@ -105,14 +105,14 @@ _NO_SUCH_TARGET = json.dumps({"kind": "no_such_target", "target_text": "the moon
 _OK_GIVE_COIN = json.dumps(
     {
         "kind": "ok",
-        "classified": {"verb": "give_coin", "actor": "alice", "target": "alice", "params": {}},
+        "actions": [{"verb": "give_coin", "actor": "alice", "target": "alice", "params": {}}],
         "confidence": 0.99,
     }
 )
 _OK_EXPLODE = json.dumps(
     {
         "kind": "ok",
-        "classified": {"verb": "explode", "actor": "alice", "target": "alice", "params": {}},
+        "actions": [{"verb": "explode", "actor": "alice", "target": "alice", "params": {}}],
         "confidence": 0.99,
     }
 )
@@ -343,7 +343,7 @@ def test_run_tick_conservation_violation_rolls_back_and_refuses(tmp_universe, kg
     haiku_resp = json.dumps(
         {
             "kind": "ok",
-            "classified": {"verb": "give_coin", "actor": "alice", "target": "alice", "params": {}},
+            "actions": [{"verb": "give_coin", "actor": "alice", "target": "alice", "params": {}}],
             "confidence": 0.99,
         }
     )
@@ -542,7 +542,7 @@ def test_run_tick_engine_error_during_execute_returns_refused_and_rolls_back(tmp
     haiku_resp = json.dumps(
         {
             "kind": "ok",
-            "classified": {"verb": "explode", "actor": "alice", "target": "alice", "params": {}},
+            "actions": [{"verb": "explode", "actor": "alice", "target": "alice", "params": {}}],
             "confidence": 0.99,
         }
     )
@@ -648,12 +648,14 @@ def test_run_tick_consecutive_conservation_rollbacks_produce_distinct_tick_ids(t
     _OK_GIVE_COIN = json.dumps(
         {
             "kind": "ok",
-            "classified": {
-                "verb": "give_coin",
-                "actor": "alice",
-                "target": "alice",
-                "params": {},
-            },
+            "actions": [
+                {
+                    "verb": "give_coin",
+                    "actor": "alice",
+                    "target": "alice",
+                    "params": {},
+                }
+            ],
             "confidence": 0.99,
         }
     )

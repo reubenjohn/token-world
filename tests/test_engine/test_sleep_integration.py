@@ -58,7 +58,7 @@ def kg(tmp_path: Path) -> KnowledgeGraph:
 _CLASSIFY_SLEEP = json.dumps(
     {
         "kind": "ok",
-        "classified": {"verb": "sleep", "actor": "alice", "target": "alice", "params": {}},
+        "actions": [{"verb": "sleep", "actor": "alice", "target": "alice", "params": {}}],
         "confidence": 0.95,
     }
 )
@@ -67,7 +67,7 @@ _CLASSIFY_SLEEP = json.dumps(
 _CLASSIFY_GO_NORTH = json.dumps(
     {
         "kind": "ok",
-        "classified": {"verb": "go", "actor": "alice", "target": "north", "params": {}},
+        "actions": [{"verb": "go", "actor": "alice", "target": "north", "params": {}}],
         "confidence": 0.90,
     }
 )

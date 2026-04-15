@@ -181,21 +181,21 @@ class MutationCounter(Mechanic):
 _OK_PICKUP = json.dumps(
     {
         "kind": "ok",
-        "classified": {"verb": "pickup", "actor": "alice", "target": "rock_1", "params": {}},
+        "actions": [{"verb": "pickup", "actor": "alice", "target": "rock_1", "params": {}}],
         "confidence": 0.95,
     }
 )
 _OK_SET_SEASON = json.dumps(
     {
         "kind": "ok",
-        "classified": {"verb": "set_season", "actor": "alice", "target": "alice", "params": {}},
+        "actions": [{"verb": "set_season", "actor": "alice", "target": "alice", "params": {}}],
         "confidence": 0.95,
     }
 )
 _OK_PICKUP_NO_MECHANIC = json.dumps(
     {
         "kind": "ok",
-        "classified": {"verb": "pickup", "actor": "alice", "target": "rock_1", "params": {}},
+        "actions": [{"verb": "pickup", "actor": "alice", "target": "rock_1", "params": {}}],
         "confidence": 0.95,
     }
 )

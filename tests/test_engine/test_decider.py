@@ -45,7 +45,7 @@ def _no_match(candidates: list[str] | None = None) -> NoMatchResult:
 
 
 def _verdict_ok(verb: str = "take") -> VerdictOk:
-    return VerdictOk(classified=_classified(verb=verb), confidence=0.95)
+    return VerdictOk(actions=[_classified(verb=verb)], confidence=0.95)
 
 
 # ---------------------------------------------------------------------------

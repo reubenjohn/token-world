@@ -56,7 +56,7 @@ def _clf(responses: list[str], **kwargs) -> tuple[Classifier, MockAnthropicClien
 _OK_RESPONSE = json.dumps(
     {
         "kind": "ok",
-        "classified": {"verb": "pickup", "actor": "alice", "target": "rock_1", "params": {}},
+        "actions": [{"verb": "pickup", "actor": "alice", "target": "rock_1", "params": {}}],
         "confidence": 0.95,
     }
 )
@@ -190,12 +190,14 @@ class TestClassifierPostProcessing:
         low_ok = json.dumps(
             {
                 "kind": "ok",
-                "classified": {
-                    "verb": "pickup",
-                    "actor": "alice",
-                    "target": "rock_1",
-                    "params": {},
-                },
+                "actions": [
+                    {
+                        "verb": "pickup",
+                        "actor": "alice",
+                        "target": "rock_1",
+                        "params": {},
+                    }
+                ],
                 "confidence": 0.5,
             }
         )
@@ -228,13 +230,15 @@ class TestClassifierPostProcessing:
         response_with_extras = json.dumps(
             {
                 "kind": "ok",
-                "classified": {
-                    "verb": "pickup",
-                    "actor": "alice",
-                    "target": "rock_1",
-                    "params": {},
-                    "extra_llm_field": "ignored",
-                },
+                "actions": [
+                    {
+                        "verb": "pickup",
+                        "actor": "alice",
+                        "target": "rock_1",
+                        "params": {},
+                        "extra_llm_field": "ignored",
+                    }
+                ],
                 "confidence": 0.9,
                 "some_reasoning": "I think this is correct",
             }
@@ -259,13 +263,15 @@ class TestClassifierIndirectObjectValidation:
         response_with_indirect = json.dumps(
             {
                 "kind": "ok",
-                "classified": {
-                    "verb": "give",
-                    "actor": "alice",
-                    "target": "gold_coin",
-                    "indirect_object": "phantom_bob",  # not in known_node_ids
-                    "params": {},
-                },
+                "actions": [
+                    {
+                        "verb": "give",
+                        "actor": "alice",
+                        "target": "gold_coin",
+                        "indirect_object": "phantom_bob",  # not in known_node_ids
+                        "params": {},
+                    }
+                ],
                 "confidence": 0.95,
             }
         )
@@ -285,13 +291,15 @@ class TestClassifierIndirectObjectValidation:
         response_with_indirect = json.dumps(
             {
                 "kind": "ok",
-                "classified": {
-                    "verb": "give",
-                    "actor": "alice",
-                    "target": "gold_coin",
-                    "indirect_object": "bob",
-                    "params": {},
-                },
+                "actions": [
+                    {
+                        "verb": "give",
+                        "actor": "alice",
+                        "target": "gold_coin",
+                        "indirect_object": "bob",
+                        "params": {},
+                    }
+                ],
                 "confidence": 0.95,
             }
         )

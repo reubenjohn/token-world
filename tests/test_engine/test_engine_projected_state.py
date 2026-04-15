@@ -57,7 +57,7 @@ class Pickup(Mechanic):
 _OK_PICKUP = json.dumps(
     {
         "kind": "ok",
-        "classified": {"verb": "pickup", "actor": "alice", "target": "rock_1", "params": {}},
+        "actions": [{"verb": "pickup", "actor": "alice", "target": "rock_1", "params": {}}],
         "confidence": 0.95,
     }
 )

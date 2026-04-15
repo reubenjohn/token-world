@@ -72,19 +72,21 @@ class MockAnthropicClient:
 _OK_PICKUP = json.dumps(
     {
         "kind": "ok",
-        "classified": {"verb": "pickup", "actor": "alice", "target": "rock_1", "params": {}},
+        "actions": [{"verb": "pickup", "actor": "alice", "target": "rock_1", "params": {}}],
         "confidence": 0.95,
     }
 )
 _OK_NOMATCH = json.dumps(
     {
         "kind": "ok",
-        "classified": {
-            "verb": "frobnicate",
-            "actor": "alice",
-            "target": None,
-            "params": {},
-        },
+        "actions": [
+            {
+                "verb": "frobnicate",
+                "actor": "alice",
+                "target": None,
+                "params": {},
+            }
+        ],
         "confidence": 0.90,
     }
 )

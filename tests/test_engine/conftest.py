@@ -72,8 +72,8 @@ def mock_anthropic_haiku() -> MockAnthropicClient:
     """Mock Anthropic client with canned classifier-ok response."""
     return MockAnthropicClient(
         [
-            '{"kind":"ok","classified":{"verb":"pickup","actor":"alice",'
-            '"target":"rock_1","params":{}},"confidence":0.95}'
+            '{"kind":"ok","actions":[{"verb":"pickup","actor":"alice",'
+            '"target":"rock_1","params":{}}],"confidence":0.95}'
         ]
     )
 

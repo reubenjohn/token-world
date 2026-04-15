@@ -86,11 +86,11 @@ _ta = TypeAdapter(ClassifierVerdict)
 
 
 def test_verdict_ok_parse_from_json() -> None:
-    """kind=ok parses to VerdictOk."""
+    """kind=ok parses to VerdictOk using the new actions list schema."""
     raw = json.dumps(
         {
             "kind": "ok",
-            "classified": {"verb": "pickup", "actor": "alice"},
+            "actions": [{"verb": "pickup", "actor": "alice"}],
             "confidence": 0.9,
         }
     )
@@ -98,6 +98,66 @@ def test_verdict_ok_parse_from_json() -> None:
     assert isinstance(verdict, VerdictOk)
     assert verdict.kind == "ok"
     assert verdict.confidence == 0.9
+
+
+def test_verdict_ok_back_compat_classified_property() -> None:
+    """VerdictOk.classified back-compat property returns actions[0]."""
+    ca = ClassifiedAction(verb="pickup", actor="alice", target="rock_1")
+    verdict = VerdictOk(actions=[ca], confidence=0.9)
+    assert verdict.classified == ca
+
+
+def test_verdict_ok_multi_action() -> None:
+    """VerdictOk with two sub-actions: actions list preserved, classified == actions[0]."""
+    ca1 = ClassifiedAction(verb="open", actor="alice", target="chest_1")
+    ca2 = ClassifiedAction(verb="take", actor="alice", target="key_1")
+    verdict = VerdictOk(actions=[ca1, ca2], confidence=0.85)
+    assert verdict.actions == [ca1, ca2]
+    assert verdict.classified == ca1
+
+
+def test_verdict_ok_actions_roundtrip() -> None:
+    """VerdictOk JSON round-trip with actions key validates correctly."""
+    raw = json.dumps(
+        {
+            "kind": "ok",
+            "actions": [
+                {"verb": "open", "actor": "alice", "target": "chest_1"},
+                {"verb": "take", "actor": "alice", "target": "key_1"},
+            ],
+            "confidence": 0.85,
+        }
+    )
+    verdict = _ta.validate_json(raw)
+    assert isinstance(verdict, VerdictOk)
+    assert len(verdict.actions) == 2
+    assert verdict.actions[0].verb == "open"
+    assert verdict.actions[1].verb == "take"
+
+
+def test_verdict_ok_old_classified_key_rejected() -> None:
+    """Old JSON with 'classified' key no longer parses as VerdictOk (schema 2.0)."""
+    import pytest
+    from pydantic import ValidationError
+
+    raw = json.dumps(
+        {
+            "kind": "ok",
+            "classified": {"verb": "pickup", "actor": "alice"},
+            "confidence": 0.9,
+        }
+    )
+    with pytest.raises(ValidationError):
+        _ta.validate_json(raw)
+
+
+def test_verdict_ok_empty_actions_rejected() -> None:
+    """VerdictOk(actions=[]) raises Pydantic ValidationError (non-empty constraint)."""
+    import pytest
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        VerdictOk(actions=[], confidence=0.9)
 
 
 def test_verdict_no_viable_action_parse_from_json() -> None:
@@ -168,7 +228,7 @@ def test_verdict_ok_extra_fields_ignored() -> None:
     raw = json.dumps(
         {
             "kind": "ok",
-            "classified": {"verb": "speak", "actor": "alice", "extra_llm_field": "ignored"},
+            "actions": [{"verb": "speak", "actor": "alice", "extra_llm_field": "ignored"}],
             "confidence": 0.85,
             "some_extra_reasoning": "...",
         }

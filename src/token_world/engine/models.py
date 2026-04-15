@@ -28,8 +28,13 @@ class VerdictOk(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     kind: Literal["ok"] = "ok"
-    classified: ClassifiedAction
+    actions: list[ClassifiedAction] = Field(min_length=1)
     confidence: float = Field(ge=0.0, le=1.0)
+
+    @property
+    def classified(self) -> ClassifiedAction:
+        """Back-compat: returns actions[0]. All existing callers work unchanged."""
+        return self.actions[0]
 
 
 class VerdictNoViableAction(BaseModel):
