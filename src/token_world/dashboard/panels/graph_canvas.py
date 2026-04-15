@@ -219,8 +219,13 @@ def synthesise_property_edges(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
     return pseudo
 
 
-def build_mermaid(snapshot: dict[str, Any]) -> str:
-    """Render a graph snapshot as a Mermaid ``flowchart`` source string."""
+def build_mermaid(snapshot: dict[str, Any], *, selected_agent_id: str = "") -> str:
+    """Render a graph snapshot as a Mermaid ``flowchart`` source string.
+
+    When ``selected_agent_id`` is non-empty, the named node gets a CSS
+    ``style`` override (amber outline) and its ``located_in`` pseudo-edge
+    is emitted as a thick solid arrow instead of dashed.
+    """
     if not snapshot.get("nodes"):
         return 'flowchart LR\n    empty["(empty graph)"]'
 
@@ -241,6 +246,9 @@ def build_mermaid(snapshot: dict[str, Any]) -> str:
             raw_label = node["id"]
         label = escape_label(raw_label, max_len=40)
         lines.append(f'    {safe_id}["{label}"]:::{node["label_group"]}')
+        # Highlight the selected agent node with an amber outline.
+        if selected_agent_id and node["id"] == selected_agent_id:
+            lines.append(f"    style {safe_id} stroke:#facc15,stroke-width:3px")
 
     # Real edges (solid arrows).
     for edge in snapshot["edges"]:
@@ -253,16 +261,24 @@ def build_mermaid(snapshot: dict[str, Any]) -> str:
             lines.append(f"    {src} --> {dst}")
 
     # Synthesised property pseudo-edges (dashed arrows, §A4).
-    # Mermaid syntax: ``A -. label .-> B`` draws a dashed arrow with a
-    # floating label. We keep the label short; it's the property name.
+    # When the pseudo-edge originates from the selected agent and is a
+    # ``located_in`` edge, emit a thick solid amber arrow instead of dashed.
     for pseudo in synthesise_property_edges(snapshot):
         src = _safe_mermaid_id(pseudo["src"])
         dst = _safe_mermaid_id(pseudo["dst"])
         relation = escape_label(pseudo.get("relation") or "", max_len=20)
-        if relation:
-            lines.append(f"    {src} -.{relation}.-> {dst}")
+        if (
+            selected_agent_id
+            and pseudo["src"] == selected_agent_id
+            and pseudo.get("relation") == "located_in"
+        ):
+            # Highlighted: thick amber arrow for selected agent's location.
+            lines.append(f"    {src} == {relation} ==> {dst}")
         else:
-            lines.append(f"    {src} -.-> {dst}")
+            if relation:
+                lines.append(f"    {src} -.{relation}.-> {dst}")
+            else:
+                lines.append(f"    {src} -.-> {dst}")
 
     # Class definitions (colors).
     lines.append("    classDef agent fill:#1e3a8a,stroke:#60a5fa,color:#f1f5f9")
@@ -302,15 +318,28 @@ def compute_graph_signature(snapshot: dict[str, Any]) -> tuple[int, int, float]:
     )
 
 
-def mount_graph_panel(universe_dir: Path, slug: str) -> Any:  # noqa: ARG001 — slug for future label.
-    """Mount the graph canvas + clickable node list + drawer."""
+def mount_graph_panel(
+    universe_dir: Path,
+    slug: str,  # noqa: ARG001 — slug for future label.
+    *,
+    selected_agent: dict[str, str] | None = None,
+) -> Any:
+    """Mount the graph canvas + clickable node list + drawer.
+
+    ``selected_agent`` is an optional mutable dict ``{"value": ""}`` shared
+    from ``app.py``. When ``selected_agent["value"]`` is non-empty, the
+    named node gets an amber outline and its ``located_in`` pseudo-edge is
+    highlighted with a thick arrow.
+    """
     from nicegui import ui
 
     container = ui.column().classes("w-full gap-2")
     selected: dict[str, Any] = {"node_id": None, "properties": None}
     # §A7: cache last-rendered snapshot signature so poll cycles can be a
     # no-op when the graph hasn't changed. ``None`` = "never rendered".
-    chart_state: dict[str, Any] = {"signature": None}
+    # Also track last-rendered agent selection so a selection change forces
+    # a chart rebuild even when the graph signature is unchanged.
+    chart_state: dict[str, Any] = {"signature": None, "selected_agent_id": None}
 
     def _rebuild_drawer(drawer_column: Any) -> None:
         drawer_column.clear()
@@ -364,14 +393,16 @@ def mount_graph_panel(universe_dir: Path, slug: str) -> Any:  # noqa: ARG001 —
         # §A7: skip DOM rebuild when nothing meaningful changed. We still
         # refresh the status_label above every tick so the counts stay
         # fresh, but the mermaid chart + button list only re-emit on
-        # signature change.
+        # signature change OR selected agent change.
         signature = compute_graph_signature(snapshot)
-        if signature == chart_state["signature"]:
+        agent_id = (selected_agent or {}).get("value", "")
+        if signature == chart_state["signature"] and agent_id == chart_state["selected_agent_id"]:
             return
         chart_state["signature"] = signature
+        chart_state["selected_agent_id"] = agent_id
 
         chart_col.clear()
-        mermaid_src = build_mermaid(snapshot)
+        mermaid_src = build_mermaid(snapshot, selected_agent_id=agent_id)
         with chart_col:
             ui.mermaid(mermaid_src).classes("w-full")
             ui.separator()

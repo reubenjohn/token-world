@@ -95,6 +95,39 @@ def test_load_recent_tick_cards_respects_max(fake_universe: Path, write_tick_das
 
 
 # ---------------------------------------------------------------------------
+# SC-1a: actor_id field in build_card + filtering
+# ---------------------------------------------------------------------------
+
+
+def test_build_card_includes_actor_id_from_classified_action() -> None:
+    tick = {
+        "tick_id": "10",
+        "classified_action": {"verb": "walk", "actor": "alice", "target": "forest"},
+        "matched_mechanic_id": "move",
+    }
+    card = build_card(tick)
+    assert card["actor_id"] == "alice"
+
+
+def test_build_card_actor_id_empty_when_no_classified_action() -> None:
+    tick = {"tick_id": "11", "action_text": "do something"}
+    card = build_card(tick)
+    assert card["actor_id"] == ""
+
+
+def test_load_recent_tick_cards_filters_by_actor(fake_universe: Path, write_tick_dashboard) -> None:
+    ticks_dir = fake_universe / "tick_summaries" / "ticks"
+    write_tick_dashboard(ticks_dir, "1", classified_action={"actor": "alice"})
+    write_tick_dashboard(ticks_dir, "2", classified_action={"actor": "bob"})
+    write_tick_dashboard(ticks_dir, "3", classified_action={"actor": "alice"})
+    cards = load_recent_tick_cards(fake_universe)
+    alice_cards = [c for c in cards if c["actor_id"] == "alice"]
+    bob_cards = [c for c in cards if c["actor_id"] == "bob"]
+    assert len(alice_cards) == 2
+    assert len(bob_cards) == 1
+
+
+# ---------------------------------------------------------------------------
 # §A7 scroll preservation — DOM reuse regression tests
 # ---------------------------------------------------------------------------
 #

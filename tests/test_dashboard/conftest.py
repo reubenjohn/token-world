@@ -49,3 +49,20 @@ def fake_universe_with_graph(fake_universe: Path) -> Path:
 def write_tick_dashboard():  # noqa: ANN201 — callable fixture.
     """Return the tick-writer helper (re-exported for local tests)."""
     return _write_tick_summary
+
+
+@pytest.fixture
+def fake_universe_two_agents(fake_universe: Path, write_tick_dashboard) -> Path:
+    """fake_universe with 2 agent nodes + 2 ticks attributed to each agent."""
+    from token_world.graph import KnowledgeGraph
+
+    kg = KnowledgeGraph(db_path=fake_universe / "universe.db")
+    kg.add_node("alice", node_type="agent", located_in="forest")
+    kg.add_node("bob", node_type="agent", located_in="forest")
+    kg.add_node("forest", node_type="entity", subtype="location")
+    kg.save()
+
+    ticks_dir = fake_universe / "tick_summaries" / "ticks"
+    write_tick_dashboard(ticks_dir, "1", classified_action={"actor": "alice", "verb": "walk"})
+    write_tick_dashboard(ticks_dir, "2", classified_action={"actor": "bob", "verb": "sit"})
+    return fake_universe

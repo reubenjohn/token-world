@@ -105,14 +105,54 @@ def _mount_main_body(ui: Any, universe_dir: Path, slug: str) -> None:
     from token_world.dashboard.panels.graph_canvas import mount_graph_panel
     from token_world.dashboard.panels.property_history import mount_property_history_panel
     from token_world.dashboard.panels.tick_stream import mount_tick_stream_panel
+    from token_world.inspect.agents import aggregate as agents_aggregate
+
+    # Reactive selected_agent state (mutable dict as closure-safe ref)
+    selected_agent: dict[str, str] = {"value": ""}
+
+    # Agent selector state
+    agent_state: dict[str, Any] = {"options": [""], "select_elem": None}
+
+    def _refresh_agent_options() -> None:
+        try:
+            report = agents_aggregate(universe_dir, slug=slug)
+            ids = sorted(a.id for a in report.agents)
+        except Exception:  # noqa: BLE001
+            ids = []
+        options = [""] + ids  # "" = All agents
+        agent_state["options"] = options
+        sel = agent_state.get("select_elem")
+        if sel is not None:
+            sel.options = options
 
     with ui.row().classes("w-full gap-4 items-stretch flex-wrap"):
         with ui.column().classes("flex-1 min-w-[360px] max-w-[560px] gap-2"):
             ui.label("Tick stream").classes("text-lg font-semibold text-slate-200")
-            mount_tick_stream_panel(universe_dir, slug)
+
+            # Agent selector (above tick stream)
+            _refresh_agent_options()
+            options = agent_state["options"]
+
+            def _on_agent_select(e: Any) -> None:
+                selected_agent["value"] = e.value if e.value else ""
+
+            sel_elem = (
+                ui.select(
+                    options,
+                    value="",
+                    label="Agent",
+                    on_change=_on_agent_select,
+                )
+                .classes("w-full bg-slate-800 text-slate-100")
+                .props("dense dark")
+            )
+            agent_state["select_elem"] = sel_elem
+            ui.timer(2.0, _refresh_agent_options)
+
+            mount_tick_stream_panel(universe_dir, slug, selected_agent=selected_agent)
         with ui.column().classes("flex-1 min-w-[480px] gap-2"):
             ui.label("Graph canvas").classes("text-lg font-semibold text-slate-200")
-            mount_graph_panel(universe_dir, slug)
+            mount_graph_panel(universe_dir, slug, selected_agent=selected_agent)
             ui.separator()
             ui.label("Property history").classes("text-lg font-semibold text-slate-200")
             mount_property_history_panel(universe_dir, slug)

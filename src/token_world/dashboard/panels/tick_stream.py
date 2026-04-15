@@ -85,6 +85,9 @@ def build_card(tick: dict[str, Any]) -> dict[str, Any]:
         status = "unmatched"
         status_detail = "(no mechanic)"
 
+    classified = tick.get("classified_action") or {}
+    actor_id = str(classified.get("actor") or "")
+
     return {
         "tick_id": str(tick.get("tick_id") or "?"),
         "timestamp_iso": str(tick.get("timestamp_iso") or ""),
@@ -93,6 +96,7 @@ def build_card(tick: dict[str, Any]) -> dict[str, Any]:
         "status": status,
         "status_detail": status_detail,
         "observation": observation,
+        "actor_id": actor_id,
         "raw": tick,
     }
 
@@ -106,7 +110,9 @@ def _truncate(text: str | None, *, max_len: int) -> str:
     return flat[: max_len - 3] + "..."
 
 
-def mount_tick_stream_panel(universe_dir: Path, slug: str) -> Any:
+def mount_tick_stream_panel(
+    universe_dir: Path, slug: str, *, selected_agent: dict[str, str] | None = None
+) -> Any:
     """Mount the live tick stream into the current NiceGUI page.
 
     §A7 scroll preservation: the poll handler compares the latest tick
@@ -114,6 +120,10 @@ def mount_tick_stream_panel(universe_dir: Path, slug: str) -> Any:
     *prepended* as fresh cards; existing cards are left untouched so any
     open expansion keeps its state. No card is ever re-rendered during a
     poll.
+
+    ``selected_agent`` is an optional mutable dict ``{"value": ""}`` shared
+    from ``app.py``. When ``selected_agent["value"]`` is non-empty, only
+    ticks with a matching ``actor_id`` are rendered.
     """
     from nicegui import ui
 
@@ -149,6 +159,9 @@ def mount_tick_stream_panel(universe_dir: Path, slug: str) -> Any:
 
     def _rebuild() -> None:
         cards = load_recent_tick_cards(universe_dir)
+        agent_filter = (selected_agent or {}).get("value", "")
+        if agent_filter:
+            cards = [c for c in cards if c.get("actor_id") == agent_filter]
         ids_tuple = tuple(c["tick_id"] for c in cards)
 
         if not cards:
@@ -218,7 +231,8 @@ def _render_card(ui: Any, card: dict[str, Any], *, universe_dir: Path | None = N
         "unmatched": "bg-slate-900 border-slate-800",
     }.get(status, "bg-slate-800 border-slate-700")
 
-    header = f"tick {card['tick_id']}  ·  {status}  ·  {card['status_detail']}"
+    badge = f"  ·  {card['actor_id']}" if card.get("actor_id") else ""
+    header = f"tick {card['tick_id']}  ·  {status}  ·  {card['status_detail']}{badge}"
     expansion = ui.expansion(header).classes(f"w-full rounded-md border text-slate-100 {palette}")
     with expansion, ui.column().classes("gap-2 px-2 py-2 w-full"):
         _render_expansion_body(ui, card, universe_dir=universe_dir)
@@ -250,6 +264,8 @@ def _render_expansion_body(
     # Header row: always-visible timestamp so the user can orient.
     if card["timestamp_iso"]:
         ui.label(card["timestamp_iso"]).classes("text-xs text-slate-400 font-mono")
+    if card.get("actor_id"):
+        ui.label(f"· {card['actor_id']}").classes("text-slate-400 text-xs font-mono")
 
     # --- Classification -----------------------------------------------
     _section_header(ui, "Classification")

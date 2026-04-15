@@ -301,6 +301,79 @@ def test_build_mermaid_skips_pseudo_for_unknown_target() -> None:
     assert "-.located_in.->" not in src, src
 
 
+# ---------------------------------------------------------------------------
+# SC-2: selected_agent_id highlight in build_mermaid
+# ---------------------------------------------------------------------------
+
+
+def test_build_mermaid_outlines_selected_agent_node() -> None:
+    snap = _snapshot_for_synthesis(
+        [
+            {
+                "id": "alice",
+                "type": "agent",
+                "subtype": None,
+                "label_group": "agent",
+                "properties": {"type": "agent"},
+            },
+            {
+                "id": "bob",
+                "type": "agent",
+                "subtype": None,
+                "label_group": "agent",
+                "properties": {"type": "agent"},
+            },
+        ]
+    )
+    src = build_mermaid(snap, selected_agent_id="alice")
+    assert "style alice" in src
+    assert "stroke:#facc15" in src
+    # bob is NOT outlined
+    assert "style bob" not in src
+
+
+def test_build_mermaid_highlights_selected_agent_located_in_edge() -> None:
+    snap = _snapshot_for_synthesis(
+        [
+            {
+                "id": "alice",
+                "type": "agent",
+                "subtype": None,
+                "label_group": "agent",
+                "properties": {"type": "agent", "located_in": "forest"},
+            },
+            {
+                "id": "forest",
+                "type": "entity",
+                "subtype": "location",
+                "label_group": "location",
+                "properties": {"type": "entity", "subtype": "location"},
+            },
+        ]
+    )
+    src = build_mermaid(snap, selected_agent_id="alice")
+    # Highlighted edge uses thick arrow (==>) not dashed (-.)
+    assert "alice == located_in ==> forest" in src
+    # Standard dashed edge NOT emitted for this pair
+    assert "alice -.located_in.-> forest" not in src
+
+
+def test_build_mermaid_no_outline_when_no_selected_agent() -> None:
+    snap = _snapshot_for_synthesis(
+        [
+            {
+                "id": "alice",
+                "type": "agent",
+                "subtype": None,
+                "label_group": "agent",
+                "properties": {"type": "agent"},
+            },
+        ]
+    )
+    src = build_mermaid(snap)  # default selected_agent_id=""
+    assert "style alice" not in src
+
+
 def test_synthesise_does_not_mutate_snapshot() -> None:
     """Guarantee: the graph / snapshot must never be mutated by synthesis."""
     snap = _snapshot_for_synthesis(
