@@ -1,0 +1,156 @@
+<!doctype html><html lang=en class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><link href=https://reubenjohn.github.io/token-world/design/architecture/ rel=canonical><link rel=prev href=../..><link href=../../guides/getting-started/ rel=next><link rel=icon href=../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.6"><title>Architecture - Token World</title><link rel=stylesheet href=../../assets/stylesheets/main.484c7ddc.min.css><link rel=stylesheet href=../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback"><style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style><script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=deep-purple data-md-color-accent=amber> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#architecture-overview class=md-skip> Skip to content </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=Header> <a href=../.. title="Token World" class="md-header__button md-logo" aria-label="Token World" data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> Token World </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> Architecture </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media data-md-color-scheme=default data-md-color-primary=deep-purple data-md-color-accent=amber aria-label="Switch to dark mode" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="Switch to dark mode" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg> </label> <input class=md-option data-md-color-media data-md-color-scheme=slate data-md-color-primary=deep-purple data-md-color-accent=amber aria-label="Switch to light mode" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="Switch to light mode" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=Search placeholder=Search autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=Search> <button type=reset class="md-search__icon md-icon" title=Clear aria-label=Clear tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> Initializing search </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/reubenjohn/token-world title="Go to repository" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 448 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg> </div> <div class=md-source__repository> reubenjohn/token-world </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=Navigation data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../.. title="Token World" class="md-nav__button md-logo" aria-label="Token World" data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg> </a> Token World </label> <div class=md-nav__source> <a href=https://github.com/reubenjohn/token-world title="Go to repository" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 448 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg> </div> <div class=md-source__repository> reubenjohn/token-world </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../.. class=md-nav__link> <span class=md-ellipsis> Home </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2 checked> <label class=md-nav__link for=__nav_2 id=__nav_2_label tabindex> <span class=md-ellipsis> Design </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_2_label aria-expanded=true> <label class=md-nav__title for=__nav_2> <span class="md-nav__icon md-icon"></span> Design </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> Architecture </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> Architecture </span> </a> <nav class="md-nav md-nav--secondary" aria-label="Table of contents"> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> Table of contents </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#system-components class=md-nav__link> <span class=md-ellipsis> System Components </span> </a> </li> <li class=md-nav__item> <a href=#core-simulation-loop class=md-nav__link> <span class=md-ellipsis> Core Simulation Loop </span> </a> </li> <li class=md-nav__item> <a href=#mechanic-structure class=md-nav__link> <span class=md-ellipsis> Mechanic Structure </span> </a> </li> <li class=md-nav__item> <a href=#spatial-temporal-primitives class=md-nav__link> <span class=md-ellipsis> Spatial &amp; Temporal Primitives </span> </a> </li> <li class=md-nav__item> <a href=#operator-tooling class=md-nav__link> <span class=md-ellipsis> Operator Tooling </span> </a> </li> <li class=md-nav__item> <a href=#quality class=md-nav__link> <span class=md-ellipsis> Quality </span> </a> </li> <li class=md-nav__item> <a href=#phase-41-operator-harness class=md-nav__link> <span class=md-ellipsis> Phase 4.1: Operator Harness </span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3> <label class=md-nav__link for=__nav_3 id=__nav_3_label tabindex> <span class=md-ellipsis> Guides </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_3_label aria-expanded=false> <label class=md-nav__title for=__nav_3> <span class="md-nav__icon md-icon"></span> Guides </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../guides/getting-started/ class=md-nav__link> <span class=md-ellipsis> Getting Started </span> </a> </li> </ul> </nav> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label="Table of contents"> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> Table of contents </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#system-components class=md-nav__link> <span class=md-ellipsis> System Components </span> </a> </li> <li class=md-nav__item> <a href=#core-simulation-loop class=md-nav__link> <span class=md-ellipsis> Core Simulation Loop </span> </a> </li> <li class=md-nav__item> <a href=#mechanic-structure class=md-nav__link> <span class=md-ellipsis> Mechanic Structure </span> </a> </li> <li class=md-nav__item> <a href=#spatial-temporal-primitives class=md-nav__link> <span class=md-ellipsis> Spatial &amp; Temporal Primitives </span> </a> </li> <li class=md-nav__item> <a href=#operator-tooling class=md-nav__link> <span class=md-ellipsis> Operator Tooling </span> </a> </li> <li class=md-nav__item> <a href=#quality class=md-nav__link> <span class=md-ellipsis> Quality </span> </a> </li> <li class=md-nav__item> <a href=#phase-41-operator-harness class=md-nav__link> <span class=md-ellipsis> Phase 4.1: Operator Harness </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <h1 id=architecture-overview>Architecture Overview<a class=headerlink href=#architecture-overview title="Permanent link">&para;</a></h1> <blockquote> <p><strong>See also:</strong> <a href=../simulation-pipeline/ >simulation-pipeline.md</a> for the detailed per-tick flow, including the Phase 7 long-running action continuation branch and the Phase 6 playtest/compression plumbing. This page stays high-level on purpose.</p> </blockquote> <h2 id=system-components>System Components<a class=headerlink href=#system-components title="Permanent link">&para;</a></h2> <pre class=mermaid><code>graph TB
+    subgraph OL["Operator Layer"]
+        OP["Agent Harness\n(Claude Code / Codex)"]
+    end
+
+    subgraph MCP["MCP Tools"]
+        direction LR
+        RT["resume_tick()"]
+        RB["rollback()"]
+        LM["list_mechanics()"]
+    end
+
+    subgraph SE["Simulation Engine"]
+        SC["Scheduler"] --&gt;|"prior observations\n+ context"| RA["Resident Agent\n(Haiku)"]
+        RA --&gt;|"action text"| AI["Interpreter\n(Haiku)"]
+        AI --&gt;|"classified action"| MM["Matcher"]
+        MM --&gt;|match| ME["Executor"]
+        MM --&gt;|no match| PAUSE(["⏸ returns to Operator"])
+        ME --&gt;|"mutations"| KG[("Knowledge\nGraph")]
+        KG --&gt;|"updated state"| OG["Observer\n(Sonnet)"]
+        OG --&gt; DONE(["✓ tick result + observation"])
+    end
+
+    UF[("Universe Folder\nuniverse.db · mechanics/ · tick_summaries/")]
+
+    OP --&gt; RT &amp; RB &amp; LM
+    RT --&gt; SC
+    RT --&gt;|auto-scan mechanics/| UF
+    KG &lt;--&gt;|persist| UF
+    ME --&gt;|write| UF
+    OP --&gt;|"direct file I/O"| UF</code></pre> <h2 id=core-simulation-loop>Core Simulation Loop<a class=headerlink href=#core-simulation-loop title="Permanent link">&para;</a></h2> <pre class=mermaid><code>sequenceDiagram
+    participant O as Operator (Agent Harness)
+    participant E as Simulation Engine
+    participant A as Resident Agent (Haiku)
+    participant M as Mechanic Registry
+    participant G as Knowledge Graph
+
+    O-&gt;&gt;E: resume_tick()
+    Note over E: Scheduler determines agent execution order
+
+    loop For each scheduled agent
+        E-&gt;&gt;G: Query agent context + prior observations
+        G--&gt;&gt;E: Agent state
+        E-&gt;&gt;A: Feed observations + context
+        A--&gt;&gt;E: Action text (free-form)
+        E-&gt;&gt;E: Interpret &amp; classify action (Haiku)
+        E-&gt;&gt;M: Find matching mechanic
+        alt Mechanic exists
+            M--&gt;&gt;E: Return mechanic
+            E-&gt;&gt;G: Check preconditions
+            alt Preconditions met
+                E-&gt;&gt;G: Apply mutations
+                G--&gt;&gt;E: Updated state
+                E-&gt;&gt;E: Generate grounded observation (Sonnet)
+                E-&gt;&gt;A: Deliver observation to agent memory
+            else Preconditions not met
+                E--&gt;&gt;O: Tick result ("preconditions failed")
+            end
+        else No match — needs new mechanic
+            E--&gt;&gt;O: Tick paused ("no mechanic for: fly")
+            Note over O: Operator authors mechanics/fly.py&lt;br/&gt;using file writes + subagents
+            O-&gt;&gt;E: resume_tick() (auto-scans mechanics/, validates, continues paused tick)
+            E-&gt;&gt;M: Discover &amp; register mechanics/fly.py
+            E-&gt;&gt;G: Execute new mechanic
+            G--&gt;&gt;E: Updated state
+            E-&gt;&gt;E: Generate grounded observation (Sonnet)
+            E-&gt;&gt;A: Deliver observation to agent memory
+        end
+    end
+
+    E--&gt;&gt;O: Tick result + observations
+    O-&gt;&gt;O: Write tick summary to tick_summaries/</code></pre> <h2 id=mechanic-structure>Mechanic Structure<a class=headerlink href=#mechanic-structure title="Permanent link">&para;</a></h2> <pre class=mermaid><code>classDiagram
+    class Mechanic {
+        +str name
+        +str description
+        +int version
+        +check(graph, context) bool
+        +apply(graph, context) list~Mutation~
+    }
+
+    class KnowledgeGraph {
+        +query(node, property) Any
+        +set(node, property, value) Mutation
+        +add_node(id, **props) Mutation
+        +add_edge(src, dst, **props) Mutation
+        +snapshot() GraphState
+        +restore(snapshot) void
+    }
+
+    class MechanicContext {
+        +KnowledgeGraph kg
+        +SpatialIndex spatial
+        +TemporalIndex temporal
+    }
+
+    class SpatialIndex {
+        +nearest(point, k, ...) list
+        +within(bbox, ...) list
+        +intersects(node_id, ...) list
+    }
+
+    class TemporalIndex {
+        +query_history(node_id, tick_range) list
+        +query_changes(property, ...) list
+        +find_state_at_tick(node_id, tick) dict
+        +last_change(node_id, property) Event?
+    }
+
+    class Mutation {
+        +str type
+        +str target
+        +str property
+        +Any old_value
+        +Any new_value
+    }
+
+    Mechanic ..&gt; KnowledgeGraph : queries/mutates
+    Mechanic ..&gt; Mutation : produces
+    KnowledgeGraph ..&gt; Mutation : applies
+    Mechanic ..&gt; MechanicContext : reads
+    MechanicContext --&gt; KnowledgeGraph
+    MechanicContext --&gt; SpatialIndex : lazy
+    MechanicContext --&gt; TemporalIndex : lazy
+    SpatialIndex ..&gt; KnowledgeGraph : rebuilds from
+    TemporalIndex ..&gt; KnowledgeGraph : replays events of</code></pre> <h2 id=spatial-temporal-primitives>Spatial &amp; Temporal Primitives<a class=headerlink href=#spatial-temporal-primitives title="Permanent link">&para;</a></h2> <p>Mechanics reach the graph through <code>MechanicContext</code>. Two lazy accessors extend the DSL without adding cost to mechanics that don't use them:</p> <ul> <li><strong><code>ctx.spatial</code></strong> -- R-tree-backed queries (<code>nearest</code>, <code>within</code>, <code>intersects</code>) over nodes with <code>position=[x, y]</code> or <code>bbox=[x1, y1, x2, y2]</code> properties. Malformed coords are logged and skipped, not raised.</li> <li><strong><code>ctx.temporal</code></strong> -- Event-log queries (<code>query_history</code>, <code>query_changes</code>, <code>find_state_at_tick</code>, <code>last_change</code>) over the mem+disk-merged event stream. Reconstructs node state at any reachable tick via snapshot baseline + event replay.</li> </ul> <p>Both are pay-for-what-you-use: <code>ctx._spatial</code> / <code>ctx._temporal</code> stay <code>None</code> until first access.</p> <h2 id=operator-tooling>Operator Tooling<a class=headerlink href=#operator-tooling title="Permanent link">&para;</a></h2> <ul> <li><strong><code>token-world create &lt;slug&gt;</code></strong> -- scaffold a new universe folder.</li> <li><strong><code>token-world list</code></strong> -- enumerate known universes.</li> <li><strong><code>token-world viz-graph &lt;slug&gt;</code></strong> -- render the knowledge graph as a Mermaid <code>flowchart LR</code> with category styling, label/ID sanitisation, and filters (<code>--node</code>, <code>--depth</code>, <code>--type</code>, <code>--has-property</code>, <code>--exclude-property</code>, <code>--max-nodes</code>). See the <a href=../../guides/viz-graph/ >viz-graph guide</a>.</li> </ul> <h2 id=quality>Quality<a class=headerlink href=#quality title="Permanent link">&para;</a></h2> <p>Two canonical discipline docs gate merges and overnight runs:</p> <ul> <li><strong><a href=../../quality/dashboard-qa-checklist/ >dashboard-qa-checklist.md</a></strong> -- required PR pass for any <code>src/token_world/dashboard/</code> change (nine interactive checks + Playwright routine + user-mode cooldown).</li> <li><strong><a href=../../quality/sim-quality-rubric/ >sim-quality-rubric.md</a></strong> -- seven-dimension scorecard for "is the run healthy?" CI gate on release-tier overnight runs.</li> </ul> <h2 id=phase-41-operator-harness>Phase 4.1: Operator Harness<a class=headerlink href=#phase-41-operator-harness title="Permanent link">&para;</a></h2> <p>The operator harness catches simulation yields and drives mechanic authoring via the Claude Agent SDK. Two entry points share the same universe MCP surface and the same mechanic-author subagent definition:</p> <ul> <li><strong>Programmatic</strong> — <code>token-world run-tick</code> (Click CLI) instantiates <code>OperatorHarness.handle_yield(signal)</code> directly; used by automated tests and the Phase-6 playtest runner.</li> <li><strong>Interactive</strong> — a human opens Claude Code inside a universe folder. CLAUDE.md's <code>Operator Flow: When a Tick Yields</code> section teaches the outer Claude Code session to invoke the <code>mechanic-author</code> subagent (filesystem-defined at <code>.claude/agents/mechanic-author.md</code>).</li> </ul> <p>Both paths source their mechanic-author prompt from the same <code>mechanic_author_prompt(universe, yield_json)</code> Python function (<code>src/token_world/operator/subagent.py</code>), so prompt drift between the two is structurally impossible (T-04.1-22 mitigation).</p> <pre class=mermaid><code>flowchart TB
+    subgraph Engines["Yield sources"]
+        Phase5["Phase 5 engine&lt;br/&gt;(not built yet)"]
+        Stub["EngineStub&lt;br/&gt;(test-only)"]
+    end
+
+    subgraph Entry["Entry points"]
+        CLI["token-world run-tick&lt;br/&gt;(Click CLI)"]
+        CC["Claude Code&lt;br/&gt;(CLAUDE.md-driven)"]
+    end
+
+    Harness["OperatorHarness&lt;br/&gt;(Agent SDK, Opus)"]
+
+    subgraph SDKSession["Outer SDK session"]
+        direction LR
+        Subagent["mechanic-author&lt;br/&gt;subagent (Opus)"]
+        ValTool["validate_mechanic&lt;br/&gt;@tool wrapper"]
+        MCP3["3-tool MCP surface&lt;br/&gt;resume_tick · rollback · list_mechanics"]
+    end
+
+    Diag["DiagnosticsSink&lt;br/&gt;+ operator/ namespace&lt;br/&gt;(Phase 4.1 extension)"]
+    Mechanics["mechanics/*.py&lt;br/&gt;+ tests/"]
+
+    Phase5 -. "YieldSignal" .-&gt; Harness
+    Stub -. "YieldSignal (test)" .-&gt; Harness
+    CLI --&gt; Harness
+    CC --&gt; Harness
+    Harness --&gt; Subagent
+    Subagent --&gt; ValTool
+    Subagent --&gt; Mechanics
+    Harness --&gt; MCP3
+    Harness --&gt; Diag</code></pre> <p>Key contracts:</p> <ul> <li><strong>YieldSignal</strong> (<code>src/token_world/operator/yield_signal.py</code>) is the locked interface between engine and operator. Frozen+slots dataclass with 7 fields (<code>tick_id</code>, <code>universe_path</code>, <code>schema_version</code>, <code>reason</code>, <code>action_text</code>, <code>classified_action</code>, <code>actor_state</code>, <code>candidate_mechanic_ids</code>), deterministic JSON round-trip (<code>sort_keys=True, indent=2</code>), schema-versioned rejection on unknown <code>schema_version</code> values (T-04.1-01).</li> <li><strong>mechanic-author subagent prompt</strong> (<code>src/token_world/operator/subagent.py::mechanic_author_prompt</code>) is the single source of truth for both the programmatic <code>AgentDefinition</code> and the per-universe <code>.claude/agents/mechanic-author.md</code>. Scaffold writes the filesystem agent during <code>scaffold_universe()</code> via <code>token_world.universe.templates.mechanic_author_agent.render_mechanic_author_md()</code>.</li> <li><strong>Diagnostics operator namespace</strong> (<code>src/token_world/operator/diagnostics.py</code>) extends Phase 4's <code>DiagnosticsSink</code> with an <code>operator/</code> subfolder per tick. Artefacts: <code>yield_signal.json</code>, <code>authoring_attempts.jsonl</code>, <code>validation/attempt_NN.json</code>, <code>mechanic_diff.patch</code>, <code>resume_outcome.json</code>. Atomic writes use <code>tempfile.mkstemp + os.fsync + os.replace</code> mirroring Phase 4's helper. JSONL appends are tolerant of malformed lines on read. The <code>OperatorDiagnosticsReader</code> is the single sanctioned parser (D-16).</li> <li><strong>Subagent tool whitelist</strong> excludes <code>Agent</code> (Pitfall 5 / T-04.1-23: subagents must not spawn sub-subagents). Includes <code>mcp__validation__validate_mechanic</code> (in-process SDK MCP server wrapping the <code>validate-mechanic</code> CLI with <code>shell=False</code> — T-04.1-11) and <code>mcp__token-world__list_mechanics</code> (from the universe's <code>.mcp.json</code>).</li> <li><strong>Safety caps</strong> on the outer session: <code>max_turns=20</code> and <code>max_budget_usd=5.0</code> (SDK-enforced hard cap per BLOCKER-4 resolution in Plan 03). The integration test asserts <code>cost_usd &lt; 5.0</code>.</li> </ul> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> Made with <a href=https://squidfunk.github.io/mkdocs-material/ target=_blank rel=noopener> Material for MkDocs </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <script id=__config type=application/json>{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script> <script src=../../assets/javascripts/bundle.79ae519e.min.js></script> </body> </html>
