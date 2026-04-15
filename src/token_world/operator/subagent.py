@@ -24,7 +24,7 @@ from claude_agent_sdk import AgentDefinition
 
 from token_world.operator.yield_signal import YieldSignal
 
-__all__ = ["build_mechanic_author_agent", "mechanic_author_prompt"]
+__all__ = ["append_decision_log", "build_mechanic_author_agent", "mechanic_author_prompt"]
 
 
 _MECHANIC_AUTHOR_PROMPT = """\
@@ -42,6 +42,10 @@ the validation tool.
 # Universe path
 
 {universe}
+
+# Overlap analysis
+
+{overlap_report}
 
 # Your process
 
@@ -84,7 +88,12 @@ the validation tool.
 """
 
 
-def mechanic_author_prompt(*, universe: Path, yield_json: str) -> str:
+def mechanic_author_prompt(
+    *,
+    universe: Path,
+    yield_json: str,
+    overlap_report: str = "",
+) -> str:
     """Return the canonical mechanic-author subagent prompt.
 
     Exposed as a public function so Plan 04.1-05 can write the same text into
@@ -97,11 +106,50 @@ def mechanic_author_prompt(*, universe: Path, yield_json: str) -> str:
         yield_json: The :meth:`YieldSignal.to_json` output for the halting
             yield. Embedded verbatim so the subagent has the full structured
             signal up front.
+        overlap_report: Optional overlap analysis report (from
+            :func:`~token_world.operator.overlap.compute_overlap_report`).
+            When non-empty, injected into the prompt at the overlap section.
 
     Returns:
         The fully-rendered prompt string.
     """
-    return _MECHANIC_AUTHOR_PROMPT.format(universe=universe, yield_json=yield_json)
+    return _MECHANIC_AUTHOR_PROMPT.format(
+        universe=universe,
+        yield_json=yield_json,
+        overlap_report=overlap_report or "(no overlap analysis available)",
+    )
+
+
+def append_decision_log(universe: Path, tick_id: str, outcome: dict) -> None:
+    """Append a mechanic decision entry to ``<universe>/operator-log.jsonl``.
+
+    Additive: opens the file in append mode; never rewrites existing entries
+    (T-17-04-01). Format is NDJSON — one JSON object per line.
+
+    Args:
+        universe: Universe root directory.
+        tick_id: Tick identifier associated with this yield resolution.
+        outcome: Dict with at minimum ``success`` key; may include
+            ``mechanic_id``, ``attempts``, ``overlap_score``, ``decision``,
+            ``cost_usd``, ``reason``.
+    """
+    import json as _json
+    from datetime import UTC, datetime
+
+    log_path = universe / "operator-log.jsonl"
+    entry = {
+        "event": "mechanic_decision",
+        "tick_id": str(tick_id),
+        "mechanic_id": outcome.get("mechanic_id"),
+        "success": bool(outcome.get("success", False)),
+        "overlap_score": outcome.get("overlap_score"),
+        "decision": outcome.get("decision"),
+        "attempts": int(outcome.get("attempts", 0)),
+        "cost_usd": outcome.get("cost_usd"),
+        "timestamp_iso": datetime.now(UTC).isoformat(),
+    }
+    with log_path.open("a", encoding="utf-8") as f:
+        f.write(_json.dumps(entry, sort_keys=True) + "\n")
 
 
 def build_mechanic_author_agent(

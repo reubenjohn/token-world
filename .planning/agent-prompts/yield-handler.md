@@ -27,6 +27,16 @@ mechanic file, or (c) reject the yield as genuinely incoherent (rare).
 {YIELD_JSON}
 ```
 
+## Overlap analysis
+
+```
+{OVERLAP_REPORT}
+```
+
+**Decision rule:** If the overlap score is >= 0.7, STRONGLY prefer editing an existing mechanic
+over authoring a new one. The overlap report above names the best candidate mechanic to edit.
+If overlap < 0.7, authoring a new mechanic is appropriate.
+
 ## Your process
 
 1. **Read the authoring guide** — `{UNIVERSE_PATH}/docs/authoring-mechanics.md`.
@@ -82,15 +92,20 @@ mechanic file, or (c) reject the yield as genuinely incoherent (rare).
 Respond with a final one-line JSON summary (plus any prose narrative above it):
 
 ```json
-{{"success": bool, "mechanic_id": "str|null", "attempts": int, "reason": "str|null"}}
+{{"success": bool, "mechanic_id": "str|null", "attempts": int, "reason": "str|null", "overlap_score": float|null, "decision": "edit_existing|new_mechanic|rejected"}}
 ```
 
-Example success:
+Example success (new mechanic):
 ```json
-{{"success": true, "mechanic_id": "water_garden", "attempts": 2, "reason": null}}
+{{"success": true, "mechanic_id": "water_garden", "attempts": 2, "reason": null, "overlap_score": 0.2, "decision": "new_mechanic"}}
+```
+
+Example success (edited existing):
+```json
+{{"success": true, "mechanic_id": "pet_animal", "attempts": 1, "reason": null, "overlap_score": 0.85, "decision": "edit_existing"}}
 ```
 
 Example rejection:
 ```json
-{{"success": false, "mechanic_id": null, "attempts": 0, "reason": "action 'I turn into a dragon' lacks graph preconditions"}}
+{{"success": false, "mechanic_id": null, "attempts": 0, "reason": "action 'I turn into a dragon' lacks graph preconditions", "overlap_score": 0.0, "decision": "rejected"}}
 ```
