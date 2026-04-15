@@ -63,7 +63,7 @@ Phase list:
 - [x] Phase 12.5: v1.2 Warm-up (13/13 items — shipped pre-scaffolding)
 - [x] Phase 13: Quality KPIs substrate (1 REQ) (completed 2026-04-14)
 - [x] Phase 14: Engine polish + seed corpus hygiene (3 REQs) (completed 2026-04-14)
-- [ ] Phase 15: Multi-agent dashboard scaffold (1 REQ)
+- [x] Phase 15: Multi-agent dashboard scaffold (1 REQ) (completed 2026-04-15)
 - [ ] Phase 16: Composite actions (1 REQ, architectural — design + implementation waves)
 - [ ] Phase 17: Operator & dev ergonomics (8 REQs)
 - [ ] Phase 18: Graph conventions + engine audit + chain seed corpus (6 REQs)
@@ -120,7 +120,7 @@ Success criteria:
 **Goal:** The dashboard is ready for a second agent the moment one exists in the engine (v2), without a re-architecture of the panels. Single-agent remains the engine baseline per D-17.
 **Depends on:** Phase 12.5 (DASHBOARD-01..04 shipped; scroll / pseudo-edges in place)
 **Requirements:** REQ-V12-DASHBOARD-05
-**Plans:** TBD
+**Plans:** 1/1 plans complete
 
 Success criteria:
 1. SC-1: Operator opens the dashboard and sees an agent-selector dropdown above the tick stream; with one agent present it defaults to that agent; with two synthesised agents in a fixture universe it filters the tick feed on selection change.
@@ -214,7 +214,7 @@ Full phase detail moved to [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.
 |-------|-----------|----------------|----------|-------|
 | 13. Quality KPIs substrate | v1.2 | 2/2 | Complete   | 2026-04-14 |
 | 14. Engine polish + seed corpus hygiene | v1.2 | 3/3 | Complete   | 2026-04-14 |
-| 15. Multi-agent dashboard scaffold | v1.2 | 0/0 | Planning | DASHBOARD-05 — dashboard-only; engine stays single-agent |
+| 15. Multi-agent dashboard scaffold | v1.2 | 1/1 | Complete   | 2026-04-15 |
 | 16. Composite actions | v1.2 | 0/0 | Planning | ENGINE-04 — architectural; design wave + implementation wave |
 | 17. Operator & dev ergonomics | v1.2 | 0/0 | Planning | CLI-03/04, DASHBOARD-07/08/09, EMERGE-01/02, OPS-01 |
 | 18. Graph conventions + engine audit + chain seed corpus | v1.2 | 0/0 | Planning | ENGINE-03, GRAPH-01..04, DASHBOARD-06 |
