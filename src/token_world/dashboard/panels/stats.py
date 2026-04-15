@@ -11,11 +11,42 @@ owning page). Degrades to placeholders when the universe has no ticks yet.
 
 from __future__ import annotations
 
+import json
+import os
 from pathlib import Path
 from typing import Any
 
 from token_world.inspect._shared import iter_tick_files, read_json_file
 from token_world.inspect.stats import StatsReport, aggregate
+
+
+def load_run_status(universe_dir: Path) -> dict[str, Any]:
+    """Check <universe>/.run-pid and return run state.
+
+    Returns:
+        ``{"state": "running"|"stale"|"idle", "pid": int|None, "started_at": str|None}``
+
+    - ``"running"``: PID file exists and process is alive (T-17-02-01).
+    - ``"stale"``: PID file exists but process is dead.
+    - ``"idle"``: no PID file.
+
+    Never raises — degrades to ``"idle"`` on any error (T-17-02-02).
+    """
+    pid_path = universe_dir / ".run-pid"
+    if not pid_path.exists():
+        return {"state": "idle", "pid": None, "started_at": None}
+    try:
+        data = json.loads(pid_path.read_text(encoding="utf-8"))
+        pid = int(data["pid"])
+        started_at = str(data.get("started_at", ""))
+    except (json.JSONDecodeError, KeyError, ValueError, OSError):
+        return {"state": "idle", "pid": None, "started_at": None}
+    try:
+        os.kill(pid, 0)
+        state = "running"
+    except (ProcessLookupError, PermissionError):
+        state = "stale"
+    return {"state": state, "pid": pid, "started_at": started_at}
 
 
 def load_stats(universe_dir: Path, slug: str) -> StatsReport:
@@ -61,6 +92,7 @@ def render_cells(
     report: StatsReport,
     *,
     per_agent_yield: dict[str, dict[str, int]] | None = None,
+    run_status: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Return a list of ``{label, value}`` dicts for the strip cells.
 
@@ -69,13 +101,27 @@ def render_cells(
 
     When ``per_agent_yield`` contains more than one actor key, per-agent
     "Yield ({id})" rows are appended after the global "Yield rate" row.
+
+    When ``run_status`` is provided, a ``{label: "Run", value: state, ...}``
+    cell is prepended as the first element.
     """
     throughput = (
         f"{report.ticks_per_minute:.2f} ticks/min" if report.ticks_per_minute else "— ticks/min"
     )
     yield_pct = f"{report.yield_rate * 100:.1f}%" if report.tick_count else "—"
     cost = f"${report.cost_total_usd:.4f}"
-    cells: list[dict[str, Any]] = [
+    cells: list[dict[str, Any]] = []
+    if run_status is not None:
+        cells.append(
+            {
+                "label": "Run",
+                "value": run_status["state"],
+                "state": run_status["state"],
+                "pid": run_status.get("pid"),
+                "started_at": run_status.get("started_at"),
+            }
+        )
+    cells += [
         {"label": "Universe", "value": report.slug},
         {"label": "Ticks", "value": str(report.tick_count)},
         {"label": "Latest tick", "value": report.tick_id_max or "—"},
@@ -115,18 +161,39 @@ def mount_stats_strip(universe_dir: Path, slug: str) -> Any:
         "w-full gap-4 px-4 py-3 bg-slate-800 text-slate-100 rounded-lg shadow-sm items-center"
     )
 
+    _DOT_CLASSES = {
+        "running": "bg-green-500",
+        "stale": "bg-yellow-400",
+        "idle": "bg-slate-600",
+    }
+
     def _rebuild() -> None:
         container.clear()
         report = load_stats(universe_dir, slug)
         per_agent = load_per_agent_yield(universe_dir)
-        cells = render_cells(report, per_agent_yield=per_agent)
+        run_status = load_run_status(universe_dir)
+        cells = render_cells(report, per_agent_yield=per_agent, run_status=run_status)
         with container:
             for cell in cells:
-                with ui.column().classes("items-start gap-0"):
-                    ui.label(cell["label"]).classes(
-                        "text-xs uppercase tracking-wide text-slate-400"
-                    )
-                    ui.label(cell["value"]).classes("text-sm font-mono")
+                if cell.get("state") in _DOT_CLASSES:
+                    # Run-status colored dot — no animation (CONTEXT.md specifics).
+                    with ui.column().classes("items-start gap-0"):
+                        ui.label(cell["label"]).classes(
+                            "text-xs uppercase tracking-wide text-slate-400"
+                        )
+                        dot = ui.element("span").classes(
+                            f"w-3 h-3 rounded-full inline-block {_DOT_CLASSES[cell['state']]}"
+                        )
+                        tip_pid = cell.get("pid")
+                        tip_ts = cell.get("started_at") or ""
+                        tip = f"PID {tip_pid} since {tip_ts}" if tip_pid else "Not running"
+                        dot.tooltip(tip)
+                else:
+                    with ui.column().classes("items-start gap-0"):
+                        ui.label(cell["label"]).classes(
+                            "text-xs uppercase tracking-wide text-slate-400"
+                        )
+                        ui.label(cell["value"]).classes("text-sm font-mono")
 
     _rebuild()
     # Re-read every 2s. NiceGUI ui.timer triggers on the page's reactive loop.

@@ -33,6 +33,7 @@ import argparse
 import contextlib
 import json
 import os
+import signal
 import sys
 import time
 from pathlib import Path
@@ -194,7 +195,39 @@ def main() -> int:
         print(f"Error: {e}", file=sys.stderr)
         return 2
 
+    # OPS-01: check for .stop kill-switch at startup (T-17-02-04).
+    stop_path = universe_dir / ".stop"
+    if stop_path.exists():
+        print(
+            f"WARNING: .stop file present at {stop_path}; delete it before running.",
+            file=sys.stderr,
+        )
+        return 2
+
     _check_cost_ceiling(universe_dir, ticks, args.cost_ceiling)
+
+    # PID file management (SC-3).
+    pid_path = universe_dir / ".run-pid"
+
+    def _remove_pid_file() -> None:
+        with contextlib.suppress(OSError):
+            pid_path.unlink(missing_ok=True)
+
+    def _sigint_handler(signum, frame) -> None:  # noqa: ANN001
+        _remove_pid_file()
+        sys.exit(130)  # conventional SIGINT exit code
+
+    signal.signal(signal.SIGINT, _sigint_handler)
+
+    pid_path.write_text(
+        json.dumps(
+            {
+                "pid": os.getpid(),
+                "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            }
+        ),
+        encoding="utf-8",
+    )
 
     # Pass env to the external operator factory.
     os.environ["TOKEN_WORLD_OPERATOR_TIMEOUT_S"] = str(args.timeout_per_yield)
@@ -227,7 +260,7 @@ def main() -> int:
 
     # Monkey-patch runner.run to inject yield-budget tracking. Wrap progress_fn
     # so every printed turn also checks the kill switch and yield count.
-    stop_path = universe_dir / ".stop"
+    # Note: stop_path already defined above for the startup check.
     state: dict = {
         "yields": 0,
         "halt_reason": None,
@@ -290,38 +323,41 @@ def main() -> int:
 
     start = time.monotonic()
     try:
-        report_path = runner.run(
-            universe_dir,
-            turns=ticks,
-            no_operator=False,
-            scenario=scenario_obj,
-            output_path=args.output,
-        )
-    except SystemExit as e:
-        logger.warning("Run halted: {}", e)
-        elapsed = time.monotonic() - start
-        reason = state["halt_reason"] or str(e)
-        # First line: big, prominent, so morning-operator sees it at top of log.
-        print(f"STATUS: HALTED — {reason}")
-        print(f"halted after {elapsed:.1f}s  reason={reason}")
-        print(f"yields: {state['yields']}")
-        print(f"consecutive_refuses_at_halt: {state['consecutive_refuses']}")
-        # Persist halt metadata alongside universe dir so operators can grep it.
-        halt_log = universe_dir / "unattended_halt.json"
-        with contextlib.suppress(OSError):
-            halt_log.write_text(
-                json.dumps(
-                    {
-                        "reason": reason,
-                        "elapsed_s": elapsed,
-                        "yields": state["yields"],
-                        "consecutive_refuses_at_halt": state["consecutive_refuses"],
-                        "refuse_halt_threshold": args.refuse_halt_threshold,
-                    },
-                    indent=2,
-                )
+        try:
+            report_path = runner.run(
+                universe_dir,
+                turns=ticks,
+                no_operator=False,
+                scenario=scenario_obj,
+                output_path=args.output,
             )
-        return 3
+        except SystemExit as e:
+            logger.warning("Run halted: {}", e)
+            elapsed = time.monotonic() - start
+            reason = state["halt_reason"] or str(e)
+            # First line: big, prominent, so morning-operator sees it at top of log.
+            print(f"STATUS: HALTED — {reason}")
+            print(f"halted after {elapsed:.1f}s  reason={reason}")
+            print(f"yields: {state['yields']}")
+            print(f"consecutive_refuses_at_halt: {state['consecutive_refuses']}")
+            # Persist halt metadata alongside universe dir so operators can grep it.
+            halt_log = universe_dir / "unattended_halt.json"
+            with contextlib.suppress(OSError):
+                halt_log.write_text(
+                    json.dumps(
+                        {
+                            "reason": reason,
+                            "elapsed_s": elapsed,
+                            "yields": state["yields"],
+                            "consecutive_refuses_at_halt": state["consecutive_refuses"],
+                            "refuse_halt_threshold": args.refuse_halt_threshold,
+                        },
+                        indent=2,
+                    )
+                )
+            return 3
+    finally:
+        _remove_pid_file()
 
     elapsed = time.monotonic() - start
     logger.info("Run complete in {:.1f}s, {} yields observed", elapsed, state["yields"])
