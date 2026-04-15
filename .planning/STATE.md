@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Quality + Depth
-status: Ready to execute
-stopped_at: Completed phase-19-01-PLAN.md
-last_updated: "2026-04-15T04:31:09.152Z"
+status: v1.2 milestone complete
+stopped_at: context exhaustion at 91% (2026-04-15)
+last_updated: "2026-04-15T07:04:18.966Z"
 progress:
   total_phases: 19
   completed_phases: 17
@@ -87,8 +87,8 @@ Placeholder; decisions for v1.2 will be tracked here as they land:
 
 ## Session Continuity
 
-Last session: 2026-04-15T04:31:09.147Z
-Stopped at: Completed phase-19-01-PLAN.md
+Last session: 2026-04-15T04:32:14.257Z
+Stopped at: context exhaustion at 91% (2026-04-15)
 Resume file: None
 
 **Next action:** `/gsd-plan-phase 13` — kick off Phase 13 (Quality KPIs substrate, REQ-V12-QUALITY-02).
