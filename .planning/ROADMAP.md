@@ -65,7 +65,7 @@ Phase list:
 - [x] Phase 14: Engine polish + seed corpus hygiene (3 REQs) (completed 2026-04-14)
 - [x] Phase 15: Multi-agent dashboard scaffold (1 REQ) (completed 2026-04-15)
 - [x] Phase 16: Composite actions (1 REQ, architectural — design + implementation waves) (completed 2026-04-15)
-- [ ] Phase 17: Operator & dev ergonomics (8 REQs)
+- [x] Phase 17: Operator & dev ergonomics (8 REQs) (completed 2026-04-15)
 - [ ] Phase 18: Graph conventions + engine audit + chain seed corpus (6 REQs)
 - [ ] Phase 19: Historical tick-summary migration (1 REQ, optional)
 
@@ -146,7 +146,7 @@ Success criteria:
 **Goal:** Every operator investigation the author reached for during sessions 4–6 (raw classifier response, mechanic lifecycle, run-alive?, agent internals, yield decision rationale, stale `.stop` kill-switch) becomes a one-liner on the CLI or a sticky surface on the dashboard — per §G allocation rules (CLI canonical producer; dashboard consumes JSON).
 **Depends on:** Phase 12.5 (CLI-01/CLI-02 shipped; the ergonomics this phase extends)
 **Requirements:** REQ-V12-CLI-03, REQ-V12-CLI-04, REQ-V12-DASHBOARD-07, REQ-V12-DASHBOARD-08, REQ-V12-DASHBOARD-09, REQ-V12-EMERGE-01, REQ-V12-EMERGE-02, REQ-V12-OPS-01
-**Plans:** TBD
+**Plans:** 4/4 plans complete
 
 Success criteria:
 1. SC-1: Operator inspects any tick stage via `token-world tick <slug> <id> --stage classification|matcher|observer [--raw]` and sees the parsed payload (or raw prompt+response with `--raw`) without reaching into `diagnostics/tick_N/`.
@@ -216,7 +216,7 @@ Full phase detail moved to [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.
 | 14. Engine polish + seed corpus hygiene | v1.2 | 3/3 | Complete   | 2026-04-14 |
 | 15. Multi-agent dashboard scaffold | v1.2 | 1/1 | Complete   | 2026-04-15 |
 | 16. Composite actions | v1.2 | 2/2 | Complete   | 2026-04-15 |
-| 17. Operator & dev ergonomics | v1.2 | 0/0 | Planning | CLI-03/04, DASHBOARD-07/08/09, EMERGE-01/02, OPS-01 |
+| 17. Operator & dev ergonomics | v1.2 | 4/4 | Complete   | 2026-04-15 |
 | 18. Graph conventions + engine audit + chain seed corpus | v1.2 | 0/0 | Planning | ENGINE-03, GRAPH-01..04, DASHBOARD-06 |
 | 19. Historical tick-summary migration (OPTIONAL) | v1.2 | 0/0 | Planning | OPS-02 — skip if archive retired first |
 
