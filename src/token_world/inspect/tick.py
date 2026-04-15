@@ -12,12 +12,130 @@ formatted for human reading and is NOT a stable contract.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
+
+_SAFE_TICK_ID_RE = re.compile(r"^[A-Za-z0-9_.\-]+$")
 
 
 class TickNotFoundError(LookupError):
     """Raised when the requested tick file does not exist."""
+
+
+class StageNotFoundError(LookupError):
+    """Raised when the diagnostics directory for the requested stage is missing."""
+
+
+def _validate_tick_id(tick_id: str) -> None:
+    """Guard against path-traversal via tick_id (T-17-01-01)."""
+    if not _SAFE_TICK_ID_RE.match(tick_id):
+        raise ValueError(f"Invalid tick_id {tick_id!r}: must match [A-Za-z0-9_.-]+")
+
+
+def load_stage_data(universe_dir: Path, tick_id: str, stage: str) -> dict[str, Any]:
+    """Read diagnostics for a single pipeline stage of a tick.
+
+    Args:
+        universe_dir: Universe root directory.
+        tick_id: Tick identifier (alphanumeric/underscore/dot/dash only).
+        stage: One of ``"classification"``, ``"matcher"``, ``"observer"``.
+
+    Returns:
+        A dict with ``stage`` key plus stage-specific fields:
+        - classification/observer: ``{stage, prompt, response, parsed}``
+        - matcher: ``{stage, candidates}``
+
+    Raises:
+        ValueError: For unknown stage names.
+        StageNotFoundError: When the stage directory/file is absent.
+    """
+    _validate_tick_id(tick_id)
+    diag_base = universe_dir / "diagnostics" / f"tick_{tick_id}"
+
+    if stage == "classification":
+        d = diag_base / "classification"
+        if not d.is_dir():
+            raise StageNotFoundError(
+                f"No classification diagnostics at {d}. "
+                "Run with diagnostics enabled to capture stage data."
+            )
+        p_txt = d / "prompt.txt"
+        r_txt = d / "response.txt"
+        prompt = p_txt.read_text(encoding="utf-8") if p_txt.is_file() else None
+        response = r_txt.read_text(encoding="utf-8") if r_txt.is_file() else None
+        parsed: dict | None = None
+        if (d / "parsed.json").is_file():
+            parsed = json.loads((d / "parsed.json").read_text(encoding="utf-8"))
+        return {"stage": "classification", "prompt": prompt, "response": response, "parsed": parsed}
+
+    elif stage == "matcher":
+        p = diag_base / "matching.json"
+        if not p.is_file():
+            raise StageNotFoundError(
+                f"No matching.json at {p}. Run with diagnostics enabled to capture stage data."
+            )
+        candidates = json.loads(p.read_text(encoding="utf-8"))
+        return {"stage": "matcher", "candidates": candidates}
+
+    elif stage == "observer":
+        d = diag_base / "observation"
+        if not d.is_dir():
+            raise StageNotFoundError(
+                f"No observation diagnostics at {d}. "
+                "Run with diagnostics enabled to capture stage data."
+            )
+        p_txt = d / "prompt.txt"
+        r_txt = d / "response.txt"
+        prompt = p_txt.read_text(encoding="utf-8") if p_txt.is_file() else None
+        response = r_txt.read_text(encoding="utf-8") if r_txt.is_file() else None
+        parsed = None
+        if (d / "parsed.json").is_file():
+            parsed = json.loads((d / "parsed.json").read_text(encoding="utf-8"))
+        return {"stage": "observer", "prompt": prompt, "response": response, "parsed": parsed}
+
+    else:
+        raise ValueError(f"Unknown stage: {stage!r}. Valid: classification, matcher, observer")
+
+
+def render_stage_table(data: dict[str, Any], *, raw: bool = False) -> str:
+    """Format stage data for human terminal output.
+
+    Args:
+        data: Stage data dict from :func:`load_stage_data`.
+        raw: When ``True`` and stage has prompt/response, print raw text.
+             When ``False`` (default), print parsed payload.
+
+    Returns:
+        A human-readable string.
+    """
+    out: list[str] = []
+    stage = data.get("stage", "?")
+    out.append(f"=== Stage: {stage} ===")
+    out.append("")
+
+    if stage == "matcher":
+        candidates = data.get("candidates") or []
+        out.append(json.dumps(candidates, indent=2))
+    else:
+        if raw:
+            prompt = data.get("prompt")
+            response = data.get("response")
+            out.append("--- prompt ---")
+            out.append(prompt or "(none)")
+            out.append("")
+            out.append("--- response ---")
+            out.append(response or "(none)")
+        else:
+            parsed = data.get("parsed")
+            out.append(json.dumps(parsed, indent=2) if parsed is not None else "(no parsed data)")
+
+    return "\n".join(out) + "\n"
+
+
+def render_stage_json(data: dict[str, Any]) -> str:
+    """Render stage data as JSON (for --format json path)."""
+    return json.dumps(data, indent=2, sort_keys=True) + "\n"
 
 
 def load_tick(universe_dir: Path, tick_id: str) -> dict[str, Any]:

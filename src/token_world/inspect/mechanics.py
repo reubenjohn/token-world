@@ -19,6 +19,7 @@ after enrichment so call counts always reflect the unfiltered registry.
 from __future__ import annotations
 
 import json
+import subprocess
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,8 @@ class MechanicRow:
     author: str = "seed"  # "seed" or "operator"
     call_count: int = 0
     last_invoked_tick: str | None = None
+    first_authored_commit: str | None = None
+    first_authored_timestamp: str | None = None
 
 
 @dataclass(slots=True)
@@ -47,6 +50,40 @@ class MechanicsReport:
     slug: str
     mechanics: list[MechanicRow] = field(default_factory=list)
     author_filter: str | None = None  # mirrors the --author flag for traceability
+
+
+# ---------------------------------------------------------------------------
+# Git history helper
+# ---------------------------------------------------------------------------
+
+
+def _git_first_commit(universe_dir: Path, source_path: str) -> tuple[str | None, str | None]:
+    """Return (commit_hash, timestamp) of the oldest git commit for source_path.
+
+    Uses ``git log --follow`` so renames are tracked. Returns ``(None, None)``
+    on any error (no git, no history, timeout, etc.) — graceful degradation.
+    """
+    try:
+        rel_path = Path(source_path).relative_to(universe_dir)
+    except ValueError:
+        rel_path = Path(source_path).name  # type: ignore[assignment]
+    try:
+        result = subprocess.run(
+            ["git", "log", "--follow", "--format=%H %aI", "--", str(rel_path)],
+            capture_output=True,
+            text=True,
+            cwd=str(universe_dir),
+            timeout=5,
+        )
+        lines = result.stdout.strip().splitlines()
+        if not lines:
+            return (None, None)
+        # Last line = oldest commit
+        oldest = lines[-1].strip()
+        commit_hash, timestamp = oldest.split(" ", 1)
+        return (commit_hash[:40], timestamp)
+    except Exception:  # noqa: BLE001
+        return (None, None)
 
 
 # ---------------------------------------------------------------------------
@@ -84,6 +121,7 @@ def aggregate(
     *,
     slug: str,
     author_filter: str | None = None,
+    history: bool = False,
 ) -> MechanicsReport:
     """Build a :class:`MechanicsReport`.
 
@@ -117,6 +155,10 @@ def aggregate(
     for info in registry.list_mechanics():
         author = _classify_author(info.path, universe_dir)
         call_count, last_tick = counts.get(info.id, (0, None))
+        first_commit: str | None = None
+        first_ts: str | None = None
+        if history:
+            first_commit, first_ts = _git_first_commit(universe_dir, str(info.path))
         row = MechanicRow(
             id=info.id,
             description=info.description,
@@ -126,6 +168,8 @@ def aggregate(
             author=author,
             call_count=call_count,
             last_invoked_tick=last_tick,
+            first_authored_commit=first_commit,
+            first_authored_timestamp=first_ts,
         )
         if author_filter is not None and author != author_filter:
             continue
@@ -150,19 +194,37 @@ def render_table(report: MechanicsReport) -> str:
         out.append("(no mechanics matched)")
         return "\n".join(out) + "\n"
 
-    header = (
-        f"{'id':<28} {'voluntary':<10} {'author':<9} {'calls':>6} {'last':>6}  tags  -- description"
-    )
+    show_history = any(r.first_authored_commit is not None for r in report.mechanics)
+
+    if show_history:
+        header = (
+            f"{'id':<28} {'voluntary':<10} {'author':<9} {'calls':>6} {'last':>6}"
+            f"  {'first_authored':<12} {'commit':<8}  tags  -- description"
+        )
+    else:
+        header = (
+            f"{'id':<28} {'voluntary':<10} {'author':<9} {'calls':>6} {'last':>6}"
+            "  tags  -- description"
+        )
     out.append(header)
     out.append("-" * len(header))
     for row in report.mechanics:
         vol = "yes" if row.voluntary else "no"
         last = row.last_invoked_tick or "-"
         tags = ",".join(row.tags) if row.tags else "-"
-        out.append(
-            f"{row.id:<28} {vol:<10} {row.author:<9} "
-            f"{row.call_count:>6} {last:>6}  {tags}  -- {row.description}"
-        )
+        if show_history:
+            date_str = (row.first_authored_timestamp or "")[:10] or "-"
+            commit_str = (row.first_authored_commit or "")[:8] or "-"
+            out.append(
+                f"{row.id:<28} {vol:<10} {row.author:<9} "
+                f"{row.call_count:>6} {last:>6}"
+                f"  {date_str:<12} {commit_str:<8}  {tags}  -- {row.description}"
+            )
+        else:
+            out.append(
+                f"{row.id:<28} {vol:<10} {row.author:<9} "
+                f"{row.call_count:>6} {last:>6}  {tags}  -- {row.description}"
+            )
     return "\n".join(out) + "\n"
 
 

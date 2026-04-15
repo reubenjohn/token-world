@@ -1494,15 +1494,34 @@ def inspect_universe(slug: str, last_n: int, fmt: str) -> None:
     show_default=True,
     help="Output format. ``table`` is an indent-tree; ``json`` is the raw payload.",
 )
-def tick_detail(slug: str, tick_id: str, fmt: str) -> None:
+@click.option(
+    "--stage",
+    type=click.Choice(["classification", "matcher", "observer"]),
+    default=None,
+    help="Drill into a specific pipeline stage instead of showing the full tick.",
+)
+@click.option(
+    "--raw",
+    is_flag=True,
+    default=False,
+    help="With --stage: print raw prompt+response text instead of parsed payload.",
+)
+def tick_detail(slug: str, tick_id: str, fmt: str, stage: str | None, raw: bool) -> None:
     """Pretty-print a single tick's full detail tree.
 
     Loads ``<universe>/tick_summaries/ticks/tick_<tick_id>.json`` and walks
     action -> classification -> mechanic -> mutations -> observation.
+
+    Use ``--stage`` to drill into a specific pipeline stage (classification,
+    matcher, observer). Add ``--raw`` to see the raw LLM prompt and response.
     """
     from token_world.inspect.tick import (
+        StageNotFoundError,
         TickNotFoundError,
+        load_stage_data,
         load_tick,
+        render_stage_json,
+        render_stage_table,
         render_tree,
     )
     from token_world.inspect.tick import (
@@ -1515,6 +1534,21 @@ def tick_detail(slug: str, tick_id: str, fmt: str) -> None:
     except FileNotFoundError as e:
         click.echo(f"Error: {e}", err=True)
         raise SystemExit(1) from e
+
+    if stage is not None:
+        try:
+            stage_data = load_stage_data(universe_dir, tick_id, stage)
+        except StageNotFoundError as e:
+            click.echo(f"Error: {e}", err=True)
+            raise SystemExit(2) from e
+        except ValueError as e:
+            click.echo(f"Error: {e}", err=True)
+            raise SystemExit(3) from e
+        if fmt == "json":
+            click.echo(render_stage_json(stage_data), nl=False)
+        else:
+            click.echo(render_stage_table(stage_data, raw=raw), nl=False)
+        return
 
     try:
         payload = load_tick(universe_dir, tick_id)
@@ -1547,12 +1581,21 @@ def tick_detail(slug: str, tick_id: str, fmt: str) -> None:
     show_default=True,
     help="Output format.",
 )
-def mechanics_browser(slug: str, author: str | None, fmt: str) -> None:
+@click.option(
+    "--history",
+    is_flag=True,
+    default=False,
+    help="Populate first_authored_commit and first_authored_timestamp via git log.",
+)
+def mechanics_browser(slug: str, author: str | None, fmt: str, history: bool) -> None:
     """Registry browser: list mechanics with call counts and metadata.
 
     Each row shows id, voluntary flag, author classification (seed/operator),
     invocation count across all ticks, last-invoked tick id, tags and the
     declared description. Source path is included in JSON output.
+
+    Use ``--history`` to add first-authored commit hash and timestamp columns
+    (requires git history in the universe directory).
     """
     from token_world.inspect.mechanics import (
         aggregate as aggregate_mechanics,
@@ -1571,7 +1614,7 @@ def mechanics_browser(slug: str, author: str | None, fmt: str) -> None:
         click.echo(f"Error: {e}", err=True)
         raise SystemExit(1) from e
 
-    report = aggregate_mechanics(universe_dir, slug=slug, author_filter=author)
+    report = aggregate_mechanics(universe_dir, slug=slug, author_filter=author, history=history)
     if fmt == "json":
         click.echo(render_mechanics_json(report), nl=False)
     else:
