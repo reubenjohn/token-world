@@ -214,11 +214,11 @@ Full phase detail moved to [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.
 |-------|-----------|----------------|----------|-------|
 | 13. Quality KPIs substrate | v1.2 | 2/2 | Complete   | 2026-04-14 |
 | 14. Engine polish + seed corpus hygiene | v1.2 | 3/3 | Complete   | 2026-04-14 |
-| 15. Multi-agent dashboard scaffold | v1.2 | 1/1 | Complete   | 2026-04-15 |
-| 16. Composite actions | v1.2 | 2/2 | Complete   | 2026-04-15 |
-| 17. Operator & dev ergonomics | v1.2 | 4/4 | Complete   | 2026-04-15 |
-| 18. Graph conventions + engine audit + chain seed corpus | v1.2 | 0/0 | Planning | ENGINE-03, GRAPH-01..04, DASHBOARD-06 |
-| 19. Historical tick-summary migration (OPTIONAL) | v1.2 | 0/0 | Planning | OPS-02 — skip if archive retired first |
+| 15. Multi-agent dashboard scaffold | v1.2 | 1/1 | Complete   | 2026-04-14 |
+| 16. Composite actions | v1.2 | 2/2 | Complete   | 2026-04-14 |
+| 17. Operator & dev ergonomics | v1.2 | 4/4 | Complete   | 2026-04-14 |
+| 18. Graph conventions + engine audit + chain seed corpus | v1.2 | 3/3 | Complete   | 2026-04-14 |
+| 19. Historical tick-summary migration (OPTIONAL) | v1.2 | 0/0 | Skipped   | 2026-04-14 |
 
 ---
 
