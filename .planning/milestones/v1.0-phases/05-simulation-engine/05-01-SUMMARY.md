@@ -104,7 +104,7 @@ All models use `extra="ignore"` so Haiku output extras don't crash parsing.
 - `generate_universe_seed()`: 63-bit positive integer via `secrets.randbits(63)`
 
 `src/token_world/universe/templates/universe_yaml.py`:
-- `UNIVERSE_YAML_TEMPLATE` and `render_universe_yaml(universe_seed=...)` 
+- `UNIVERSE_YAML_TEMPLATE` and `render_universe_yaml(universe_seed=...)`
 
 `src/token_world/universe/scaffold.py`:
 - Added idempotent guard: creates `universe.yaml` only if absent
