@@ -82,6 +82,11 @@ def create_app(slug: str, *, dark: bool = True) -> Any:
 
             mount_stats_strip(universe_dir, slug)
 
+            # --- Mechanics registry panel (SC-2b) -----------------------------
+            from token_world.dashboard.panels.mechanics_panel import mount_mechanics_panel
+
+            mount_mechanics_panel(universe_dir, slug)
+
             # --- Main body (tick stream | graph | property history) ----------
             _mount_main_body(ui, universe_dir, slug)
 

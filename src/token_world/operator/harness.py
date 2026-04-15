@@ -43,7 +43,8 @@ from loguru import logger
 
 from token_world.mechanic.diagnostics import DiagnosticsSink
 from token_world.operator.mcp_client import load_universe_mcp_config
-from token_world.operator.subagent import build_mechanic_author_agent
+from token_world.operator.overlap import compute_overlap_report
+from token_world.operator.subagent import append_decision_log, build_mechanic_author_agent
 from token_world.operator.validation_tool import build_validation_server
 from token_world.operator.yield_signal import YieldSignal
 
@@ -119,16 +120,27 @@ class OperatorHarness:
     # Options builder (pure; testable in isolation)
     # ------------------------------------------------------------------
 
-    def _build_options(self, signal: YieldSignal) -> ClaudeAgentOptions:
+    def _build_options(
+        self, signal: YieldSignal, *, overlap_report: str = ""
+    ) -> ClaudeAgentOptions:
         """Assemble the outer ``ClaudeAgentOptions`` for one ``handle_yield`` call.
 
-        Pure function of ``self`` and ``signal`` so tests can introspect its
-        output without invoking the SDK.
+        Pure function of ``self``, ``signal``, and ``overlap_report`` so tests
+        can introspect its output without invoking the SDK.
+
+        Args:
+            signal: The halting yield signal.
+            overlap_report: Pre-computed overlap analysis string from
+                :func:`~token_world.operator.overlap.compute_overlap_report`.
+                Injected into the mechanic-author subagent prompt.
         """
         mcp_servers = load_universe_mcp_config(self.universe)
         mcp_servers["validation"] = build_validation_server(self.universe)
         agent_def = build_mechanic_author_agent(
-            universe=self.universe, yield_signal=signal, model=self.model
+            universe=self.universe,
+            yield_signal=signal,
+            model=self.model,
+            overlap_report=overlap_report,
         )
         return ClaudeAgentOptions(
             system_prompt=self._outer_system_prompt(signal),
@@ -214,7 +226,10 @@ class OperatorHarness:
         with sink.open_operator_session(signal.tick_id) as ctx:
             ctx.write_yield_signal(signal)
 
-            options = self._build_options(signal)
+            # SC-5: compute overlap report before building subagent options so
+            # the mechanic-author prompt receives the analysis inline.
+            overlap_str = self._compute_overlap(signal)
+            options = self._build_options(signal, overlap_report=overlap_str)
             outer_prompt = self._render_outer_prompt(signal)
 
             final_text = ""
@@ -293,16 +308,20 @@ class OperatorHarness:
                 error_str = f"sdk_{sdk_subtype}"
             else:
                 error_str = "authoring_unsuccessful"
-            ctx.close(
-                {
-                    "success": success,
-                    "mechanic_id": mechanic_id,
-                    "cost_usd": cost,
-                    "turns": turns,
-                    "tick_continued": success,
-                    "error": error_str,
-                }
-            )
+            outcome = {
+                "success": success,
+                "mechanic_id": mechanic_id,
+                "cost_usd": cost,
+                "turns": turns,
+                "tick_continued": success,
+                "error": error_str,
+            }
+            ctx.close(outcome)
+            # SC-5: append to operator-log.jsonl after every yield resolution.
+            try:
+                append_decision_log(self.universe, signal.tick_id, outcome)
+            except Exception as exc:  # pragma: no cover — best-effort
+                logger.warning("append_decision_log failed for tick {}: {}", signal.tick_id, exc)
             return OperatorResult(
                 success=success,
                 tick_id=signal.tick_id,
@@ -317,6 +336,30 @@ class OperatorHarness:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _compute_overlap(self, signal: YieldSignal) -> str:
+        """Compute an overlap report for the classified action verb + watches.
+
+        Loads the mechanic registry from the universe directory and delegates to
+        :func:`~token_world.operator.overlap.compute_overlap_report`. Returns an
+        empty string on any error so the subagent prompt degrades gracefully.
+        """
+        try:
+            from token_world.mechanic.registry import MechanicRegistry
+
+            mechanics_dir = self.universe / "mechanics"
+            if not mechanics_dir.is_dir():
+                return ""
+            registry = MechanicRegistry(mechanics_dir, universe_dir=self.universe)
+            mechanics = list(registry.list_mechanics())
+            verb = signal.classified_action.get("verb", "") or ""
+            watches = signal.classified_action.get("watches") or []
+            if isinstance(watches, str):
+                watches = [watches]
+            return compute_overlap_report(verb, list(watches), mechanics)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("_compute_overlap failed (non-fatal): {}", exc)
+            return ""
 
     @staticmethod
     def _serialise_message(msg: Any) -> dict[str, Any]:

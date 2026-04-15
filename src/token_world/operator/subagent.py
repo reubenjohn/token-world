@@ -157,6 +157,7 @@ def build_mechanic_author_agent(
     universe: Path,
     yield_signal: YieldSignal,
     model: str = os.environ.get("OPERATOR_MODEL", "opus"),
+    overlap_report: str = "",
 ) -> AgentDefinition:
     """Build the mechanic-author :class:`AgentDefinition` (D-17).
 
@@ -182,7 +183,11 @@ def build_mechanic_author_agent(
             "Invoke when the simulation has halted waiting for a mechanic "
             "that matches the classified agent action."
         ),
-        prompt=mechanic_author_prompt(universe=universe, yield_json=yield_signal.to_json()),
+        prompt=mechanic_author_prompt(
+            universe=universe,
+            yield_json=yield_signal.to_json(),
+            overlap_report=overlap_report,
+        ),
         tools=[
             "Read",
             "Write",
