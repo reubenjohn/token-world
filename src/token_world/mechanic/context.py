@@ -364,9 +364,12 @@ class MechanicContext:
         surfaces in observation synthesis and diagnostics.
 
         Args:
-            reason_code: A known reason code (no_viable_action, no_such_target,
+            reason_code: An arbitrary string or a convenience shortcut with a
+                pre-written narrative template (no_viable_action, no_such_target,
                 low_confidence, mechanic_check_failed, conservation_violation,
-                inventory_full, locked, blocked) or any arbitrary string.
+                inventory_full, locked, blocked).  The engine never privileges
+                these names — they are mechanic-provided reason codes only.
+                Any string is valid; the shortcuts just provide polished prose.
             details: Template variables for the narrative (e.g. ``{"target": "gate"}``).
 
         Returns:

@@ -31,8 +31,18 @@ _TEMPLATES: dict[str, str] = {
         "You try, but the attempt would break a fundamental law: {violated_property} "
         "cannot simply appear or disappear."
     ),
+    # The keys below are *mechanic-provided convenience shortcuts* only.
+    # The engine never reads graph properties named "inventory_full", "locked",
+    # or "blocked" to gate actions — these names are purely narrative sugar that
+    # a mechanic may pass as reason_code to ctx.refuse().  Any arbitrary string
+    # also works; these entries just give mechanics a polished pre-written
+    # template so they don't have to craft their own prose.  Adding an entry
+    # here does NOT give the engine knowledge of that property.
+    # reads-only framework hook — not a semantic gate
     "inventory_full": ("You try to pick up {target}, but your hands and pack are already full."),
+    # reads-only framework hook — not a semantic gate
     "locked": ("You try, but {target} is locked."),
+    # reads-only framework hook — not a semantic gate
     "blocked": ("You try, but {reason} is in the way."),
 }
 
