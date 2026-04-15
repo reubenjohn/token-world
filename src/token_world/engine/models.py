@@ -139,6 +139,9 @@ class TickSummary(BaseModel):
     # D-17 (Phase 7): additive optional field; schema_version stays 1 (backward-compat).
     # Populated only for LRA continuation ticks; None for all normal ticks.
     long_running_action: dict[str, Any] | None = None
+    # D-16 (Phase 16): list of all sub-actions from composite classifier output.
+    # classified_action (above) stays for back-compat (= classified_actions[0] when non-empty).
+    classified_actions: list[dict[str, Any]] = Field(default_factory=list)
     duration_ms: int
     llm_tokens_by_stage: dict[str, dict[str, int]]
     llm_cost_usd_by_stage: dict[str, float]

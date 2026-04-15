@@ -332,48 +332,19 @@ class SimulationEngine:
             classifier_out = getattr(self._classifier, "last_output_tokens", 0)
 
             # ------------------------------------------------------------------
-            # Stage 2: Match (only when verdict is VerdictOk)
+            # Stage 2+3+4: composite action iteration loop (Phase 16 D-01)
             # ------------------------------------------------------------------
-            match_result = None
-            if isinstance(verdict, VerdictOk):
-                match_result = self._matcher.match(verdict.classified, self._registry, self._graph)
-                tick_ctx.write_matching([match_result.model_dump()])
 
-            # ------------------------------------------------------------------
-            # Stage 3: Decide
-            # ------------------------------------------------------------------
-            decision = decide(verdict, match_result, action_text=action_text)
-
-            # ------------------------------------------------------------------
-            # Stage 4+: branch on Decision kind
-            # ------------------------------------------------------------------
-            if isinstance(decision, ExecuteDecision):
-                return self._handle_execute(
-                    decision=decision,
-                    verdict=cast(VerdictOk, verdict),  # decide() only yields Execute for VerdictOk
-                    actor=actor,
-                    tick_id_str=tick_id_str,
-                    next_tick=next_tick,
-                    pre_tick_snapshot_id=pre_tick_snapshot_id,
-                    tick_ctx=tick_ctx,
-                    start_time=start_time,
-                    classifier_in=classifier_in,
-                    classifier_out=classifier_out,
-                    action_text=action_text,
-                )
-            elif isinstance(decision, YieldDecision):
-                return self._handle_yield(
-                    decision=decision,
-                    verdict=cast(VerdictOk, verdict),  # decide() only yields Yield for VerdictOk
-                    actor=actor,
-                    tick_id_str=tick_id_str,
-                    tick_ctx=tick_ctx,
-                    start_time=start_time,
-                    classifier_in=classifier_in,
-                    classifier_out=classifier_out,
-                    action_text=action_text,
-                )
-            elif isinstance(decision, RefuseDecision):
+            # Non-VerdictOk path: classifier-level refusal — single decide() call
+            if not isinstance(verdict, VerdictOk):
+                decision = decide(verdict, None, action_text=action_text)
+                # Must be RefuseDecision for non-VerdictOk verdicts
+                if not isinstance(decision, RefuseDecision):
+                    tick_ctx.set_summary(
+                        status="error",
+                        error=f"Unhandled Decision type: {type(decision).__name__}",
+                    )
+                    raise TypeError(f"Unhandled Decision type: {type(decision).__name__}")
                 return self._handle_refuse(
                     decision=decision,
                     verdict=verdict,
@@ -384,12 +355,83 @@ class SimulationEngine:
                     classifier_out=classifier_out,
                     action_text=action_text,
                 )
-            else:
-                tick_ctx.set_summary(
-                    status="error",
-                    error=f"Unhandled decision type: {type(decision).__name__}",
+
+            # VerdictOk path: iterate each sub-action independently
+            all_match_results: list[dict] = []
+            sub_execute_decisions: list[tuple[ExecuteDecision, ClassifiedAction]] = []
+            all_classified_dicts: list[dict] = [ca.model_dump() for ca in verdict.actions]
+
+            for classified_action in verdict.actions:
+                sub_match = self._matcher.match(classified_action, self._registry, self._graph)
+                all_match_results.append(sub_match.model_dump())
+                # Wrap as single-element VerdictOk for decide()
+                sub_verdict = VerdictOk(actions=[classified_action], confidence=verdict.confidence)
+                sub_decision = decide(sub_verdict, sub_match, action_text=action_text)
+
+                if isinstance(sub_decision, YieldDecision):
+                    # First yield wins — halt immediately
+                    tick_ctx.write_matching(all_match_results)
+                    return self._handle_yield(
+                        decision=sub_decision,
+                        verdict=VerdictOk(
+                            actions=[classified_action], confidence=verdict.confidence
+                        ),
+                        actor=actor,
+                        tick_id_str=tick_id_str,
+                        tick_ctx=tick_ctx,
+                        start_time=start_time,
+                        classifier_in=classifier_in,
+                        classifier_out=classifier_out,
+                        action_text=action_text,
+                    )
+                elif isinstance(sub_decision, ExecuteDecision):
+                    sub_execute_decisions.append((sub_decision, classified_action))
+                elif isinstance(sub_decision, RefuseDecision):
+                    # Refuse-continues: a refusing sub-action does not block others
+                    logger.debug(
+                        "Sub-action %r refused (%s); continuing composite tick",
+                        classified_action.verb,
+                        sub_decision.reason_code,
+                    )
+
+            tick_ctx.write_matching(all_match_results)
+
+            # If ALL sub-actions refused, treat the whole tick as refused
+            if not sub_execute_decisions:
+                # Re-run decide on first sub-action to get a RefuseDecision for _handle_refuse
+                first_ca = verdict.actions[0]
+                sub_verdict_0 = VerdictOk(actions=[first_ca], confidence=verdict.confidence)
+                first_match = self._matcher.match(first_ca, self._registry, self._graph)
+                refuse_decision = cast(
+                    RefuseDecision,
+                    decide(sub_verdict_0, first_match, action_text=action_text),
                 )
-                raise TypeError(f"Unhandled Decision type: {type(decision).__name__}")
+                return self._handle_refuse(
+                    decision=refuse_decision,
+                    verdict=verdict,
+                    tick_id_str=tick_id_str,
+                    tick_ctx=tick_ctx,
+                    start_time=start_time,
+                    classifier_in=classifier_in,
+                    classifier_out=classifier_out,
+                    action_text=action_text,
+                )
+
+            # At least one sub-action executes — run composite execute path
+            return self._handle_execute_composite(
+                decisions=sub_execute_decisions,
+                verdict=verdict,
+                classified_dicts=all_classified_dicts,
+                actor=actor,
+                tick_id_str=tick_id_str,
+                next_tick=next_tick,
+                pre_tick_snapshot_id=pre_tick_snapshot_id,
+                tick_ctx=tick_ctx,
+                start_time=start_time,
+                classifier_in=classifier_in,
+                classifier_out=classifier_out,
+                action_text=action_text,
+            )
 
     # =========================================================================
     # Path handlers
@@ -629,6 +671,296 @@ class SimulationEngine:
             action_text=action_text,
             decision_kind="execute",
             mechanic_id=decision.mechanic_id,
+            mutation_count=len(all_mutations),
+            observation_text=observation,
+            yielded=False,
+            refused=False,
+        )
+
+        return TickResult.ok(
+            tick_id=tick_id_str,
+            observation=observation,
+            trace=combined_trace,
+            projected_state=projection,
+        )
+
+    def _handle_execute_composite(
+        self,
+        *,
+        decisions: list[tuple[ExecuteDecision, ClassifiedAction]],
+        verdict: VerdictOk,
+        classified_dicts: list[dict],
+        actor: str,
+        tick_id_str: str,
+        next_tick: int,
+        pre_tick_snapshot_id: int,
+        tick_ctx: Any,
+        start_time: float,
+        classifier_in: int,
+        classifier_out: int,
+        action_text: str,
+    ) -> TickResult:
+        """Composite execute path: run each matched sub-action, combine traces.
+
+        Phase 16 D-01: iterates sub-actions in order; each sub-action runs
+        independently through ChainExecutionEngine. Check-failed sub-actions
+        are skipped (their trace recorded but no mutations applied) while
+        subsequent sub-actions continue. Conservation check runs once on all
+        combined mutations (T-16-04 mitigation — no double-count).
+        """
+        sub_traces: list[ExecutionTrace] = []
+        all_primary_mutations: list = []
+
+        for exec_decision, classified_action in decisions:
+            target_id = classified_action.target or actor
+            ctx = MechanicContext(
+                self._graph,
+                actor=actor,
+                target=target_id,
+                tick_id=tick_id_str,
+                universe_seed=self._config.universe_seed,
+            )
+            mechanic = self._registry.get_mechanic(exec_decision.mechanic_id)
+            chain_engine = ChainExecutionEngine(
+                involuntary_mechanics=self._registry.involuntary_mechanics(),
+                max_depth=self._config.max_chain_depth,
+            )
+            try:
+                primary_trace = chain_engine.execute(mechanic, ctx)
+            except Exception as exc:
+                logger.exception(
+                    "ChainExecutionEngine raised for sub-action %r during composite run_tick",
+                    classified_action.verb,
+                )
+                tick_ctx.set_summary(status="error", error=str(exc))
+                self._graph.restore(pre_tick_snapshot_id)
+                error_narrative = RefusalTemplate.render(
+                    "mechanic_check_failed",
+                    {"reason": f"engine error: {exc.__class__.__name__}"},
+                )
+                self._write_summary(
+                    tick_id_str=tick_id_str,
+                    action_text=action_text,
+                    decision=RefuseDecision(
+                        reason_code="engine_error",
+                        details={"reason": str(exc)},
+                    ),
+                    classified=verdict.classified,
+                    trace=None,
+                    observation_text=error_narrative,
+                    start_time=start_time,
+                    classifier_in=classifier_in,
+                    classifier_out=classifier_out,
+                    classified_actions=classified_dicts,
+                )
+                return TickResult.refused(
+                    tick_id=tick_id_str,
+                    observation=error_narrative,
+                    refusal_reason="engine_error",
+                )
+
+            tick_ctx.write_execution_trace(_trace_to_dict(primary_trace))
+            for mutation in collect_mutations(primary_trace):
+                tick_ctx.append_mutation(_mutation_to_dict(mutation))
+
+            # §E6: check() refused for this sub-action — skip mutations, continue
+            if not primary_trace.root.check_result.passed:
+                logger.debug(
+                    "Sub-action %r check failed; skipping mutations, continuing composite tick",
+                    classified_action.verb,
+                )
+                sub_traces.append(primary_trace)
+                continue
+
+            sub_traces.append(primary_trace)
+            all_primary_mutations.extend(collect_mutations(primary_trace))
+
+        # §E6: if ALL sub-actions had check() failures (no mutations produced), treat as refused.
+        # This preserves the single-sub-action §E6 contract: check-failed → honest refusal.
+        # For multi-sub-action composite ticks, this only triggers when every sub-action refused.
+        if not all_primary_mutations and all(not t.root.check_result.passed for t in sub_traces):
+            first_trace = sub_traces[0]
+            reasons = first_trace.root.check_result.reasons or []
+            reason_text = "; ".join(reasons) if reasons else "the attempt fails"
+            narrative = RefusalTemplate.render(
+                "mechanic_check_failed",
+                {"reason": reason_text},
+            )
+            tick_ctx.set_summary(
+                status="refused",
+                action_text=action_text,
+                decision_kind="refuse",
+                refused=True,
+                yielded=False,
+                refusal_reason="mechanic_check_failed",
+                mechanic_id=decisions[0][0].mechanic_id,
+            )
+            refuse_decision = RefuseDecision(
+                reason_code="mechanic_check_failed",
+                details={
+                    "reason": reason_text,
+                    "mechanic_id": decisions[0][0].mechanic_id,
+                },
+            )
+            self._write_summary(
+                tick_id_str=tick_id_str,
+                action_text=action_text,
+                decision=refuse_decision,
+                classified=verdict.classified,
+                trace=first_trace,
+                observation_text=narrative,
+                start_time=start_time,
+                classifier_in=classifier_in,
+                classifier_out=classifier_out,
+                classified_actions=classified_dicts,
+            )
+            return TickResult.refused(
+                tick_id=tick_id_str,
+                observation=narrative,
+                refusal_reason="mechanic_check_failed",
+            )
+
+        # Conservation check on all combined primary mutations (T-16-04: run once, no double-count)
+        if all_primary_mutations:
+            cons_verdict = self._conservation.verify(all_primary_mutations)
+            if cons_verdict.is_violation:
+                self._graph.restore(pre_tick_snapshot_id)
+                violated = next(iter(cons_verdict.violations))
+                narrative = RefusalTemplate.render(
+                    "conservation_violation",
+                    {"violated_property": violated},
+                )
+                tick_ctx.set_summary(
+                    status="conservation_violated",
+                    violated_property=violated,
+                    violations=cons_verdict.violations,
+                )
+                refuse_decision = RefuseDecision(
+                    reason_code="conservation_violation",
+                    details={"violated_property": violated},
+                )
+                self._write_summary(
+                    tick_id_str=tick_id_str,
+                    action_text=action_text,
+                    decision=refuse_decision,
+                    classified=verdict.classified,
+                    trace=sub_traces[0] if sub_traces else None,
+                    observation_text=narrative,
+                    start_time=start_time,
+                    classifier_in=classifier_in,
+                    classifier_out=classifier_out,
+                    classified_actions=classified_dicts,
+                )
+                return TickResult.refused(
+                    tick_id=tick_id_str,
+                    observation=narrative,
+                    refusal_reason="conservation_violation",
+                )
+
+        # Passive sweep (D-17)
+        sweep_trace_nodes = self._run_passive_sweep(
+            actor=actor,
+            tick_id_str=tick_id_str,
+            primary_mutations=all_primary_mutations,
+        )
+        sweep_mutations = [m for node in sweep_trace_nodes for m in node.mutations]
+        all_mutations = all_primary_mutations + sweep_mutations
+
+        # Re-verify conservation across combined mutations
+        if all_mutations:
+            cons_verdict_with_sweep = self._conservation.verify(all_mutations)
+            if cons_verdict_with_sweep.is_violation:
+                self._graph.restore(pre_tick_snapshot_id)
+                violated = next(iter(cons_verdict_with_sweep.violations))
+                narrative = RefusalTemplate.render(
+                    "conservation_violation",
+                    {"violated_property": violated},
+                )
+                tick_ctx.set_summary(status="conservation_violated_in_sweep")
+                refuse_decision = RefuseDecision(
+                    reason_code="conservation_violation",
+                    details={"violated_property": violated},
+                )
+                self._write_summary(
+                    tick_id_str=tick_id_str,
+                    action_text=action_text,
+                    decision=refuse_decision,
+                    classified=verdict.classified,
+                    trace=sub_traces[0] if sub_traces else None,
+                    observation_text=narrative,
+                    start_time=start_time,
+                    classifier_in=classifier_in,
+                    classifier_out=classifier_out,
+                    classified_actions=classified_dicts,
+                )
+                return TickResult.refused(
+                    tick_id=tick_id_str,
+                    observation=narrative,
+                    refusal_reason="conservation_violation",
+                )
+
+        # Combine all sub-action traces: use first as root, append others + sweep as children
+        if sub_traces:
+            first_trace = sub_traces[0]
+            extra_children = []
+            for extra_trace in sub_traces[1:]:
+                extra_children.append(extra_trace.root)
+            extra_children.extend(sweep_trace_nodes)
+            combined_trace = _trace_with_sweep(first_trace, extra_children)
+        else:
+            combined_trace = ExecutionTrace(
+                root=TraceNode(
+                    mechanic_id="composite_noop",
+                    actor=actor,
+                    target=actor,
+                    check_result=sub_traces[0].root.check_result
+                    if sub_traces
+                    else __import__(
+                        "token_world.mechanic.protocol", fromlist=["CheckResult"]
+                    ).CheckResult(passed=True),
+                    mutations=[],
+                    children=sweep_trace_nodes,
+                ),
+                total_mechanics_executed=len(sweep_trace_nodes),
+                max_depth_reached=0,
+                truncated=False,
+            )
+
+        # Stage 5: Observe
+        projection = self._projector.project_for(actor)
+        observation = self._observer.synthesize(
+            projection=projection,
+            trace=combined_trace,
+            refusal_narrative=None,
+            actor_id=actor,
+            action_text=action_text,
+            tick_diag_ctx=tick_ctx,
+        )
+        observer_in = getattr(self._observer, "last_input_tokens", 0)
+        observer_out = getattr(self._observer, "last_output_tokens", 0)
+
+        # Write tick summary with composite classified_actions list
+        primary_decision = decisions[0][0]
+        self._write_summary(
+            tick_id_str=tick_id_str,
+            action_text=action_text,
+            decision=primary_decision,
+            classified=verdict.classified,
+            trace=combined_trace,
+            observation_text=observation,
+            start_time=start_time,
+            classifier_in=classifier_in,
+            classifier_out=classifier_out,
+            observer_in=observer_in,
+            observer_out=observer_out,
+            classified_actions=classified_dicts,
+        )
+
+        tick_ctx.set_summary(
+            status="ok",
+            action_text=action_text,
+            decision_kind="execute",
+            mechanic_id=primary_decision.mechanic_id,
             mutation_count=len(all_mutations),
             observation_text=observation,
             yielded=False,
@@ -1017,6 +1349,7 @@ class SimulationEngine:
         observer_in: int = 0,
         observer_out: int = 0,
         long_running_action: dict | None = None,
+        classified_actions: list[dict] | None = None,
     ) -> None:
         """Build and persist the per-tick tick_summary JSON (D-20)."""
         duration_ms = int((time.perf_counter() - start_time) * 1000)
@@ -1033,6 +1366,7 @@ class SimulationEngine:
             observer_input_tokens=observer_in,
             observer_output_tokens=observer_out,
             long_running_action=long_running_action,
+            classified_actions=classified_actions,
         )
         self._summary_writer.write(summary, self._universe_path)
         # D-19: opportunistic compression after every tick write.

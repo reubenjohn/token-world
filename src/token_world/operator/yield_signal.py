@@ -39,6 +39,10 @@ class YieldSignal:
     mechanic, writes it to ``mechanics/<id>.py``, and calls ``resume_tick``
     to continue the halted tick.
 
+    In composite-action ticks (Phase 16 D-01), a YieldSignal is emitted for the first
+    sub-action that has no matching mechanic; subsequent sub-actions are not evaluated
+    until the operator authors the missing mechanic and calls ``resume_tick``.
+
     Locked in Phase 4.1; Phase 5 engine produces instances of exactly this
     shape. See ``.planning/phases/04.1-operator-agent-harness/04.1-RESEARCH.md``
     §"Pattern 1: YieldSignal — Locked Contract" for the per-field rationale.
