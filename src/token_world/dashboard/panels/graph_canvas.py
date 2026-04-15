@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any
 
 from token_world.graph import KnowledgeGraph
+from token_world.inspect._shared import iter_tick_files, read_json_file, tick_id_sort_key
 from token_world.viz.mermaid import escape_label
 
 MAX_NODES = 60
@@ -299,6 +300,41 @@ def _safe_mermaid_id(raw: str) -> str:
     return safe
 
 
+def _load_recent_actions(universe_dir: Path, agent_id: str, limit: int = 10) -> list[str]:
+    """Scan tick summaries for recent action texts by this agent.
+
+    T-17-03-03: wrapped in try/except; returns [] on any error.
+
+    Args:
+        universe_dir: Universe root directory.
+        agent_id: Agent node id to filter ticks by.
+        limit: Maximum number of recent actions to return (default 10).
+
+    Returns:
+        List of action_text strings, most-recent last.
+    """
+    try:
+        ticks_dir = universe_dir / "tick_summaries" / "ticks"
+        matches: list[tuple[Any, str]] = []
+        for path in iter_tick_files(ticks_dir):
+            data = read_json_file(path)
+            if data is None:
+                continue
+            classified = data.get("classified_action") or {}
+            actor = str(classified.get("actor") or "").strip()
+            if actor != agent_id:
+                continue
+            action_text = data.get("action_text")
+            if not action_text:
+                continue
+            tick_id = str(data.get("tick_id") or path.stem.removeprefix("tick_"))
+            matches.append((tick_id_sort_key(tick_id), action_text))
+        matches.sort(key=lambda t: t[0])
+        return [text for _, text in matches[-limit:]]
+    except Exception:  # noqa: BLE001 — dashboard must never crash
+        return []
+
+
 def compute_graph_signature(snapshot: dict[str, Any]) -> tuple[int, int, float]:
     """Cheap change-detection signature for the graph panel (§A7).
 
@@ -360,6 +396,17 @@ def mount_graph_panel(
             pretty = json.dumps(props, indent=2, sort_keys=True, default=str)
             ui.code(pretty, language="json").classes("w-full text-xs max-h-[380px] overflow-auto")
 
+    def _rebuild_agent_drawer(drawer_column: Any, nid: str, properties: dict[str, Any]) -> None:
+        """Render the agent inspector for agent-typed nodes (SC-4/§A7)."""
+        from token_world.dashboard.panels.agent_inspector import (
+            agent_summary_from_props,
+            mount_agent_inspector,
+        )
+
+        summary = agent_summary_from_props(nid, properties)
+        recent = _load_recent_actions(universe_dir, nid)
+        mount_agent_inspector(summary, recent, drawer_column)
+
     with container:
         status_label = ui.label("Loading graph…").classes("text-xs text-slate-400")
         canvas_row = ui.row().classes("w-full gap-4 items-start")
@@ -373,7 +420,10 @@ def mount_graph_panel(
         # §A7: drawer rebuild is USER-driven — it only ever happens here,
         # never inside the poll handler, so scroll position + open state
         # survive graph updates.
-        _rebuild_drawer(drawer_col)
+        if properties.get("type") == "agent":
+            _rebuild_agent_drawer(drawer_col, nid, properties)
+        else:
+            _rebuild_drawer(drawer_col)
 
     def _rebuild() -> None:
         snapshot = load_graph_snapshot(universe_dir)
