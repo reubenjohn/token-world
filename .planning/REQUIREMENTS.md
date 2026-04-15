@@ -680,9 +680,9 @@ otherwise.
 - Tests: fixture with mixed honest + false-EXECUTED records; assert
   correct classification.
 
-**Status:** Active (optional)
+**Status:** Done — Phase 19 (`956ff43`)
 **Source:** SESSION-6-REPORT "Remaining Work" section
-**Target phase:** TBD
+**Target phase:** 19
 
 ### REQ-V12-TOOLING-02 — `seed_starter_universe.py --preserve-mechanics` flag
 
@@ -899,7 +899,7 @@ owned by the v2+ backlog.)
 | REQ-V12-EMERGE-01 | Phase 17 | active | — |
 | REQ-V12-EMERGE-02 | Phase 17 | active | — |
 | REQ-V12-OPS-01 | Phase 17 | active | — |
-| REQ-V12-OPS-02 | Phase 19 | active | — (optional) |
+| REQ-V12-OPS-02 | Phase 19 | done | `956ff43` |
 | REQ-V12-TOOLING-02 | Phase 14 | active | — |
 | REQ-V12-GRAPH-01 | Phase 18 | active | — |
 | REQ-V12-GRAPH-02 | Phase 18 | active | — |

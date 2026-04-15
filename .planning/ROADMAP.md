@@ -67,7 +67,7 @@ Phase list:
 - [x] Phase 16: Composite actions (1 REQ, architectural — design + implementation waves) (completed 2026-04-15)
 - [x] Phase 17: Operator & dev ergonomics (8 REQs) (completed 2026-04-15)
 - [ ] Phase 18: Graph conventions + engine audit + chain seed corpus (6 REQs)
-- [ ] Phase 19: Historical tick-summary migration (1 REQ, optional)
+- [x] Phase 19: Historical tick-summary migration (1 REQ, optional) (completed 2026-04-15)
 
 ### Phase 12.5 — v1.2 Warm-up (estimate: 0 plans; shipped direct-edit)
 
@@ -173,7 +173,7 @@ Success criteria:
 **Goal:** Backfill truthfulness into the willowbrook run artefacts that pre-date REQ-V12-ENGINE-01 (ticks 22, 34, 38) so downstream KPIs and the playtest scorer stop double-counting false-EXECUTED records forever.
 **Depends on:** Phase 13 (KPI scorer exists so the migrated data has a consumer)
 **Requirements:** REQ-V12-OPS-02
-**Plans:** TBD (skip if the willowbrook archive gets retired before this phase is reached — OPTIONAL per REQUIREMENTS.md)
+**Plans:** 1/1 plans complete
 
 Success criteria:
 1. SC-1: Operator runs `scripts/migrate_tick_summaries.py willowbrook --dry-run` and sees a diff of every pre-ENGINE-01 tick whose primary-mechanic check would have failed under current engine logic.
@@ -218,7 +218,7 @@ Full phase detail moved to [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.
 | 16. Composite actions | v1.2 | 2/2 | Complete   | 2026-04-14 |
 | 17. Operator & dev ergonomics | v1.2 | 4/4 | Complete   | 2026-04-14 |
 | 18. Graph conventions + engine audit + chain seed corpus | v1.2 | 3/3 | Complete   | 2026-04-14 |
-| 19. Historical tick-summary migration (OPTIONAL) | v1.2 | 0/0 | Skipped   | 2026-04-14 |
+| 19. Historical tick-summary migration (OPTIONAL) | v1.2 | 1/1 | Complete   | 2026-04-15 |
 
 ---
 
