@@ -64,7 +64,7 @@ Phase list:
 - [x] Phase 13: Quality KPIs substrate (1 REQ) (completed 2026-04-14)
 - [x] Phase 14: Engine polish + seed corpus hygiene (3 REQs) (completed 2026-04-14)
 - [x] Phase 15: Multi-agent dashboard scaffold (1 REQ) (completed 2026-04-15)
-- [ ] Phase 16: Composite actions (1 REQ, architectural — design + implementation waves)
+- [x] Phase 16: Composite actions (1 REQ, architectural — design + implementation waves) (completed 2026-04-15)
 - [ ] Phase 17: Operator & dev ergonomics (8 REQs)
 - [ ] Phase 18: Graph conventions + engine audit + chain seed corpus (6 REQs)
 - [ ] Phase 19: Historical tick-summary migration (1 REQ, optional)
@@ -133,7 +133,7 @@ Success criteria:
 **Goal:** One agent action can fire multiple primary mechanics within a tick, unblocking richer narrative ("I open the chest and take the key") without changing the mechanic protocol. Architectural; the design wave must land and close the design gate before implementation starts.
 **Depends on:** Phase 12.5 (ENGINE-01 honest refusal path; a composite tick's sub-actions can now refuse honestly instead of silently)
 **Requirements:** REQ-V12-ENGINE-04
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Success criteria:
 1. SC-1: `docs/design/composite-actions.md` (v1.2 D-01) chooses between the three options documented in MORNING-HANDOFF §E1, with a decision rationale referenced from PROJECT.md Key Decisions.
@@ -215,7 +215,7 @@ Full phase detail moved to [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.
 | 13. Quality KPIs substrate | v1.2 | 2/2 | Complete   | 2026-04-14 |
 | 14. Engine polish + seed corpus hygiene | v1.2 | 3/3 | Complete   | 2026-04-14 |
 | 15. Multi-agent dashboard scaffold | v1.2 | 1/1 | Complete   | 2026-04-15 |
-| 16. Composite actions | v1.2 | 1/2 | In Progress|  |
+| 16. Composite actions | v1.2 | 2/2 | Complete   | 2026-04-15 |
 | 17. Operator & dev ergonomics | v1.2 | 0/0 | Planning | CLI-03/04, DASHBOARD-07/08/09, EMERGE-01/02, OPS-01 |
 | 18. Graph conventions + engine audit + chain seed corpus | v1.2 | 0/0 | Planning | ENGINE-03, GRAPH-01..04, DASHBOARD-06 |
 | 19. Historical tick-summary migration (OPTIONAL) | v1.2 | 0/0 | Planning | OPS-02 — skip if archive retired first |
