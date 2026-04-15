@@ -241,6 +241,7 @@ class TestSeedUniverse:
             "belief_update",
             "consume",
             "contagion",
+            "contains_edge_watcher",
             "cooperate",
             "craft",
             "daydream",
@@ -257,6 +258,7 @@ class TestSeedUniverse:
             "hum",
             "illumination",
             "look",
+            "mood_change_watcher",
             "movement",
             "observation",
             "passage_move",
@@ -270,6 +272,7 @@ class TestSeedUniverse:
             "speak",
             "teach",
             "tell",
+            "temperature_watcher",
             "terrain_move",
             "trade",
             "try_door",
@@ -416,7 +419,9 @@ class TestQueryByTag:
 
         registry = MechanicRegistry(tmp_universe / "mechanics", universe_dir=tmp_universe)
         results = registry.query_by_tag("core")
-        assert len(results) == 3
+        # Phase 18 added 3 chain seeds (mood_change_watcher, contains_edge_watcher,
+        # temperature_watcher) all tagged "core" — bumped from 3 to 6.
+        assert len(results) == 6
 
     def test_query_by_tag_returns_matching_mechanics(self, tmp_path: Path) -> None:
         """query_by_tag returns only mechanics whose tags contain the query tag."""
